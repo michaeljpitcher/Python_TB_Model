@@ -4,8 +4,8 @@ import itertools
 
 
 class Topology:
-
-    def __init__(self, tile_arrangement, total_shape, attributes, parameters, blood_vessel_local = None):
+    def __init__(self, tile_arrangement, total_shape, attributes, parameters, blood_vessel_local=[],
+                 fast_bacteria_local=[], slow_bacteria_local=[]):
 
         self.number_of_tiles = reduce(lambda x, y: x * y, tile_arrangement)
         self.total_shape = np.array(total_shape)
@@ -16,7 +16,8 @@ class Topology:
 
         for i in range(self.number_of_tiles):
             # TODO
-            automaton = Automaton(self.tile_shape, i, attributes, parameters, blood_vessel_local[i], [], [], [])
+            automaton = Automaton(self.tile_shape, i, attributes, parameters, blood_vessel_local[i],
+                                  fast_bacteria_local[i], slow_bacteria_local[i], [])
             self.automata.append(automaton)
 
         self.external_addresses_required = self.get_external_addresses_required(self.automata[0])
@@ -49,14 +50,20 @@ class TwoDimensionalTopology(Topology):
     2d Grid Topology (amend normalise address if Toroid needed)
     """
 
-    def __init__(self, tile_arrangement, total_shape, attributes, parameters, blood_vessel_global = None):
+    def __init__(self, tile_arrangement, total_shape, attributes, parameters, blood_vessel_global=[],
+                 fast_bacteria_global=[], slow_bacteria_global=[]):
         assert len(total_shape) == 2
         self.number_of_tiles = reduce(lambda x, y: x * y, tile_arrangement)
         self.total_shape = np.array(total_shape)
         self.tile_shape = self.total_shape / tile_arrangement
         self.tile_arrangement = tile_arrangement
-        blood_vessel_local = self.get_blood_vessel_local(blood_vessel_global)
-        Topology.__init__(self, tile_arrangement, total_shape, attributes, parameters, blood_vessel_local)
+
+        # Initialise
+        blood_vessel_local = self.get_local_addresses(blood_vessel_global)
+        fast_bacteria_local = self.get_local_addresses(fast_bacteria_global)
+        slow_bacteria_local = self.get_local_addresses(slow_bacteria_global)
+
+        Topology.__init__(self, tile_arrangement, total_shape, attributes, parameters, blood_vessel_local, fast_bacteria_local, slow_bacteria_local)
 
         # Create a list detailing where each tile's origin (local 0,0) lies in relation to the global grid
         self.origins = []
@@ -158,18 +165,17 @@ class TwoDimensionalTopology(Topology):
 
         return halos
 
-    def get_blood_vessel_local(self, blood_vessel_global):
+    def get_local_addresses(self, global_addresses):
 
-        blood_vessel_local = []
+        local_addresses = []
         for i in range(self.number_of_tiles):
-            blood_vessel_local.append([])
+            local_addresses.append([])
 
-        for global_address in blood_vessel_global:
+        for global_address in global_addresses:
             tile_id, local_address = self.global_to_local(global_address)
-            blood_vessel_local[tile_id].append(local_address)
+            local_addresses[tile_id].append(local_address)
 
-        return blood_vessel_local
-
+        return local_addresses
 
 class Tile:
 
@@ -433,18 +439,30 @@ class Automaton(Tile, Neighbourhood):
         Neighbourhood.__init__(self, len(shape), parameters['max_depth'])
         self.tile_id = tile_id
         self.parameters = parameters
+        self.agents = []
 
         # INITIAL
         self.initialise_blood_vessels(blood_vessels)
+        self.initialise_bacteria(fast_bacteria, slow_bacteria)
         # TODO - agents initial
 
         # COPY GRID TO WORK GRID
         self.create_work_grid()
 
     def initialise_blood_vessels(self, addresses):
-
         for address in addresses:
             self.set_attribute_grid(address,'blood_vessel',1.5)
+
+    def initialise_bacteria(self, fast_bacteria, slow_bacteria):
+
+        for address in fast_bacteria:
+            new_bacteria = Bacteria(address, "fast")
+            self.agents.append(new_bacteria)
+            self.set_attribute_grid(address,'contents',new_bacteria)
+        for address in slow_bacteria:
+            new_bacteria = Bacteria(address, "slow")
+            self.agents.append(new_bacteria)
+            self.set_attribute_grid(address,'contents',new_bacteria)
 
 
 class Agent:
