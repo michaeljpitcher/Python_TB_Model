@@ -216,11 +216,12 @@ class TopologyTestCase(unittest.TestCase):
         params['max_depth'] = 3
         atts = ['a', 'b', 'c', 'blood_vessel', 'contents']
 
-        bv = [[[1,1]],[],[],[]]
-        fb = [[],[[1,1]],[],[]]
-        sb = [[],[],[],[[3,3]]]
+        bv = [[[1, 1]], [], [], []]
+        fb = [[], [[1, 1]], [], []]
+        sb = [[], [], [], [[3, 3]]]
+        m = [[], [], [[2, 2]], []]
 
-        self.topology = TB_Model.Topology([2, 2], [10, 10], atts, params, bv, fb, sb)
+        self.topology = TB_Model.Topology([2, 2], [10, 10], atts, params, bv, fb, sb, m)
 
     def test_init(self):
         self.assertEqual(len(self.topology.automata),4)
@@ -259,7 +260,7 @@ class TwoDimensionalTopologyTestCase(unittest.TestCase):
         params = dict()
         params['max_depth'] = 3
         atts = ['a', 'b', 'c', 'blood_vessel', 'contents']
-        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, [[3,3]], [[1,1]], [[9,9]])
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, [[3,3]], [[1,1]], [[9,9]], [[7,1]])
 
     def test_init(self):
         self.assertSequenceEqual(self.topology.origins,[[0,0], [0,5], [5,0], [5,5]])

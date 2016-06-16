@@ -5,7 +5,7 @@ import itertools
 
 class Topology:
     def __init__(self, tile_arrangement, total_shape, attributes, parameters, blood_vessel_local=[],
-                 fast_bacteria_local=[], slow_bacteria_local=[]):
+                 fast_bacteria_local=[], slow_bacteria_local=[], macrophages_local = []):
 
         self.number_of_tiles = reduce(lambda x, y: x * y, tile_arrangement)
         self.total_shape = np.array(total_shape)
@@ -17,7 +17,7 @@ class Topology:
         for i in range(self.number_of_tiles):
             # TODO
             automaton = Automaton(self.tile_shape, i, attributes, parameters, blood_vessel_local[i],
-                                  fast_bacteria_local[i], slow_bacteria_local[i], [])
+                                  fast_bacteria_local[i], slow_bacteria_local[i], macrophages_local[i])
             self.automata.append(automaton)
 
         self.external_addresses_required = self.get_external_addresses_required(self.automata[0])
@@ -51,7 +51,7 @@ class TwoDimensionalTopology(Topology):
     """
 
     def __init__(self, tile_arrangement, total_shape, attributes, parameters, blood_vessel_global=[],
-                 fast_bacteria_global=[], slow_bacteria_global=[]):
+                 fast_bacteria_global=[], slow_bacteria_global=[], macrophages_global = []):
         assert len(total_shape) == 2
         self.number_of_tiles = reduce(lambda x, y: x * y, tile_arrangement)
         self.total_shape = np.array(total_shape)
@@ -62,8 +62,10 @@ class TwoDimensionalTopology(Topology):
         blood_vessel_local = self.get_local_addresses(blood_vessel_global)
         fast_bacteria_local = self.get_local_addresses(fast_bacteria_global)
         slow_bacteria_local = self.get_local_addresses(slow_bacteria_global)
+        macrophages_local = self.get_local_addresses(macrophages_global)
 
-        Topology.__init__(self, tile_arrangement, total_shape, attributes, parameters, blood_vessel_local, fast_bacteria_local, slow_bacteria_local)
+        Topology.__init__(self, tile_arrangement, total_shape, attributes, parameters, blood_vessel_local,
+                          fast_bacteria_local, slow_bacteria_local, macrophages_local)
 
         # Create a list detailing where each tile's origin (local 0,0) lies in relation to the global grid
         self.origins = []
@@ -444,7 +446,7 @@ class Automaton(Tile, Neighbourhood):
         # INITIAL
         self.initialise_blood_vessels(blood_vessels)
         self.initialise_bacteria(fast_bacteria, slow_bacteria)
-        # TODO - agents initial
+        self.initialise_macrophages(macrophages)
 
         # COPY GRID TO WORK GRID
         self.create_work_grid()
@@ -463,6 +465,13 @@ class Automaton(Tile, Neighbourhood):
             new_bacteria = Bacteria(address, "slow")
             self.agents.append(new_bacteria)
             self.set_attribute_grid(address,'contents',new_bacteria)
+
+    def initialise_macrophages(self, addresses):
+
+        for address in addresses:
+            new_macrophage = Macrophage(address, "resting")
+            self.agents.append(new_macrophage)
+            self.set_attribute_grid(address, 'contents', new_macrophage)
 
 
 class Agent:
