@@ -179,6 +179,7 @@ class TwoDimensionalTopology(Topology):
 
         return local_addresses
 
+
 class Tile:
 
     def __init__(self, shape, attributes):
@@ -441,12 +442,15 @@ class Automaton(Tile, Neighbourhood):
         Neighbourhood.__init__(self, len(shape), parameters['max_depth'])
         self.tile_id = tile_id
         self.parameters = parameters
+
+        self.blood_vessels = []
         self.agents = []
 
         # INITIAL
         self.initialise_blood_vessels(blood_vessels)
         self.initialise_bacteria(fast_bacteria, slow_bacteria)
         self.initialise_macrophages(macrophages)
+        self.initialise_oxygen_levels()
 
         # COPY GRID TO WORK GRID
         self.create_work_grid()
@@ -454,6 +458,7 @@ class Automaton(Tile, Neighbourhood):
     def initialise_blood_vessels(self, addresses):
         for address in addresses:
             self.set_attribute_grid(address,'blood_vessel',1.5)
+            self.blood_vessels.append(address)
 
     def initialise_bacteria(self, fast_bacteria, slow_bacteria):
 
@@ -472,6 +477,11 @@ class Automaton(Tile, Neighbourhood):
             new_macrophage = Macrophage(address, "resting")
             self.agents.append(new_macrophage)
             self.set_attribute_grid(address, 'contents', new_macrophage)
+
+    def initialise_oxygen_levels(self):
+
+        for address in self.blood_vessels:
+            self.set_attribute_grid(address, 'oxygen', self.parameters['initial_oxygen'])
 
 
 class Agent:

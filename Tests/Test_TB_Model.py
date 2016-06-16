@@ -214,7 +214,8 @@ class TopologyTestCase(unittest.TestCase):
     def setUp(self):
         params = dict()
         params['max_depth'] = 3
-        atts = ['a', 'b', 'c', 'blood_vessel', 'contents']
+        params['initial_oxygen'] = 1.0
+        atts = ['a', 'b', 'c', 'blood_vessel', 'contents', 'oxygen']
 
         bv = [[[1, 1]], [], [], []]
         fb = [[], [[1, 1]], [], []]
@@ -259,7 +260,8 @@ class TwoDimensionalTopologyTestCase(unittest.TestCase):
     def setUp(self):
         params = dict()
         params['max_depth'] = 3
-        atts = ['a', 'b', 'c', 'blood_vessel', 'contents']
+        params['initial_oxygen'] = 1.0
+        atts = ['a', 'b', 'c', 'blood_vessel', 'contents', 'oxygen']
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, [[3,3]], [[1,1]], [[9,9]], [[7,1]])
 
     def test_init(self):
@@ -326,9 +328,10 @@ class TwoDimensionalTopologyTestCase(unittest.TestCase):
         self.assertSequenceEqual(self.topology.local_to_global(3, [2, -3]), [7, 2])
 
     def test_local_to_local(self):
-        self.attributes = ['a', 'blood_vessel']
+        self.attributes = ['a', 'blood_vessel', 'oxygen']
         self.parameters = dict()
         self.parameters['max_depth'] = 1
+        self.parameters['initial_oxygen'] = 1.0
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [6, 6], self.attributes, self.parameters,[[3,3]])
 
         self.assertSequenceEqual(self.topology.local_to_local(0, [0, 4], 1), [0, 1])
@@ -343,9 +346,10 @@ class TwoDimensionalTopologyTestCase(unittest.TestCase):
         self.assertSequenceEqual(self.topology.local_to_local(3, [0, -2], 2), [0, 1])
 
     def test_create_halos(self):
-        self.attributes = ['a', 'blood_vessel']
+        self.attributes = ['a', 'blood_vessel', 'oxygen']
         self.parameters = dict()
         self.parameters['max_depth'] = 1
+        self.parameters['initial_oxygen'] = 1.0
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [6, 6], self.attributes, self.parameters, [[3,3]])
 
         tile_id = 0
@@ -440,9 +444,10 @@ class TwoDimensionalTopologyTestCase(unittest.TestCase):
                 self.assertEqual(halos[index][addresses.index([3, -1])], None)
 
     def test_get_external(self):
-        self.attributes = ['a', 'blood_vessel']
+        self.attributes = ['a', 'blood_vessel', 'oxygen']
         self.parameters = dict()
         self.parameters['max_depth'] = 1
+        self.parameters['initial_oxygen'] = 1.0
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [6, 6], self.attributes, self.parameters, [[3,3]])
 
         tile_id = 0
