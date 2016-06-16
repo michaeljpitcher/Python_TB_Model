@@ -4,6 +4,7 @@ import itertools
 
 
 class Topology:
+
     def __init__(self, tile_arrangement, total_shape, attributes, parameters, blood_vessel_local=[],
                  fast_bacteria_local=[], slow_bacteria_local=[], macrophages_local = []):
 
@@ -114,7 +115,7 @@ class TwoDimensionalTopology(Topology):
 
     def global_to_local(self, global_address):
         if global_address is None:
-            return None
+            return [None, None]
 
         x, y = global_address
         tile_rows, tile_cols = self.tile_shape
@@ -356,12 +357,6 @@ class Neighbourhood:
         self.neighbour_table = self.construct_neighbour_table(max_depth)
 
     def construct_neighbour_table(self, max_depth):
-        """
-        Create a list of relative neighbour addresses
-        :param depth:
-        :return:
-        """
-
         table = dict()
 
         for d in range(max_depth):
@@ -457,7 +452,7 @@ class Automaton(Tile, Neighbourhood):
 
     def initialise_blood_vessels(self, addresses):
         for address in addresses:
-            self.set_attribute_grid(address,'blood_vessel',1.5)
+            self.set_attribute_grid(address, 'blood_vessel', 1.5)
             self.blood_vessels.append(address)
 
     def initialise_bacteria(self, fast_bacteria, slow_bacteria):
@@ -465,11 +460,11 @@ class Automaton(Tile, Neighbourhood):
         for address in fast_bacteria:
             new_bacteria = Bacteria(address, "fast")
             self.agents.append(new_bacteria)
-            self.set_attribute_grid(address,'contents',new_bacteria)
+            self.set_attribute_grid(address, 'contents', new_bacteria)
         for address in slow_bacteria:
             new_bacteria = Bacteria(address, "slow")
             self.agents.append(new_bacteria)
-            self.set_attribute_grid(address,'contents',new_bacteria)
+            self.set_attribute_grid(address, 'contents', new_bacteria)
 
     def initialise_macrophages(self, addresses):
 
