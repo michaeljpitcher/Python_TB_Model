@@ -158,6 +158,70 @@ class TileTestCase(unittest.TestCase):
         # TODO - expect exception
         # self.tile.set_attribute_grid([2, 2], 'not set', 99.0)
 
+    def test_initialise(self):
+
+        attributes = ['a','b']
+        values = [range(25), range(25,50)]
+
+        self.tile.initialise(attributes, values)
+
+        self.assertEqual(self.tile.grid[0, 0]['a'], 0)
+        self.assertEqual(self.tile.grid[0, 1]['a'], 1)
+        self.assertEqual(self.tile.grid[0, 2]['a'], 2)
+        self.assertEqual(self.tile.grid[0, 3]['a'], 3)
+        self.assertEqual(self.tile.grid[0, 4]['a'], 4)
+        self.assertEqual(self.tile.grid[1, 0]['a'], 5)
+        self.assertEqual(self.tile.grid[1, 1]['a'], 6)
+        self.assertEqual(self.tile.grid[1, 2]['a'], 7)
+        self.assertEqual(self.tile.grid[1, 3]['a'], 8)
+        self.assertEqual(self.tile.grid[1, 4]['a'], 9)
+        self.assertEqual(self.tile.grid[2, 0]['a'], 10)
+        self.assertEqual(self.tile.grid[2, 1]['a'], 11)
+        self.assertEqual(self.tile.grid[2, 2]['a'], 12)
+        self.assertEqual(self.tile.grid[2, 3]['a'], 13)
+        self.assertEqual(self.tile.grid[2, 4]['a'], 14)
+        self.assertEqual(self.tile.grid[3, 0]['a'], 15)
+        self.assertEqual(self.tile.grid[3, 1]['a'], 16)
+        self.assertEqual(self.tile.grid[3, 2]['a'], 17)
+        self.assertEqual(self.tile.grid[3, 3]['a'], 18)
+        self.assertEqual(self.tile.grid[3, 4]['a'], 19)
+        self.assertEqual(self.tile.grid[4, 0]['a'], 20)
+        self.assertEqual(self.tile.grid[4, 1]['a'], 21)
+        self.assertEqual(self.tile.grid[4, 2]['a'], 22)
+        self.assertEqual(self.tile.grid[4, 3]['a'], 23)
+        self.assertEqual(self.tile.grid[4, 4]['a'], 24)
+
+        self.assertEqual(self.tile.grid[0, 0]['b'], 25)
+        self.assertEqual(self.tile.grid[0, 1]['b'], 26)
+        self.assertEqual(self.tile.grid[0, 2]['b'], 27)
+        self.assertEqual(self.tile.grid[0, 3]['b'], 28)
+        self.assertEqual(self.tile.grid[0, 4]['b'], 29)
+        self.assertEqual(self.tile.grid[1, 0]['b'], 30)
+        self.assertEqual(self.tile.grid[1, 1]['b'], 31)
+        self.assertEqual(self.tile.grid[1, 2]['b'], 32)
+        self.assertEqual(self.tile.grid[1, 3]['b'], 33)
+        self.assertEqual(self.tile.grid[1, 4]['b'], 34)
+        self.assertEqual(self.tile.grid[2, 0]['b'], 35)
+        self.assertEqual(self.tile.grid[2, 1]['b'], 36)
+        self.assertEqual(self.tile.grid[2, 2]['b'], 37)
+        self.assertEqual(self.tile.grid[2, 3]['b'], 38)
+        self.assertEqual(self.tile.grid[2, 4]['b'], 39)
+        self.assertEqual(self.tile.grid[3, 0]['b'], 40)
+        self.assertEqual(self.tile.grid[3, 1]['b'], 41)
+        self.assertEqual(self.tile.grid[3, 2]['b'], 42)
+        self.assertEqual(self.tile.grid[3, 3]['b'], 43)
+        self.assertEqual(self.tile.grid[3, 4]['b'], 44)
+        self.assertEqual(self.tile.grid[4, 0]['b'], 45)
+        self.assertEqual(self.tile.grid[4, 1]['b'], 46)
+        self.assertEqual(self.tile.grid[4, 2]['b'], 47)
+        self.assertEqual(self.tile.grid[4, 3]['b'], 48)
+        self.assertEqual(self.tile.grid[4, 4]['b'], 49)
+
+        for x in range(5):
+            for y in range(5):
+                for att in ['a','b','c']:
+                    self.assertEqual(self.tile.grid[x,y][att], self.tile.work_grid[x,y][att])
+
 
 class NeighbourhoodTestCase(unittest.TestCase):
 
@@ -198,6 +262,15 @@ class NeighbourhoodTestCase(unittest.TestCase):
                                [4, 2]])
         nvn_2_exc = self.neighbourhood.neighbours_von_neumann([2, 2], 2, False)
         self.assertItemsEqual(nvn_2_exc, [[0, 2], [1, 1], [1, 3], [2, 0], [2, 4], [3, 1], [3, 3], [4, 2]])
+
+
+class AutomatonTestCase(unittest.TestCase):
+
+    def setUp(self):
+        params = dict()
+        params['max_depth'] = 3
+        atts = ['a','b','c']
+        self.automaton = TB_Model.Automaton([5,5], 1, atts, params)
 
 
 

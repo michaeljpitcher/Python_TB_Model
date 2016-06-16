@@ -154,6 +154,20 @@ class Tile:
         else:  # Specified attribute hasn't been set as a possibility
             raise Exception('Attribute {0} does not exist'.format(attribute))
 
+    def initialise(self, attributes, values):
+
+        # Set all the initial values
+        for index in range(len(values)):
+            value_list = values[index]
+            assert len(value_list) == self.size
+            attribute = attributes[index]
+            for cell_index in range(len(value_list)):
+                value = value_list[cell_index]
+                address = self.location_to_address(cell_index)
+                self.set_attribute_grid(address, attribute, value)
+
+        # Clone the work grid
+        self.create_work_grid()
 
 class Neighbourhood:
 
@@ -239,3 +253,17 @@ class Neighbourhood:
                 reduced_table.append(k)
 
         return self.calculate_neighbours_locations(address, reduced_table)
+
+
+class Automaton(Tile, Neighbourhood):
+
+    def __init__(self, shape, tile_id, attributes, parameters):
+        Tile.__init__(self, shape, attributes)
+        Neighbourhood.__init__(self, len(shape), parameters['max_depth'])
+        self.tile_id = tile_id
+        self.parameters = parameters
+
+
+
+
+
