@@ -1,5 +1,6 @@
 import numpy as np
 import math
+import itertools
 
 class Tile:
 
@@ -152,3 +153,89 @@ class Tile:
             self.work_grid[address][attribute] = value
         else:  # Specified attribute hasn't been set as a possibility
             raise Exception('Attribute {0} does not exist'.format(attribute))
+
+
+class Neighbourhood:
+
+    def __init__(self, dimensions, max_depth):
+
+        self.dimensions = dimensions
+        self.neighbour_table = self.construct_neighbour_table(max_depth)
+
+    def construct_neighbour_table(self, max_depth):
+        """
+        Create a list of relative neighbour addresses
+        :param depth:
+        :return:
+        """
+
+        table = dict()
+
+        for d in range(max_depth):
+
+            depth = d+1
+            range_ = range(-depth, depth + 1)
+            row = list(itertools.product(range_, repeat=self.dimensions))
+            row.remove((0,) * self.dimensions)
+            table[depth] = row
+
+        return table
+
+    def calculate_neighbours_locations(self, address, table):
+        """
+        Applies the given neighbour table to the given address to get addresses of neighbours
+        :param address:
+        :param table:
+        :return:
+        """
+        output = []
+        for i in range(len(table)):
+            # Build new neighbour
+            neighbour = []
+            for j in range(self.dimensions):
+                neighbour.append(address[j] + table[i][j])
+            output.append(neighbour)
+        return output
+
+    def neighbours_moore(self, address, depth=1, inclusive=True):
+        """
+        Address of neighbours in the Moore neighbourhood of given depth
+        :param address:
+        :param depth:
+        :param inclusive: Include lower depths?
+        :return:
+        """
+        table = self.neighbour_table[depth]
+        # If not inclusive, remove any neighbours in smaller depths
+        # TODO - is this a slow way of doing things?
+        if not inclusive:
+            reduced_table = []
+            for neighbour in table:
+                for x in neighbour:
+                    if int(math.fabs(x)) == depth:
+                        reduced_table.append(neighbour)
+                        break
+            table = reduced_table
+        return self.calculate_neighbours_locations(address, table)
+
+    def neighbours_von_neumann(self, address, depth=1, inclusive=True):
+        """
+        Gives the neighbours in the Von Neumann neighbourhood of address of given depth
+        :param address:
+        :param depth:
+        :param inclusive: Includes lower depths?
+        :return:
+        """
+
+        # Build truth table of all possible values based on depth of the neighbourhood and number of dimensions
+        table = self.neighbour_table[depth]
+        # Reduce the values based on their Manhattan distance
+        # TODO - is this a slow way of doing things?
+        reduced_table = []
+        for k in table:
+            # Check the Manhattan distance is up to the depth (inclusive) or equal to depth (exclusive)
+            if (inclusive and int(sum([math.fabs(x) for x in k])) <= depth) or \
+                    ((not inclusive) and int(sum([math.fabs(x) for x in k])) == depth):
+                reduced_table.append(k)
+
+        return self.calculate_neighbours_locations(address, reduced_table)
