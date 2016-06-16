@@ -478,6 +478,18 @@ class Automaton(Tile, Neighbourhood):
         for address in self.blood_vessels:
             self.set_attribute_grid(address, 'oxygen', self.parameters['initial_oxygen'])
 
+    def update(self):
+
+        # ----------------------------
+        # CONTINUOUS (Diffusion)
+        # ----------------------------
+        pass
+
+        # ----------------------------
+        # DISCRETE (Agents)
+        # ----------------------------
+        pass
+
 
 class Agent:
 
