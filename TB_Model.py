@@ -447,5 +447,14 @@ class Automaton(Tile, Neighbourhood):
             self.set_attribute_grid(address,'blood_vessel',1.5)
 
 
+class Agent:
+
+    def __init__(self, address):
+        self.address = address
 
 
+class Bacteria(Agent):
+
+    def __init__(self, address, metabolism):
+        self.metabolism = metabolism
+        Agent.__init__(self, address)
