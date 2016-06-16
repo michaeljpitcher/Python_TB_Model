@@ -476,3 +476,10 @@ class Bacteria(Agent):
     def __init__(self, address, metabolism):
         self.metabolism = metabolism
         Agent.__init__(self, address)
+
+
+class Macrophage(Agent):
+
+    def __init__(self, address, state):
+        self.state = state
+        Agent.__init__(self, address)
