@@ -6,15 +6,18 @@ class TileTestCase(unittest.TestCase):
 
     def setUp(self):
         self.tile = TB_Model.Tile([5, 5], ['a', 'b', 'c'])
+        self.tile.grid[0, 0]['a'] = 1.1
+        self.tile.create_work_grid()
 
     def test_shape(self):
         self.assertEqual(self.tile.grid.shape, (5, 5))
 
     def test_create_work_grid(self):
-        self.tile.create_work_grid()
-        
-        self.tile.grid[0,0]['a'] = 1.1
-        print self.tile.work_grid[0,0]
+
+        self.assertEqual(self.tile.work_grid[0, 0]['a'], 1.1)
+
+        self.tile.grid[1, 1]['b'] = 99.9
+        self.assertEqual(self.tile.work_grid[1, 1]['b'], 0.0)
 
     def test_attributes(self):
         self.assertTrue(isinstance(self.tile.grid[0, 0], dict))
@@ -56,10 +59,10 @@ class TileTestCase(unittest.TestCase):
                 x += 1
 
     def test_swap_grids(self):
-        self.tile.set_attribute_work_grid([0, 0], 'a', 1)
+        self.tile.set_attribute_work_grid([0, 1], 'a', 1)
         self.tile.swap_grids()
-        self.assertEqual(self.tile.grid[0, 0]['a'], 1)
-        self.assertEqual(self.tile.work_grid[0, 0]['a'], 0.0)
+        self.assertEqual(self.tile.grid[0, 1]['a'], 1)
+        self.assertEqual(self.tile.work_grid[0, 1]['a'], 0.0)
 
     def test_set_DZ_addresses(self):
         self.tile.set_addresses_for_danger_zone([[0, 0], [1, 1], [2, 2]])
@@ -84,20 +87,6 @@ class TileTestCase(unittest.TestCase):
         self.assertEqual(danger_zone[2]['a'], 0.0)
         self.assertEqual(danger_zone[2]['b'], 0.0)
         self.assertEqual(danger_zone[2]['c'], 99)
-
-    def test_set_DZ(self):
-
-        self.tile.set_addresses_for_danger_zone([[4, 4], [4, 3], [3, 4]])
-        danger_zone = self.tile.get_danger_zone()
-
-        for i in danger_zone:
-            i['c'] = 77
-
-        self.tile.set_danger_zone(danger_zone)
-
-        self.assertEqual(self.tile.work_grid[4, 4]['c'], 77)
-        self.assertEqual(self.tile.work_grid[4, 3]['c'], 77)
-        self.assertEqual(self.tile.work_grid[3, 4]['c'], 77)
 
     def test_set_addresses_for_halo(self):
         self.tile.set_addresses_for_halo([[-1, -1], [-1, 0], [0, -1]])
@@ -124,11 +113,11 @@ class TileTestCase(unittest.TestCase):
         self.assertEqual(self.tile.halo_cells[2]['c'], 2)
 
     def test_get_on_grid(self):
-        self.assertItemsEqual(self.tile.get([0, 0]).keys(), ['a', 'b', 'c'])
-        self.assertItemsEqual(self.tile.get([0, 0]).values(), [0.0, 0.0, 0.0])
+        self.assertItemsEqual(self.tile.get([0, 1]).keys(), ['a', 'b', 'c'])
+        self.assertItemsEqual(self.tile.get([0, 1]).values(), [0.0, 0.0, 0.0])
 
     def test_get_attribute_on_grid(self):
-        self.assertEqual(self.tile.get_attribute([0, 0], 'a'), 0.0)
+        self.assertEqual(self.tile.get_attribute([0, 1], 'a'), 0.0)
 
     def test_get_on_halo(self):
         self.tile.set_addresses_for_halo([[-1, -1], [-1, 0], [0, -1]])
@@ -155,24 +144,6 @@ class TileTestCase(unittest.TestCase):
         self.tile.set_halo(cells)
 
         self.assertEqual(self.tile.get_attribute([-1, -1], 'a'), 0.0)
-
-    def test_set(self):
-        cell = dict()
-        cell['d'] = 1
-        cell['e'] = 2
-        self.tile.set_grid([2, 2], cell)
-        self.assertItemsEqual(self.tile.grid[2, 2].keys(), ['d', 'e'])
-        self.assertEqual(self.tile.grid[2, 2]['d'], 1)
-        self.assertEqual(self.tile.grid[2, 2]['e'], 2)
-
-    def test_set_work(self):
-        cell = dict()
-        cell['d'] = 1
-        cell['e'] = 2
-        self.tile.set_work_grid([2, 2], cell)
-        self.assertItemsEqual(self.tile.work_grid[2, 2].keys(), ['d', 'e'])
-        self.assertEqual(self.tile.work_grid[2, 2]['d'], 1)
-        self.assertEqual(self.tile.work_grid[2, 2]['e'], 2)
 
     def test_set_att(self):
 
