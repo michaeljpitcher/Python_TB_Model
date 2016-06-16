@@ -20,6 +20,8 @@ def run_many_serial(topology, time_limit):
 
     for t in range(time_limit):
 
+        print "TIME-STEP:", t
+
         for tile_id in range(number_tiles):
             # ---------------- BACK -----------------------------
             values.append(topology.automata[tile_id].get_danger_zone())
@@ -69,22 +71,31 @@ def main():
     if not config.read('config.properties'):
         raise IOError("Config file (config.properties) not found")
 
-
     parameters = dict()
     # Get all options in parameters section and add to the dictionary
     for i in config.options("ParametersSection"):
-        if i == 'max_depth' or i == 'time_limit':
+        if i == 'max_depth':
             parameters[i] = config.getint("ParametersSection", i)
         else:
             parameters[i] = config.getfloat("ParametersSection", i)
 
     attributes = config.get("CellSection", "attributes").split(",")
 
+    time_limit = config.getint("RunParametersSection", "time_limit")
+    method = config.get("RunParametersSection", "method")
+
     # TODO - initialise
 
     topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], attributes, parameters, [[3,3]], [[1,1]], [[9,9]], [[7,1]])
 
-    run_many_serial(topology, parameters['time_limit'])
+    if method == 'single':
+        run_single()
+    elif method == 'many_serial':
+        run_many_serial(topology, time_limit)
+    elif method == 'many_parallel':
+        run_many_parallel()
+    else:
+        raise Exception("Invalid method")
 
 
 if __name__ == '__main__':
