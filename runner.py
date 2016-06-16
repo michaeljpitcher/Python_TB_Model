@@ -1,4 +1,5 @@
 import TB_Model
+import ConfigParser
 
 
 def run_single():
@@ -64,17 +65,26 @@ def construct_halos(topology, danger_zone_addresses, danger_zone_values, halo_ad
 
 def main():
 
-    # TODO - config
+    config = ConfigParser.RawConfigParser()
+    if not config.read('config.properties'):
+        raise IOError("Config file (config.properties) not found")
 
-    params = dict()
-    params['max_depth'] = 3
-    params['initial_oxygen'] = 1.0
-    atts = ['oxygen', 'blood_vessel', 'contents']
-    topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, [[3,3]], [[1,1]], [[9,9]], [[7,1]])
 
-    time_limit = 10
+    parameters = dict()
+    # Get all options in parameters section and add to the dictionary
+    for i in config.options("ParametersSection"):
+        if i == 'max_depth' or i == 'time_limit':
+            parameters[i] = config.getint("ParametersSection", i)
+        else:
+            parameters[i] = config.getfloat("ParametersSection", i)
 
-    run_many_serial(topology, time_limit)
+    attributes = config.get("CellSection", "attributes").split(",")
+
+    # TODO - initialise
+
+    topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], attributes, parameters, [[3,3]], [[1,1]], [[9,9]], [[7,1]])
+
+    run_many_serial(topology, parameters['time_limit'])
 
 
 if __name__ == '__main__':
