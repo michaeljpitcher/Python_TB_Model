@@ -247,6 +247,7 @@ class TopologyTestCase(unittest.TestCase):
         gear = self.topology.get_external_addresses_required(self.topology.automata[0])
         self.assertItemsEqual(addresses, gear)
 
+
 class TwoDimensionalTopologyTestCase(unittest.TestCase):
 
     def setUp(self):
@@ -290,6 +291,245 @@ class TwoDimensionalTopologyTestCase(unittest.TestCase):
                         self.assertEqual(a.grid[x, y]['blood_vessel'], 0.0)
                         self.assertEqual(a.work_grid[x, y]['blood_vessel'], 0.0)
 
+    def test_global_to_local(self):
+        self.assertEqual(self.topology.global_to_local([0, 0])[0], 0)
+        self.assertSequenceEqual(self.topology.global_to_local([0, 0])[1], [0, 0])
+        self.assertEqual(self.topology.global_to_local([2, 6])[0], 1)
+        self.assertSequenceEqual(self.topology.global_to_local([2, 6])[1], [2, 1])
+        self.assertEqual(self.topology.global_to_local([7, 3])[0], 2)
+        self.assertSequenceEqual(self.topology.global_to_local([7, 3])[1], [2, 3])
+        self.assertEqual(self.topology.global_to_local([8, 8])[0], 3)
+        self.assertSequenceEqual(self.topology.global_to_local([8, 8])[1], [3, 3])
+
+    def test_local_to_global(self):
+        self.assertEqual(self.topology.local_to_global(0, [-1, -1]), None)
+        self.assertEqual(self.topology.local_to_global(1, [-1, 0]), None)
+        self.assertEqual(self.topology.local_to_global(1, [2, 7]), None)
+        self.assertEqual(self.topology.local_to_global(2, [0, -1]), None)
+        self.assertEqual(self.topology.local_to_global(2, [8, 3]), None)
+        self.assertEqual(self.topology.local_to_global(3, [0, 8]), None)
+        self.assertEqual(self.topology.local_to_global(3, [8, 1]), None)
+        self.assertSequenceEqual(self.topology.local_to_global(1, [0, -1]), [0, 4])
+        self.assertSequenceEqual(self.topology.local_to_global(1, [5, 0]), [5, 5])
+        self.assertSequenceEqual(self.topology.local_to_global(1, [7, -2]), [7, 3])
+        self.assertSequenceEqual(self.topology.local_to_global(2, [-2, 2]), [3, 2])
+        self.assertSequenceEqual(self.topology.local_to_global(2, [0, 6]), [5, 6])
+        self.assertSequenceEqual(self.topology.local_to_global(2, [-1, 6]), [4, 6])
+        self.assertSequenceEqual(self.topology.local_to_global(3, [-1, -1]), [4, 4])
+        self.assertSequenceEqual(self.topology.local_to_global(3, [-2, 3]), [3, 8])
+        self.assertSequenceEqual(self.topology.local_to_global(3, [2, -3]), [7, 2])
+
+    def test_local_to_local(self):
+        self.attributes = ['a', 'blood_vessel']
+        self.parameters = dict()
+        self.parameters['max_depth'] = 1
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [6, 6], self.attributes, self.parameters,[[3,3]])
+
+        self.assertSequenceEqual(self.topology.local_to_local(0, [0, 4], 1), [0, 1])
+        self.assertSequenceEqual(self.topology.local_to_local(0, [3, 2], 2), [0, 2])
+        self.assertSequenceEqual(self.topology.local_to_local(0, [3, 3], 3), [0, 0])
+
+        self.assertSequenceEqual(self.topology.local_to_local(0, [0, 2], 1), [0, -1])
+        self.assertSequenceEqual(self.topology.local_to_local(1, [0, 0], 2), [-3, 3])
+
+        self.assertSequenceEqual(self.topology.local_to_local(3, [-1, -1], 0), [2, 2])
+        self.assertSequenceEqual(self.topology.local_to_local(3, [-1, 0], 1), [2, 0])
+        self.assertSequenceEqual(self.topology.local_to_local(3, [0, -2], 2), [0, 1])
+
+    def test_create_halos(self):
+        self.attributes = ['a', 'blood_vessel']
+        self.parameters = dict()
+        self.parameters['max_depth'] = 1
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [6, 6], self.attributes, self.parameters, [[3,3]])
+
+        tile_id = 0
+        x = 0
+        y = 0
+        for i in range(36):
+            self.topology.automata[tile_id].set_attribute_work_grid([x, y], 'a', i)
+            y += 1
+            if y == 3 and x == 2:
+                tile_id += 1
+                y = x = 0
+            elif y == 3:
+                y = 0
+                x += 1
+
+        danger_zone_values = []
+        for a in range(4):
+            danger_zone_values.append(self.topology.automata[a].get_danger_zone())
+
+        halos = self.topology.create_halos(danger_zone_values)
+
+        for index in range(4):
+            self.assertEqual(len(halos[index]), 16)
+            if index == 0:
+                addresses = self.topology.automata[index].halo_addresses
+                self.assertEqual(halos[index][addresses.index([0, 3])]['a'], 9)
+                self.assertEqual(halos[index][addresses.index([1, 3])]['a'], 12)
+                self.assertEqual(halos[index][addresses.index([2, 3])]['a'], 15)
+                self.assertEqual(halos[index][addresses.index([3, 0])]['a'], 18)
+                self.assertEqual(halos[index][addresses.index([3, 1])]['a'], 19)
+                self.assertEqual(halos[index][addresses.index([3, 2])]['a'], 20)
+                self.assertEqual(halos[index][addresses.index([3, 3])]['a'], 27)
+                self.assertEqual(halos[index][addresses.index([-1, -1])], None)
+                self.assertEqual(halos[index][addresses.index([-1, 0])], None)
+                self.assertEqual(halos[index][addresses.index([-1, 1])], None)
+                self.assertEqual(halos[index][addresses.index([-1, 2])], None)
+                self.assertEqual(halos[index][addresses.index([-1, 3])], None)
+                self.assertEqual(halos[index][addresses.index([0, -1])], None)
+                self.assertEqual(halos[index][addresses.index([1, -1])], None)
+                self.assertEqual(halos[index][addresses.index([2, -1])], None)
+                self.assertEqual(halos[index][addresses.index([3, -1])], None)
+            elif index == 1:
+                self.assertEqual(halos[index][addresses.index([0, 3])], None)
+                self.assertEqual(halos[index][addresses.index([1, 3])], None)
+                self.assertEqual(halos[index][addresses.index([2, 3])], None)
+                self.assertEqual(halos[index][addresses.index([3, 0])]['a'], 27)
+                self.assertEqual(halos[index][addresses.index([3, 1])]['a'], 28)
+                self.assertEqual(halos[index][addresses.index([3, 2])]['a'], 29)
+                self.assertEqual(halos[index][addresses.index([3, 3])], None)
+                self.assertEqual(halos[index][addresses.index([-1, -1])], None)
+                self.assertEqual(halos[index][addresses.index([-1, 0])], None)
+                self.assertEqual(halos[index][addresses.index([-1, 1])], None)
+                self.assertEqual(halos[index][addresses.index([-1, 2])], None)
+                self.assertEqual(halos[index][addresses.index([-1, 3])], None)
+                self.assertEqual(halos[index][addresses.index([0, -1])]['a'], 2)
+                self.assertEqual(halos[index][addresses.index([1, -1])]['a'], 5)
+                self.assertEqual(halos[index][addresses.index([2, -1])]['a'], 8)
+                self.assertEqual(halos[index][addresses.index([3, -1])]['a'], 20)
+            elif index == 2:
+                self.assertEqual(halos[index][addresses.index([0, 3])]['a'], 27)
+                self.assertEqual(halos[index][addresses.index([1, 3])]['a'], 30)
+                self.assertEqual(halos[index][addresses.index([2, 3])]['a'], 33)
+                self.assertEqual(halos[index][addresses.index([3, 0])], None)
+                self.assertEqual(halos[index][addresses.index([3, 1])], None)
+                self.assertEqual(halos[index][addresses.index([3, 2])], None)
+                self.assertEqual(halos[index][addresses.index([3, 3])], None)
+                self.assertEqual(halos[index][addresses.index([-1, -1])], None)
+                self.assertEqual(halos[index][addresses.index([-1, 0])]['a'], 6)
+                self.assertEqual(halos[index][addresses.index([-1, 1])]['a'], 7)
+                self.assertEqual(halos[index][addresses.index([-1, 2])]['a'], 8)
+                self.assertEqual(halos[index][addresses.index([-1, 3])]['a'], 15)
+                self.assertEqual(halos[index][addresses.index([0, -1])], None)
+                self.assertEqual(halos[index][addresses.index([1, -1])], None)
+                self.assertEqual(halos[index][addresses.index([2, -1])], None)
+                self.assertEqual(halos[index][addresses.index([3, -1])], None)
+            elif index == 3:
+                self.assertEqual(halos[index][addresses.index([0, 3])], None)
+                self.assertEqual(halos[index][addresses.index([1, 3])], None)
+                self.assertEqual(halos[index][addresses.index([2, 3])], None)
+                self.assertEqual(halos[index][addresses.index([3, 0])], None)
+                self.assertEqual(halos[index][addresses.index([3, 1])], None)
+                self.assertEqual(halos[index][addresses.index([3, 2])], None)
+                self.assertEqual(halos[index][addresses.index([3, 3])], None)
+                self.assertEqual(halos[index][addresses.index([-1, -1])]['a'], 8)
+                self.assertEqual(halos[index][addresses.index([-1, 0])]['a'], 15)
+                self.assertEqual(halos[index][addresses.index([-1, 1])]['a'], 16)
+                self.assertEqual(halos[index][addresses.index([-1, 2])]['a'], 17)
+                self.assertEqual(halos[index][addresses.index([-1, 3])], None)
+                self.assertEqual(halos[index][addresses.index([0, -1])]['a'], 20)
+                self.assertEqual(halos[index][addresses.index([1, -1])]['a'], 23)
+                self.assertEqual(halos[index][addresses.index([2, -1])]['a'], 26)
+                self.assertEqual(halos[index][addresses.index([3, -1])], None)
+
+    def test_get_external(self):
+        self.attributes = ['a', 'blood_vessel']
+        self.parameters = dict()
+        self.parameters['max_depth'] = 1
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [6, 6], self.attributes, self.parameters, [[3,3]])
+
+        tile_id = 0
+        x = 0
+        y = 0
+        for i in range(36):
+            self.topology.automata[tile_id].set_attribute_work_grid([x, y], 'a', i)
+            y += 1
+            if y == 3 and x == 2:
+                tile_id += 1
+                y = x = 0
+            elif y == 3:
+                y = 0
+                x += 1
+
+        danger_zone_values = []
+        for a in range(4):
+            danger_zone_values.append(self.topology.automata[a].get_danger_zone())
+
+        halos = self.topology.create_halos(danger_zone_values)
+
+        for index in range(4):
+            self.topology.automata[index].set_halo(halos[index])
+            if index == 0:
+                self.assertEqual(self.topology.automata[index].get_attribute([0, 3], 'a'), 9)
+                self.assertEqual(self.topology.automata[index].get_attribute([1, 3], 'a'), 12)
+                self.assertEqual(self.topology.automata[index].get_attribute([2, 3], 'a'), 15)
+                self.assertEqual(self.topology.automata[index].get_attribute([3, 0], 'a'), 18)
+                self.assertEqual(self.topology.automata[index].get_attribute([3, 1], 'a'), 19)
+                self.assertEqual(self.topology.automata[index].get_attribute([3, 2], 'a'), 20)
+                self.assertEqual(self.topology.automata[index].get_attribute([3, 3], 'a'), 27)
+                self.assertEqual(self.topology.automata[index].get_attribute([-1, -1], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([-1, 0], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([-1, 1], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([-1, 2], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([-1, 3], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([0, -1], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([1, -1], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([2, -1], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([3, -1], 'a'), None)
+            elif index == 1:
+                self.assertEqual(self.topology.automata[index].get_attribute([0, 3], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([1, 3], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([2, 3], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([3, 0], 'a'), 27)
+                self.assertEqual(self.topology.automata[index].get_attribute([3, 1], 'a'), 28)
+                self.assertEqual(self.topology.automata[index].get_attribute([3, 2], 'a'), 29)
+                self.assertEqual(self.topology.automata[index].get_attribute([3, 3], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([-1, -1], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([-1, 0], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([-1, 1], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([-1, 2], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([-1, 3], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([0, -1], 'a'), 2)
+                self.assertEqual(self.topology.automata[index].get_attribute([1, -1], 'a'), 5)
+                self.assertEqual(self.topology.automata[index].get_attribute([2, -1], 'a'), 8)
+                self.assertEqual(self.topology.automata[index].get_attribute([3, -1], 'a'), 20)
+
+            elif index == 2:
+                self.assertEqual(self.topology.automata[index].get_attribute([0, 3], 'a'), 27)
+                self.assertEqual(self.topology.automata[index].get_attribute([1, 3], 'a'), 30)
+                self.assertEqual(self.topology.automata[index].get_attribute([2, 3], 'a'), 33)
+                self.assertEqual(self.topology.automata[index].get_attribute([3, 0], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([3, 1], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([3, 2], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([3, 3], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([-1, -1], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([-1, 0], 'a'), 6)
+                self.assertEqual(self.topology.automata[index].get_attribute([-1, 1], 'a'), 7)
+                self.assertEqual(self.topology.automata[index].get_attribute([-1, 2], 'a'), 8)
+                self.assertEqual(self.topology.automata[index].get_attribute([-1, 3], 'a'), 15)
+                self.assertEqual(self.topology.automata[index].get_attribute([0, -1], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([1, -1], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([2, -1], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([3, -1], 'a'), None)
+
+            elif index == 3:
+                self.assertEqual(self.topology.automata[index].get_attribute([0, 3], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([1, 3], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([2, 3], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([3, 0], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([3, 1], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([3, 2], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([3, 3], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([-1, -1], 'a'), 8)
+                self.assertEqual(self.topology.automata[index].get_attribute([-1, 0], 'a'), 15)
+                self.assertEqual(self.topology.automata[index].get_attribute([-1, 1], 'a'), 16)
+                self.assertEqual(self.topology.automata[index].get_attribute([-1, 2], 'a'), 17)
+                self.assertEqual(self.topology.automata[index].get_attribute([-1, 3], 'a'), None)
+                self.assertEqual(self.topology.automata[index].get_attribute([0, -1], 'a'), 20)
+                self.assertEqual(self.topology.automata[index].get_attribute([1, -1], 'a'), 23)
+                self.assertEqual(self.topology.automata[index].get_attribute([2, -1], 'a'), 26)
+                self.assertEqual(self.topology.automata[index].get_attribute([3, -1], 'a'), None)
 
 
 if __name__ == '__main__':
