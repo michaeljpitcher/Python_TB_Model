@@ -2,7 +2,7 @@ import TB_Model
 import ConfigParser
 
 
-def run_single():
+def run_single(topology, time_limit):
     pass
 
 
@@ -38,7 +38,7 @@ def run_many_serial(topology, time_limit):
             # ------------------ OUT ----------------------------
 
 
-def run_many_parallel():
+def run_many_parallel(topology, time_limit):
     pass
 
 
@@ -89,11 +89,11 @@ def main():
     topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], attributes, parameters, [[3,3]], [[1,1]], [[9,9]], [[7,1]])
 
     if method == 'single':
-        run_single()
+        run_single(topology, time_limit)
     elif method == 'many_serial':
         run_many_serial(topology, time_limit)
     elif method == 'many_parallel':
-        run_many_parallel()
+        run_many_parallel(topology, time_limit)
     else:
         raise Exception("Invalid method")
 

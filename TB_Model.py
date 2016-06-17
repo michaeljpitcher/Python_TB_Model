@@ -21,12 +21,16 @@ class Topology:
                                   fast_bacteria_local[i], slow_bacteria_local[i], macrophages_local[i])
             self.automata.append(automaton)
 
-        self.external_addresses_required = self.get_external_addresses_required(self.automata[0])
+        self.external_addresses_required = self.get_external_addresses_required(self.automata[0],
+                                                                                parameters['max_depth'])
+        # Halo of depth 1 - needed for calculating diffusion rates
+        depth1_addresses = self.get_external_addresses_required(self.automata[0],1)
 
         for automaton in self.automata:
             automaton.halo_addresses = self.external_addresses_required
+            automaton.halo_depth1 = depth1_addresses
 
-    def get_external_addresses_required(self, automaton):
+    def get_external_addresses_required(self, automaton, depth):
         """
             The addresses of cells within the overall neighbourhood which don't belong to this automaton
             :return:
@@ -36,7 +40,7 @@ class Topology:
         for i in range(0, automaton.grid.size):
             # Pull the addresses of cells in neighbourhood of this cell
             address = automaton.location_to_address(i)
-            neighbours = automaton.neighbours_moore(address, automaton.parameters['max_depth'])
+            neighbours = automaton.neighbours_moore(address, depth)
             # For every neighbour cell
             for neighbour in neighbours:
                 # Check neighbour not on grid and hasn't been processes already
@@ -490,6 +494,60 @@ class Automaton(Tile, Neighbourhood):
         # ----------------------------
         pass
 
+    def diffusion_pre_process(self):
+
+        for location in range(self.size):
+            address = self.location_to_address(location)
+
+            # On grid
+            oxygen_diffusion = self.parameters['oxygen_diffusion']
+            chemotherapy_diffusion = self.parameters['chemotherapy_diffusion']
+
+            # Check if there is specified amount of caseum within specified distance of cell
+            neighbours = self.neighbours_moore(address, int(self.parameters['caseum_distance']))
+            caseum_count = 0
+            for neighbour_address in neighbours:
+                cell = self.get(neighbour_address)
+                if cell is not None and cell['contents'] == 'caseum':
+                    caseum_count += 1
+                    # Once the caseum threshold is reached
+                    if caseum_count == self.parameters['caseum_threshold']:
+                        # Decrease the diffusion level at the cell
+                        oxygen_diffusion /= self.parameters['oxygen_diffusion_caseum_reduction']
+                        chemotherapy_diffusion /= self.parameters['chemotherapy_diffusion_caseum_reduction']
+                        # Exit the loop
+                        break
+
+            # Need to set the values on the current grid
+            self.set_attribute_grid(address, 'oxygen_diffusion_rate', oxygen_diffusion)
+            self.set_attribute_grid(address, 'chemotherapy_diffusion_rate', chemotherapy_diffusion)
+
+        # Set diffusion rates on halo
+        for halo_address in self.halo_depth1:
+            if self.get(halo_address) is not None:
+
+                # On grid
+                oxygen_diffusion = self.parameters['oxygen_diffusion']
+                chemotherapy_diffusion = self.parameters['chemotherapy_diffusion']
+
+                neighbours = self.neighbours_moore(halo_address, int(self.parameters['caseum_distance']))
+                caseum_count = 0
+                for neighbour_address in neighbours:
+                    cell = self.get(neighbour_address)
+                    if cell is not None and cell['contents'] == 'caseum':
+                        caseum_count += 1
+                        # Once the caseum threshold is reached
+                        if caseum_count == self.parameters['caseum_threshold']:
+                            # Decrease the diffusion level at the cell
+                            oxygen_diffusion /= self.parameters['oxygen_diffusion_caseum_reduction']
+                            chemotherapy_diffusion /= self.parameters['chemotherapy_diffusion_caseum_reduction']
+                            # Exit the loop
+                            break
+
+                # Need to set the values on the current grid
+                index = self.halo_addresses.index(halo_address)
+                self.halo_cells[index]['oxygen_diffusion_rate'] = oxygen_diffusion
+                self.halo_cells[index]['chemotherapy_diffusion_rate'] = chemotherapy_diffusion
 
 class Agent:
 

@@ -234,8 +234,6 @@ class TopologyTestCase(unittest.TestCase):
         self.assertEqual(self.topology.automata[2].shape[1], 5)
         self.assertEqual(self.topology.automata[3].shape[0], 5)
         self.assertEqual(self.topology.automata[3].shape[1], 5)
-
-    def test_get_external_addresses_required(self):
         addresses = [[-3, -3], [-3, -2], [-3, -1], [-3, 0], [-3, 1], [-3, 2], [-3, 3], [-2, -3], [-2, -2], [-2, -1],
                      [-2, 0],
                      [-2, 1], [-2, 2], [-2, 3], [-1, -3], [-1, -2], [-1, -1], [-1, 0], [-1, 1], [-1, 2], [-1, 3],
@@ -251,7 +249,47 @@ class TopologyTestCase(unittest.TestCase):
                      [6, -3], [6, -2], [6, -1], [6, 0], [6, 1], [6, 2], [6, 3], [6, 4], [6, 5], [6, 6], [6, 7], [7, -3],
                      [7, -2],
                      [7, -1], [7, 0], [7, 1], [7, 2], [7, 3], [7, 4], [7, 5], [7, 6], [7, 7]]
-        gear = self.topology.get_external_addresses_required(self.topology.automata[0])
+        self.assertItemsEqual(self.topology.automata[0].halo_addresses, addresses)
+        self.assertItemsEqual(self.topology.automata[1].halo_addresses, addresses)
+        self.assertItemsEqual(self.topology.automata[2].halo_addresses, addresses)
+        self.assertItemsEqual(self.topology.automata[3].halo_addresses, addresses)
+        addresses = [[-1, -1], [-1, 0], [-1, 1], [-1, 2], [-1, 3],
+                     [0, -1], [1, -1], [2, -1], [3, -1],
+                     [-1, 4], [-1, 5], [0, 5], [1, 5], [2, 5], [3, 5],
+                     [4, -1], [4, 5],
+                     [5, -1], [5, 0], [5, 1], [5, 2], [5, 3], [5, 4], [5, 5]]
+        self.assertItemsEqual(self.topology.automata[0].halo_depth1, addresses)
+        self.assertItemsEqual(self.topology.automata[1].halo_depth1, addresses)
+        self.assertItemsEqual(self.topology.automata[2].halo_depth1, addresses)
+        self.assertItemsEqual(self.topology.automata[3].halo_depth1, addresses)
+
+    def test_get_external_addresses_required(self):
+        addresses = [[-1, -1], [-1, 0], [-1, 1], [-1, 2], [-1, 3],
+                     [0, -1], [1, -1], [2, -1], [3, -1],
+                     [-1, 4], [-1, 5], [0, 5], [1, 5], [2, 5], [3, 5],
+                     [4, -1], [4, 5],
+                     [5, -1], [5, 0], [5, 1], [5, 2], [5, 3], [5, 4], [5, 5]
+                     ]
+        gear = self.topology.get_external_addresses_required(self.topology.automata[0], 1)
+        self.assertItemsEqual(addresses, gear)
+
+        addresses = [[-3, -3], [-3, -2], [-3, -1], [-3, 0], [-3, 1], [-3, 2], [-3, 3], [-2, -3], [-2, -2], [-2, -1],
+                     [-2, 0],
+                     [-2, 1], [-2, 2], [-2, 3], [-1, -3], [-1, -2], [-1, -1], [-1, 0], [-1, 1], [-1, 2], [-1, 3],
+                     [0, -3], [0, -2],
+                     [0, -1], [1, -3], [1, -2], [1, -1], [2, -3], [2, -2], [2, -1], [3, -3], [3, -2], [3, -1], [-3, 4],
+                     [-2, 4],
+                     [-1, 4], [-3, 5], [-2, 5], [-1, 5], [0, 5], [1, 5], [2, 5], [3, 5], [-3, 6], [-2, 6], [-1, 6],
+                     [0, 6], [1, 6],
+                     [2, 6], [3, 6], [-3, 7], [-2, 7], [-1, 7], [0, 7], [1, 7], [2, 7], [3, 7], [4, -3], [4, -2],
+                     [4, -1], [4, 5],
+                     [4, 6], [4, 7], [5, -3], [5, -2], [5, -1], [5, 0], [5, 1], [5, 2], [5, 3], [5, 4], [5, 5], [5, 6],
+                     [5, 7],
+                     [6, -3], [6, -2], [6, -1], [6, 0], [6, 1], [6, 2], [6, 3], [6, 4], [6, 5], [6, 6], [6, 7], [7, -3],
+                     [7, -2],
+                     [7, -1], [7, 0], [7, 1], [7, 2], [7, 3], [7, 4], [7, 5], [7, 6], [7, 7]]
+
+        gear = self.topology.get_external_addresses_required(self.topology.automata[0], 3)
         self.assertItemsEqual(addresses, gear)
 
 
@@ -541,6 +579,111 @@ class TwoDimensionalTopologyTestCase(unittest.TestCase):
                 self.assertEqual(self.topology.automata[index].get_attribute([1, -1], 'a'), 23)
                 self.assertEqual(self.topology.automata[index].get_attribute([2, -1], 'a'), 26)
                 self.assertEqual(self.topology.automata[index].get_attribute([3, -1], 'a'), None)
+
+
+class TBAutomatonScenariosTestCase(unittest.TestCase):
+
+    def setUp(self):
+        params = dict()
+        params['max_depth'] = 3
+        params['initial_oxygen'] = 1.0
+        params['oxygen_diffusion'] = 1.0
+        params['chemotherapy_diffusion'] = 1.0
+        params['caseum_distance'] = 2
+        params['caseum_threshold'] = 2
+        params['oxygen_diffusion_caseum_reduction'] = 1.5
+        params['chemotherapy_diffusion_caseum_reduction'] = 1.5
+
+        atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate']
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, [[3,3]], [[1,1]], [[9,9]], [[7,1]])
+
+    def test_pre_process_caseum(self):
+
+        # Add some caseum to automaton 0
+        self.topology.automata[0].grid[0,0]['contents'] = 'caseum'
+        self.topology.automata[0].grid[0,1]['contents'] = 'caseum'
+
+        # Create a halo - not needed for tests but needed for code
+        halo = []
+        for a in self.topology.automata[0].halo_addresses:
+            x, y = a
+            if x < 0 or y < 0:
+                halo.append(None)
+            else:
+                cell = dict()
+                cell['blood_vessel'] = 0.0
+                cell['contents'] = 0.0
+                cell['oxygen'] = 0.0
+                cell['oxygen_diffusion_rate'] = 0.0
+                cell['chemotherapy_diffusion_rate'] = 0.0
+                halo.append(cell)
+        self.topology.automata[0].set_halo(halo)
+
+        # Run the pre process loop
+        self.topology.automata[0].diffusion_pre_process()
+
+        # Cells close to caseum
+        self.assertEqual(self.topology.automata[0].grid[0, 2]['oxygen_diffusion_rate'], 1.0 / 1.5)
+        self.assertEqual(self.topology.automata[0].grid[1, 0]['oxygen_diffusion_rate'], 1.0 / 1.5)
+        self.assertEqual(self.topology.automata[0].grid[1, 1]['oxygen_diffusion_rate'], 1.0 / 1.5)
+        self.assertEqual(self.topology.automata[0].grid[1, 2]['oxygen_diffusion_rate'], 1.0 / 1.5)
+        self.assertEqual(self.topology.automata[0].grid[2, 0]['oxygen_diffusion_rate'], 1.0 / 1.5)
+        self.assertEqual(self.topology.automata[0].grid[2, 1]['oxygen_diffusion_rate'], 1.0 / 1.5)
+        self.assertEqual(self.topology.automata[0].grid[2, 2]['oxygen_diffusion_rate'], 1.0 / 1.5)
+
+        # Cells far enough away from caseum
+        self.assertEqual(self.topology.automata[0].grid[0, 3]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(self.topology.automata[0].grid[0, 4]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(self.topology.automata[0].grid[1, 3]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(self.topology.automata[0].grid[1, 4]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 3]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 4]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(self.topology.automata[0].grid[3, 0]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(self.topology.automata[0].grid[3, 1]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(self.topology.automata[0].grid[3, 2]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(self.topology.automata[0].grid[3, 3]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(self.topology.automata[0].grid[3, 4]['oxygen_diffusion_rate'], 1.0)
+
+    def test_pre_process_caseum_halo(self):
+
+        # Add some caseum to automaton 0
+        self.topology.automata[0].grid[0, 0]['contents'] = 'caseum'
+        self.topology.automata[0].grid[0, 1]['contents'] = 'caseum'
+
+        # Create a halo
+        halo = []
+        for a in self.topology.automata[0].halo_addresses:
+            x, y = a
+            if x < 0 or y < 0:
+                halo.append(None)
+            else:
+                cell = dict()
+                cell['blood_vessel'] = 0.0
+                if (x == 0 and y == 7) or (x == 1 and y == 7):
+                    cell['contents'] = 'caseum'
+                else:
+                    cell['contents'] = 0.0
+                cell['oxyegn'] = 0.0
+                halo.append(cell)
+        self.topology.automata[0].set_halo(halo)
+
+        # Run the pre process loop
+        self.topology.automata[0].diffusion_pre_process()
+
+        halo_addresses = self.topology.automata[0].halo_addresses
+        halo_cells = self.topology.automata[0].halo_cells
+
+        self.assertEqual(halo_cells[halo_addresses.index([0, 5])]['oxygen_diffusion_rate'], 1.0 / 1.5)
+        self.assertEqual(halo_cells[halo_addresses.index([1, 5])]['oxygen_diffusion_rate'], 1.0 / 1.5)
+        self.assertEqual(halo_cells[halo_addresses.index([2, 5])]['oxygen_diffusion_rate'], 1.0 / 1.5)
+        self.assertEqual(halo_cells[halo_addresses.index([3, 5])]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(halo_cells[halo_addresses.index([4, 5])]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(halo_cells[halo_addresses.index([5, 0])]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(halo_cells[halo_addresses.index([5, 1])]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(halo_cells[halo_addresses.index([5, 2])]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(halo_cells[halo_addresses.index([5, 3])]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(halo_cells[halo_addresses.index([5, 4])]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(halo_cells[halo_addresses.index([5, 5])]['oxygen_diffusion_rate'], 1.0)
 
 
 if __name__ == '__main__':
