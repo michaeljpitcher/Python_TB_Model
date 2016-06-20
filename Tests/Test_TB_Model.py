@@ -586,30 +586,32 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
     def setUp(self):
         params = dict()
         params['max_depth'] = 3
-        params['initial_oxygen'] = 1.0
+        params['initial_oxygen'] = 1.5
         params['oxygen_diffusion'] = 1.0
-        params['chemotherapy_diffusion'] = 1.0
+        params['chemotherapy_diffusion'] = 0.75
         params['caseum_distance'] = 2
         params['caseum_threshold'] = 2
         params['oxygen_diffusion_caseum_reduction'] = 1.5
         params['chemotherapy_diffusion_caseum_reduction'] = 1.5
         params['spatial_step'] = 0.2
-        params['oxygen_from_source'] = 0.2
-        params['oxygen_uptake_from_bacteria'] = 0.2
-        params['time_step'] = 0.01
-        params['chemotherapy_from_source'] = 0.2
-        params['chemotherapy_decay'] = 0.2
+        params['oxygen_from_source'] = 2.4
+        params['oxygen_uptake_from_bacteria'] = 1.0
+        params['time_step'] = 0.001
+        params['chemotherapy_from_source'] = 1.0
+        params['chemotherapy_decay'] = 0.35
+        params['chemokine_diffusion'] = 0.05
+        params['chemokine_from_bacteria'] = 0.5
+        params['chemokine_from_macrophages'] = 1
+        params['chemokine_decay'] = 0.347
 
-
-        atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate', 'chemotherapy']
-        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, [[3,3]], [[1,1]], [[9,9]],
-                                                        [[7,1]])
-
-    def test_pre_process_caseum(self):
-
-        # Add some caseum to automaton 0
-        self.topology.automata[0].grid[0,0]['contents'] = 'caseum'
-        self.topology.automata[0].grid[0,1]['contents'] = 'caseum'
+        atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
+                'chemotherapy', 'chemokine']
+        blood_vessels = [[3, 3]]
+        fast_bacteria = [[1, 1]]
+        slow_bacteria = [[9, 9]]
+        macrophages = [[7, 1]]
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
+                                                        slow_bacteria, macrophages)
 
         # Create a halo - not needed for tests but needed for code
         halo = []
@@ -622,10 +624,19 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
                 cell['blood_vessel'] = 0.0
                 cell['contents'] = 0.0
                 cell['oxygen'] = 0.0
+                cell['chemotherapy'] = 0.0
+                cell['chemokine'] = 0.0
                 cell['oxygen_diffusion_rate'] = 0.0
                 cell['chemotherapy_diffusion_rate'] = 0.0
                 halo.append(cell)
         self.topology.automata[0].set_halo(halo)
+
+    def test_pre_process_caseum(self):
+
+        # Add some caseum to automaton 0
+        self.topology.automata[0].grid[0, 0]['contents'] = 'caseum'
+        self.topology.automata[0].grid[0, 1]['contents'] = 'caseum'
+
 
         # Run the pre process loop
         self.topology.automata[0].diffusion_pre_process()
@@ -693,8 +704,72 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         self.assertEqual(halo_cells[halo_addresses.index([5, 4])]['oxygen_diffusion_rate'], 1.0)
         self.assertEqual(halo_cells[halo_addresses.index([5, 5])]['oxygen_diffusion_rate'], 1.0)
 
-    def test_oxygen(self):
-        self.topology.automata[0].chemotherapy([1,1])
+    def test_oxygen_basic(self):
+
+        self.assertEqual(self.topology.automata[0].grid[3, 3]['oxygen'], 1.5)
+        self.assertEqual(self.topology.automata[0].grid[2, 3]['oxygen'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[4, 3]['oxygen'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[3, 2]['oxygen'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[3, 4]['oxygen'], 0.0)
+
+        self.topology.automata[0].diffusion_pre_process()
+
+        self.assertAlmostEqual(self.topology.automata[0].oxygen([3, 3]), 1.3536)
+        self.assertAlmostEqual(self.topology.automata[0].oxygen([2, 3]), 0.0375)
+        self.assertAlmostEqual(self.topology.automata[0].oxygen([4, 3]), 0.0375)
+        self.assertAlmostEqual(self.topology.automata[0].oxygen([3, 2]), 0.0375)
+        self.assertAlmostEqual(self.topology.automata[0].oxygen([3, 4]), 0.0375)
+
+    def test_chemotherapy_basic(self):
+
+        self.assertEqual(self.topology.automata[0].grid[3, 3]['chemotherapy'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 3]['chemotherapy'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[4, 3]['chemotherapy'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[3, 2]['chemotherapy'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[3, 4]['chemotherapy'], 0.0)
+        self.topology.automata[0].diffusion_pre_process()
+
+        self.assertEqual(self.topology.automata[0].chemotherapy([3, 3]), 0.0015)
+        self.assertEqual(self.topology.automata[0].chemotherapy([2, 3]), 0.0)
+        self.assertEqual(self.topology.automata[0].chemotherapy([4, 3]), 0.0)
+        self.assertEqual(self.topology.automata[0].chemotherapy([3, 2]), 0.0)
+        self.assertEqual(self.topology.automata[0].chemotherapy([3, 4]), 0.0)
+
+        # Set value direct to grid to save time
+        self.topology.automata[0].set_attribute_grid([3, 3], 'chemotherapy',
+                                                     self.topology.automata[0].chemotherapy([3, 3]))
+
+        self.topology.automata[0].diffusion_pre_process()
+
+        self.assertEqual(self.topology.automata[0].chemotherapy([3, 3]), 0.002886975)
+        self.assertEqual(self.topology.automata[0].chemotherapy([2, 3]), 0.000028125)
+        self.assertEqual(self.topology.automata[0].chemotherapy([4, 3]), 0.000028125)
+        self.assertEqual(self.topology.automata[0].chemotherapy([3, 2]), 0.000028125)
+        self.assertEqual(self.topology.automata[0].chemotherapy([3, 4]), 0.000028125)
+
+    def test_chemokine_basic(self):
+        self.topology.automata[0].diffusion_pre_process()
+        self.assertEqual(self.topology.automata[0].grid[1, 1]['chemokine'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[0, 1]['chemokine'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 1]['chemokine'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[1, 0]['chemokine'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[1, 2]['chemokine'], 0.0)
+
+        self.topology.automata[0].diffusion_pre_process()
+        self.assertEqual(self.topology.automata[0].chemokine([1, 1]), 0.0005)
+        self.assertEqual(self.topology.automata[0].chemokine([0, 1]), 0.0)
+        self.assertEqual(self.topology.automata[0].chemokine([2, 1]), 0.0)
+        self.assertEqual(self.topology.automata[0].chemokine([1, 0]), 0.0)
+        self.assertEqual(self.topology.automata[0].chemokine([1, 2]), 0.0)
+
+        self.topology.automata[0].set_attribute_grid([1,1], 'chemokine', 0.0005)
+
+        self.topology.automata[0].diffusion_pre_process()
+        self.assertEqual(self.topology.automata[0].chemokine([1, 1]), 0.0009973265)
+        self.assertAlmostEqual(self.topology.automata[0].chemokine([0, 1]), 0.000000625)
+        self.assertAlmostEqual(self.topology.automata[0].chemokine([2, 1]), 0.000000625)
+        self.assertAlmostEqual(self.topology.automata[0].chemokine([1, 0]), 0.000000625)
+        self.assertAlmostEqual(self.topology.automata[0].chemokine([1, 2]), 0.000000625)
 
 if __name__ == '__main__':
     unittest.main()

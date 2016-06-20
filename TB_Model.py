@@ -491,7 +491,6 @@ class Automaton(Tile, Neighbourhood):
 
         self.time += 1
 
-
         # ----------------------------
         # CONTINUOUS (Diffusion)
         # ----------------------------
@@ -535,7 +534,24 @@ class Automaton(Tile, Neighbourhood):
         # ----------------------------
         # DISCRETE (Agents)
         # ----------------------------
-        pass
+
+        # TODO - bacteria replication
+
+        # TODO - T-cell recruitment
+
+        # TODO - Macrophage recruitment
+
+        # TODO - Chemo killing
+
+        # TODO - T-cell movement & killing
+
+        # TODO - Macrophage movement & death
+
+    def process_events(self, events):
+
+        # TODO - event processing
+
+        self.swap_grids()
 
     def diffusion_pre_process(self):
 
@@ -661,6 +677,48 @@ class Automaton(Tile, Neighbourhood):
         self.max_chemotherapy_local = max(self.max_chemotherapy_local, new_chemotherapy)
 
         return new_chemotherapy
+
+    def chemokine(self, address):
+
+        # Get the current cell values
+        cell = self.get(address)
+
+        # Get diffusion value for cell based on system parameters
+        cell_diffusion = self.parameters['chemokine_diffusion']
+
+        # Initialise expression
+        expression = 0
+
+        # Get immediate von Neumann neighbours
+        neighbour_addresses = self.neighbours_von_neumann(address, 1)
+
+        for neighbour_address in neighbour_addresses:
+            neighbour = self.get(neighbour_address)
+            # Only process if not boundary
+            if neighbour is not None:
+                neighbour_diffusion = self.parameters['chemokine_diffusion']
+
+                expression += ((cell_diffusion + neighbour_diffusion) / 2 * (
+                    neighbour['chemokine'] - cell['chemokine'])) / (
+                                  self.parameters['spatial_step'] * self.parameters['spatial_step'])
+
+        # Release of chemokine by bacteria
+        if isinstance(cell['contents'], Bacteria):
+            expression += self.parameters['chemokine_from_bacteria']
+
+        # Release of chemokine by macrophages
+        if isinstance(cell['contents'], Macrophage):
+            expression += self.parameters['chemokine_from_macrophage']
+
+        # Chemokine decay
+        expression -= self.parameters['chemokine_decay'] * cell['chemokine']
+
+        # Calculate new level
+        new_chemokine = cell['chemokine'] + self.parameters['time_step'] * expression
+
+        self.max_chemokine_local = max(self.max_chemokine_local, new_chemokine)
+
+        return new_chemokine
 
 class Agent:
 
