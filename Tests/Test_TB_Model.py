@@ -593,9 +593,17 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         params['caseum_threshold'] = 2
         params['oxygen_diffusion_caseum_reduction'] = 1.5
         params['chemotherapy_diffusion_caseum_reduction'] = 1.5
+        params['spatial_step'] = 0.2
+        params['oxygen_from_source'] = 0.2
+        params['oxygen_uptake_from_bacteria'] = 0.2
+        params['time_step'] = 0.01
+        params['chemotherapy_from_source'] = 0.2
+        params['chemotherapy_decay'] = 0.2
 
-        atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate']
-        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, [[3,3]], [[1,1]], [[9,9]], [[7,1]])
+
+        atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate', 'chemotherapy']
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, [[3,3]], [[1,1]], [[9,9]],
+                                                        [[7,1]])
 
     def test_pre_process_caseum(self):
 
@@ -685,6 +693,8 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         self.assertEqual(halo_cells[halo_addresses.index([5, 4])]['oxygen_diffusion_rate'], 1.0)
         self.assertEqual(halo_cells[halo_addresses.index([5, 5])]['oxygen_diffusion_rate'], 1.0)
 
+    def test_oxygen(self):
+        self.topology.automata[0].chemotherapy([1,1])
 
 if __name__ == '__main__':
     unittest.main()

@@ -441,6 +441,11 @@ class Automaton(Tile, Neighbourhood):
         Neighbourhood.__init__(self, len(shape), parameters['max_depth'])
         self.tile_id = tile_id
         self.parameters = parameters
+        self.time = 0
+
+        self.max_oxygen_local = 0
+        self.max_chemotherapy_local = 0
+        self.max_chemokine_local = 0
 
         self.blood_vessels = []
         self.agents = []
@@ -484,10 +489,48 @@ class Automaton(Tile, Neighbourhood):
 
     def update(self):
 
+        self.time += 1
+
+
         # ----------------------------
         # CONTINUOUS (Diffusion)
         # ----------------------------
-        pass
+
+        # Pre-processing (calculating diffusion rates)
+        self.diffusion_pre_process()
+
+        if (((self.parameters['chemotherapy_schedule1_start'] / self.parameters['time_step']) <=
+                 self.time <
+                 (self.parameters['chemotherapy_schedule1_end'] / self.parameters['time_step']))
+            or
+                (self.parameters['chemotherapy_schedule2_start'] / self.parameters['time_step'] <=
+                     self.time)):
+            chemo = True
+
+        else:
+            chemo = False
+
+        self.max_oxygen_local = 0
+        self.max_chemotherapy_local = 0
+        self.max_chemokine_local = 0
+
+        for i in range(self.size):
+            address = self.location_to_address(i)
+
+            # OXYGEN
+            oxygen_level = self.oxygen(address)
+            self.set_attribute_work_grid(address, 'oxygen', oxygen_level)
+
+            # CHEMOTHERAPY
+            if chemo:
+                chemotherapy_level = self.chemotherapy(address)
+                self.set_attribute_work_grid(address, 'chemotherapy', chemotherapy_level)
+            else:
+                self.set_attribute_work_grid(address, 'chemotherapy', 0.0)
+
+            # CHEMOKINE
+            chemokine_level = self.chemokine(address)
+            self.set_attribute_work_grid(address, 'chemokine', chemokine_level)
 
         # ----------------------------
         # DISCRETE (Agents)
@@ -548,6 +591,76 @@ class Automaton(Tile, Neighbourhood):
                 index = self.halo_addresses.index(halo_address)
                 self.halo_cells[index]['oxygen_diffusion_rate'] = oxygen_diffusion
                 self.halo_cells[index]['chemotherapy_diffusion_rate'] = chemotherapy_diffusion
+
+    def oxygen(self, address):
+        # Get the current cell values
+        cell = self.get(address)
+
+        # Get diffusion value for cell
+        cell_diffusion = cell['oxygen_diffusion_rate']
+
+        # Initialise expression
+        expression = 0
+
+        # Get immediate von neumann neighbours
+        neighbour_addresses = self.neighbours_von_neumann(address,1)
+        for neighbour_address in neighbour_addresses:
+            neighbour = self.get(neighbour_address)
+            # Only process if not boundary
+            if neighbour is not None:
+                neighbour_diffusion = neighbour['oxygen_diffusion_rate']
+                expression += ((cell_diffusion + neighbour_diffusion) / 2 * (neighbour['oxygen'] - cell['oxygen'])) / \
+                              (self.parameters['spatial_step'] * self.parameters['spatial_step'])
+
+        # Add oxygen entering through blood vessel
+        expression += (self.parameters['oxygen_from_source'] * cell['blood_vessel'])
+        # If there is bacteria in cell, then oxygen is taken up by bacteria so remove
+        if isinstance(cell['contents'], Bacteria):
+            expression -= self.parameters['oxygen_uptake_from_bacteria'] * cell['oxygen']
+
+        # Calculate new level
+        new_oxygen = cell['oxygen'] + self.parameters['time_step'] * expression
+
+        # Overwrite the maximum oxygen value if larger
+        self.max_oxygen_local = max(self.max_oxygen_local, new_oxygen)
+
+        return new_oxygen
+
+    def chemotherapy(self, address):
+        # Get the current cell values
+        cell = self.get(address)
+
+        # Get diffusion value for cell based on system parameters
+        cell_diffusion = cell['chemotherapy_diffusion_rate']
+
+        # Initialise expression
+        expression = 0
+
+        # Get immediate von Neumann neighbours
+        neighbour_addresses = self.neighbours_von_neumann(address, 1)
+        for neighbour_address in neighbour_addresses:
+            neighbour = self.get(neighbour_address)
+            # Only process if not boundary
+            if neighbour is not None:
+                # Pre-calculated diffusion rate
+                neighbour_diffusion = neighbour['chemotherapy_diffusion_rate']
+
+                expression += ((cell_diffusion + neighbour_diffusion) / 2 * (
+                    neighbour['chemotherapy'] - cell['chemotherapy'])) / (
+                                  self.parameters['spatial_step'] * self.parameters['spatial_step'])
+
+        # Release of chemotherapy from blood vessel
+        expression += (self.parameters['chemotherapy_from_source'] * cell['blood_vessel'])
+
+        # Chemotherapy decay
+        expression -= self.parameters['chemotherapy_decay'] * cell['chemotherapy']
+
+        # Calculate new level
+        new_chemotherapy = cell['chemotherapy'] + self.parameters['time_step'] * expression
+
+        self.max_chemotherapy_local = max(self.max_chemotherapy_local, new_chemotherapy)
+
+        return new_chemotherapy
 
 class Agent:
 
