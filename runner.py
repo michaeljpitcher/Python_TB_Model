@@ -47,6 +47,10 @@ def run_many_serial(topology, time_limit):
             automaton.set_max_chemokine_global(max_chemokine)
             # ------------------ OUT ----------------------------
 
+            automaton.update()
+
+            print automaton.potential_events
+
 
 def run_many_parallel(topology, time_limit):
     pass

@@ -457,6 +457,7 @@ class Automaton(Tile, Neighbourhood):
         self.bacteria = []
         self.macrophages = []
 
+        self.potential_events = []
 
         # INITIAL
         self.initialise_blood_vessels(blood_vessels)
@@ -537,7 +538,55 @@ class Automaton(Tile, Neighbourhood):
         # DISCRETE (Agents)
         # ----------------------------
 
+        self.potential_events = []
+
         # TODO - bacteria replication
+        for bacteria in self.bacteria:
+            bacteria.age += self.parameters['time_step']
+
+            division = False
+            if bacteria.metabolism == 'fast':
+                max = self.parameters['bacteria_replication_fast_upper']
+                min = self.parameters['bacteria_replication_fast_lower']
+            else:  # Slow
+                max = self.parameters['bacteria_replication_slow_upper']
+                min = self.parameters['bacteria_replication_fast_lower']
+
+            replication_time = np.random.randint(min, max)
+
+            if self.time % replication_time == 0 or True:
+                division = True
+
+            if division:
+
+                free_neighbours = []
+
+                for depth in range(1,4):
+                    if bacteria.neighbourhood == 'mo':
+                        neighbours = self.neighbours_moore(bacteria.address, depth, False)
+                    else:
+                        neighbours = self.neighbours_von_neumann(bacteria.address, depth, False)
+
+                    for neighbour_address in neighbours:
+                        neighbour = self.get(neighbour_address)
+                        if neighbour is not None and neighbour['contents'] == 0.0:
+                            free_neighbours.append(neighbour_address)
+
+                    if len(free_neighbours) > 0:
+                        break
+
+                if len(free_neighbours) == 0:
+                    bacteria.resting = True
+                    bacteria.age = 0.0
+                else: # Free space found
+                    neighbour_address = free_neighbours[np.random.randint(len(free_neighbours))]
+                    new_event = BacteriaReplication(neighbour_address, bacteria)
+                    self.potential_events.append(new_event)
+
+
+
+
+
 
 
         # TODO - T-cell recruitment
@@ -762,12 +811,15 @@ class Agent:
 
     def __init__(self, address):
         self.address = address
+        self.age = 0
 
 
 class Bacteria(Agent):
 
     def __init__(self, address, metabolism):
         self.metabolism = metabolism
+        self.neighbourhood = 'mo'
+        self.resting = False
         Agent.__init__(self, address)
 
 
@@ -776,3 +828,18 @@ class Macrophage(Agent):
     def __init__(self, address, state):
         self.state = state
         Agent.__init__(self, address)
+
+
+class Event:
+
+    def __init__(self, addresses_affected):
+        self.addresses_affected = addresses_affected
+
+
+class BacteriaReplication(Event):
+
+    def __init__(self, addresses_affected, bacteria):
+        Event.__init__(self, addresses_affected)
+        new_bacteria_address = addresses_affected[0]
+        new_metabolism = bacteria.metabolism
+        original_bacteria = bacteria
