@@ -452,7 +452,11 @@ class Automaton(Tile, Neighbourhood):
         self.max_chemokine_global = 0.0
 
         self.blood_vessels = []
+        # TODO - agents or individual lists
         self.agents = []
+        self.bacteria = []
+        self.macrophages = []
+
 
         # INITIAL
         self.initialise_blood_vessels(blood_vessels)
@@ -471,13 +475,9 @@ class Automaton(Tile, Neighbourhood):
     def initialise_bacteria(self, fast_bacteria, slow_bacteria):
 
         for address in fast_bacteria:
-            new_bacteria = Bacteria(address, "fast")
-            self.agents.append(new_bacteria)
-            self.set_attribute_grid(address, 'contents', new_bacteria)
+            self.add_bacteria(address, "fast")
         for address in slow_bacteria:
-            new_bacteria = Bacteria(address, "slow")
-            self.agents.append(new_bacteria)
-            self.set_attribute_grid(address, 'contents', new_bacteria)
+            self.add_bacteria(address, "slow")
 
     def initialise_macrophages(self, addresses):
 
@@ -540,6 +540,7 @@ class Automaton(Tile, Neighbourhood):
         # ----------------------------
 
         # TODO - bacteria replication
+
 
         # TODO - T-cell recruitment
 
@@ -747,6 +748,11 @@ class Automaton(Tile, Neighbourhood):
             return 0.0
         else:
             return (self.get_attribute(address, 'chemokine') / self.max_chemokine_global) * 100
+
+    def add_bacteria(self, address, metabolism):
+        new_bacteria = Bacteria(address, metabolism)
+        self.bacteria.append(new_bacteria)
+        self.set_attribute_grid(address, 'contents', new_bacteria)
 
 
 class Agent:

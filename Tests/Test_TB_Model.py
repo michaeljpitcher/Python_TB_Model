@@ -631,6 +631,22 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
                 halo.append(cell)
         self.topology.automata[0].set_halo(halo)
 
+    def test_initialise(self):
+        self.assertEqual(len(self.topology.automata[0].blood_vessels), 1)
+        self.assertItemsEqual(self.topology.automata[0].blood_vessels[0], [3, 3])
+        self.assertEqual(len(self.topology.automata[1].blood_vessels), 0)
+        self.assertEqual(len(self.topology.automata[2].blood_vessels), 0)
+        self.assertEqual(len(self.topology.automata[3].blood_vessels), 0)
+
+        self.assertEqual(len(self.topology.automata[0].bacteria), 1)
+        self.assertEqual(self.topology.automata[0].bacteria[0].metabolism, "fast")
+        self.assertItemsEqual(self.topology.automata[0].bacteria[0].address, [1, 1])
+        self.assertEqual(len(self.topology.automata[1].bacteria), 0)
+        self.assertEqual(len(self.topology.automata[2].bacteria), 0)
+        self.assertEqual(len(self.topology.automata[3].bacteria), 1)
+        self.assertEqual(self.topology.automata[3].bacteria[0].metabolism, "slow")
+        self.assertItemsEqual(self.topology.automata[3].bacteria[0].address, [4, 4])
+
     def test_pre_process_caseum(self):
 
         # Add some caseum to automaton 0
