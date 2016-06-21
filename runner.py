@@ -28,6 +28,13 @@ def run_many_serial(topology, time_limit):
             # ---------------- BACK -----------------------------
 
         halos = construct_halos(topology, dz_addresses, values, halo_addresses)
+        max_oxygen = 0.0
+        max_chemotherapy = 0.0
+        max_chemokine = 0.0
+        for automaton in topology.automata:
+            max_oxygen = max(max_oxygen, automaton.max_oxygen_local)
+            max_chemotherapy = max(max_chemotherapy, automaton.max_chemotherapy_local)
+            max_chemokine = max(max_chemokine, automaton.max_chemokine_local)
 
         for automaton in topology.automata:
             print "Running automata: ", automaton.tile_id
@@ -35,6 +42,9 @@ def run_many_serial(topology, time_limit):
             # UPDATE
             # ------------------ OUT ----------------------------
             automaton.set_halo(halos[automaton.tile_id])
+            automaton.set_max_oxygen_global(max_oxygen)
+            automaton.set_max_chemotherapy_global(max_chemotherapy)
+            automaton.set_max_chemokine_global(max_chemokine)
             # ------------------ OUT ----------------------------
 
 

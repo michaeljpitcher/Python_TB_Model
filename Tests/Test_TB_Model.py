@@ -771,5 +771,41 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         self.assertAlmostEqual(self.topology.automata[0].chemokine([1, 0]), 0.000000625)
         self.assertAlmostEqual(self.topology.automata[0].chemokine([1, 2]), 0.000000625)
 
+    def test_local_and_global_levels(self):
+        self.topology.automata[0].diffusion_pre_process()
+        for x in range(5):
+            for y in range(5):
+                self.topology.automata[0].set_attribute_work_grid([x, y], 'oxygen', self.topology.automata[0].oxygen([x,y]))
+                self.topology.automata[0].set_attribute_work_grid([x, y], 'chemotherapy', self.topology.automata[0].chemotherapy([x, y]))
+                self.topology.automata[0].set_attribute_work_grid([x, y], 'chemokine', self.topology.automata[0].chemokine([x, y]))
+
+        self.topology.automata[0].swap_grids()
+
+        self.assertAlmostEqual(self.topology.automata[0].max_oxygen_local, 1.3536)
+        self.assertAlmostEqual(self.topology.automata[0].max_chemotherapy_local, 0.0015)
+        self.assertAlmostEqual(self.topology.automata[0].max_chemokine_local, 0.0005)
+
+        for a in self.topology.automata:
+            a.set_max_oxygen_global(1.59)
+            a.set_max_chemotherapy_global(0.5)
+            a.set_max_chemokine_global(0.12)
+
+        self.assertEqual(self.topology.automata[0].max_oxygen_global, 1.59)
+        self.assertEqual(self.topology.automata[1].max_oxygen_global, 1.59)
+        self.assertEqual(self.topology.automata[2].max_oxygen_global, 1.59)
+        self.assertEqual(self.topology.automata[3].max_oxygen_global, 1.59)
+        self.assertEqual(self.topology.automata[0].max_chemotherapy_global, 0.5)
+        self.assertEqual(self.topology.automata[1].max_chemotherapy_global, 0.5)
+        self.assertEqual(self.topology.automata[2].max_chemotherapy_global, 0.5)
+        self.assertEqual(self.topology.automata[3].max_chemotherapy_global, 0.5)
+        self.assertEqual(self.topology.automata[0].max_chemokine_global, 0.12)
+        self.assertEqual(self.topology.automata[1].max_chemokine_global, 0.12)
+        self.assertEqual(self.topology.automata[2].max_chemokine_global, 0.12)
+        self.assertEqual(self.topology.automata[3].max_chemokine_global, 0.12)
+
+        self.assertAlmostEqual(self.topology.automata[0].oxygen_scale([3, 3]), 1.3536/1.59 * 100)
+        self.assertAlmostEqual(self.topology.automata[0].chemotherapy_scale([3, 3]), 0.0015 / 0.5 * 100)
+        self.assertAlmostEqual(self.topology.automata[0].chemokine_scale([1, 1]), 0.0005 / 0.12 * 100)
+
 if __name__ == '__main__':
     unittest.main()

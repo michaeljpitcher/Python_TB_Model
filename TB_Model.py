@@ -443,9 +443,13 @@ class Automaton(Tile, Neighbourhood):
         self.parameters = parameters
         self.time = 0
 
-        self.max_oxygen_local = 0
-        self.max_chemotherapy_local = 0
-        self.max_chemokine_local = 0
+        self.max_oxygen_local = 0.0
+        self.max_chemotherapy_local = 0.0
+        self.max_chemokine_local = 0.0
+
+        self.max_oxygen_global = 0.0
+        self.max_chemotherapy_global = 0.0
+        self.max_chemokine_global = 0.0
 
         self.blood_vessels = []
         self.agents = []
@@ -509,9 +513,9 @@ class Automaton(Tile, Neighbourhood):
         else:
             chemo = False
 
-        self.max_oxygen_local = 0
-        self.max_chemotherapy_local = 0
-        self.max_chemokine_local = 0
+        self.max_oxygen_local = 0.0
+        self.max_chemotherapy_local = 0.0
+        self.max_chemokine_local = 0.0
 
         for i in range(self.size):
             address = self.location_to_address(i)
@@ -719,6 +723,31 @@ class Automaton(Tile, Neighbourhood):
         self.max_chemokine_local = max(self.max_chemokine_local, new_chemokine)
 
         return new_chemokine
+
+    def set_max_oxygen_global(self, max_oxygen):
+        self.max_oxygen_global = max_oxygen
+
+    def set_max_chemotherapy_global(self, max_chemotherapy):
+        self.max_chemotherapy_global = max_chemotherapy
+
+    def set_max_chemokine_global(self, max_chemokine):
+        self.max_chemokine_global = max_chemokine
+
+    def oxygen_scale(self, address):
+        return (self.get_attribute(address, 'oxygen') / self.max_oxygen_global) * 100
+
+    def chemotherapy_scale(self, address):
+        if self.max_chemotherapy_global == 0.0:
+            return 0.0
+        else:
+            return (self.get_attribute(address, 'chemotherapy') / self.max_chemotherapy_global) * 100
+
+    def chemokine_scale(self, address):
+        if self.max_chemokine_global == 0.0:
+            return 0.0
+        else:
+            return (self.get_attribute(address, 'chemokine') / self.max_chemokine_global) * 100
+
 
 class Agent:
 
