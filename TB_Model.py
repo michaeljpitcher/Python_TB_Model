@@ -583,12 +583,6 @@ class Automaton(Tile, Neighbourhood):
                     new_event = BacteriaReplication(neighbour_address, bacteria)
                     self.potential_events.append(new_event)
 
-
-
-
-
-
-
         # TODO - T-cell recruitment
 
         # TODO - Macrophage recruitment
