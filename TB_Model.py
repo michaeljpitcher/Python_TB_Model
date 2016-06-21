@@ -482,9 +482,7 @@ class Automaton(Tile, Neighbourhood):
     def initialise_macrophages(self, addresses):
 
         for address in addresses:
-            new_macrophage = Macrophage(address, "resting")
-            self.agents.append(new_macrophage)
-            self.set_attribute_grid(address, 'contents', new_macrophage)
+            self.add_macrophage(address, "resting")
 
     def initialise_oxygen_levels(self):
 
@@ -753,6 +751,11 @@ class Automaton(Tile, Neighbourhood):
         new_bacteria = Bacteria(address, metabolism)
         self.bacteria.append(new_bacteria)
         self.set_attribute_grid(address, 'contents', new_bacteria)
+
+    def add_macrophage(self, address, state):
+        new_macrophage = Macrophage(address, state)
+        self.macrophages.append(new_macrophage)
+        self.set_attribute_grid(address, 'contents', new_macrophage)
 
 
 class Agent:
