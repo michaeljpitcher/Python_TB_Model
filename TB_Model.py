@@ -580,7 +580,12 @@ class Automaton(Tile, Neighbourhood):
                     bacteria.age = 0.0
                 else: # Free space found
                     neighbour_address = free_neighbours[np.random.randint(len(free_neighbours))]
-                    new_event = BacteriaReplication(neighbour_address, bacteria)
+
+                    if self.address_is_on_grid(neighbour_address):
+                        internal = True
+                    else:
+                        internal = False
+                    new_event = BacteriaReplication(neighbour_address, bacteria, internal)
                     self.potential_events.append(new_event)
 
         # TODO - T-cell recruitment
@@ -826,14 +831,15 @@ class Macrophage(Agent):
 
 class Event:
 
-    def __init__(self, addresses_affected):
+    def __init__(self, addresses_affected, internal):
         self.addresses_affected = addresses_affected
+        self.internal = internal
 
 
 class BacteriaReplication(Event):
 
-    def __init__(self, addresses_affected, bacteria):
-        Event.__init__(self, addresses_affected)
-        new_bacteria_address = addresses_affected[0]
+    def __init__(self, address, bacteria, internal):
+        Event.__init__(self, [address], internal)
+        new_bacteria_address = address
         new_metabolism = bacteria.metabolism
         original_bacteria = bacteria
