@@ -23,29 +23,37 @@ def run_many_serial(topology, time_limit):
     received_events = dict()
     events_to_return = dict()
     addresses_processed = dict()
+
     for a in range(number_tiles):
         received_events[a] = []
         events_to_return[a] = []
         addresses_processed[a] = []
 
     for t in range(time_limit):
-
         print "TIME-STEP:", t
 
-        for tile_id in range(number_tiles):
-            # ---------------- BACK -----------------------------
-            values.append(topology.automata[tile_id].get_danger_zone())
-            # ---------------- BACK -----------------------------
-
-        halos = construct_halos(topology, dz_addresses, values, halo_addresses)
-        values = []
         max_oxygen = 0.0
         max_chemotherapy = 0.0
         max_chemokine = 0.0
-        for automaton in topology.automata:
+        number_bacteria = 0
+
+        # 1. Get DZ values from engines
+        for tile_id in range(number_tiles):
+            automaton = topology.automata[tile_id]
+
+            # ---------------- BACK -----------------------------
+            values.append(automaton.get_danger_zone())
             max_oxygen = max(max_oxygen, automaton.max_oxygen_local)
             max_chemotherapy = max(max_chemotherapy, automaton.max_chemotherapy_local)
             max_chemokine = max(max_chemokine, automaton.max_chemokine_local)
+            number_bacteria += len(automaton.bacteria)
+            # ---------------- BACK -----------------------------
+
+        # 2. Construct halos
+        halos = construct_halos(topology, dz_addresses, values, halo_addresses)
+
+        # Reset values
+        values = []
 
         automata_with_events_left = []
         total_num_events = 0
@@ -56,10 +64,12 @@ def run_many_serial(topology, time_limit):
 
             # UPDATE
             # ------------------ OUT ----------------------------
+            # 3. Send halos to engines
             automaton.set_halo(halos[automaton.tile_id])
             automaton.set_max_oxygen_global(max_oxygen)
             automaton.set_max_chemotherapy_global(max_chemotherapy)
             automaton.set_max_chemokine_global(max_chemokine)
+            # 4. Calculate cell values
             automaton.update()
             # ------------------ OUT ----------------------------
 
@@ -67,6 +77,7 @@ def run_many_serial(topology, time_limit):
             events = automaton.potential_events
 
             if len(events) > 0:
+                # 5. Engines return list of potential events
                 received_events[automaton.tile_id] = events
                 total_num_events += len(events)
                 automata_with_events_left.append(automaton.tile_id)
@@ -74,6 +85,8 @@ def run_many_serial(topology, time_limit):
                 received_events[automaton.tile_id] = []
             # ----------------- BACK ----------------------------
 
+
+        # 6. VETO CONFLICTING EVENTS
         for i in range(total_num_events):
             tile_id = automata_with_events_left[np.random.randint(0, len(automata_with_events_left))]
 
@@ -118,9 +131,11 @@ def run_many_serial(topology, time_limit):
             if len(received_events[tile_id]) == 0:
                 automata_with_events_left.remove(tile_id)
 
+        # SEND EVENTS TO TILES TO PERFORM
         for tile_id in range(len(topology.automata)):
             automaton = topology.automata[tile_id]
             # ------------------- OUT ----------------------------
+            # 7 & 8. Send events, perform events
             automaton.process_events(events_to_return[tile_id])
             # ------------------- OUT ----------------------------
 
