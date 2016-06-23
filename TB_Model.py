@@ -840,6 +840,9 @@ class BacteriaReplication(Event):
 
     def __init__(self, address, bacteria, internal):
         Event.__init__(self, [address], internal)
-        new_bacteria_address = address
-        new_metabolism = bacteria.metabolism
-        original_bacteria = bacteria
+        self.new_bacteria_address = address
+        self.new_metabolism = bacteria.metabolism
+        self.original_bacteria = bacteria
+
+    def clone(self, new_addresses):
+        return BacteriaReplication(new_addresses[0], self.original_bacteria, self.new_metabolism)
