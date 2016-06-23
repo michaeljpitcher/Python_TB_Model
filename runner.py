@@ -29,7 +29,7 @@ def run_many_serial(topology, time_limit):
         events_to_return[a] = []
         addresses_processed[a] = []
 
-    for t in range(time_limit):
+    for t in range(1, time_limit+1):
         print "TIME-STEP:", t
 
         max_oxygen = 0.0

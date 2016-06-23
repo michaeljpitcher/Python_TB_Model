@@ -428,12 +428,20 @@ class EventHandler:
             self.process_bacteria_replication(event)
         elif isinstance(event, RecruitTCell):
             self.process_t_cell_recruitment(event)
+        elif isinstance(event, RecruitMacrophage):
+            self.process_macrophage_recruitment(event)
 
     def process_bacteria_replication(self, event):
+        print "BACTERIA REPLICATION"
         self.add_bacteria(event.new_bacteria_address, event.new_metabolism)
 
     def process_t_cell_recruitment(self, event):
+        print "T CELL RECRUITMENT"
         self.add_t_cell(event.t_cell_address)
+
+    def process_macrophage_recruitment(self, event):
+        print "MACROPHAGE RECRUITMENT"
+        self.add_macrophage(event.macrophage_address, "resting")
 
 
 class Automaton(Tile, Neighbourhood, EventHandler):
@@ -563,7 +571,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
             replication_time = np.random.randint(min, max)
 
-            if self.time % replication_time == 0 or True:
+            if self.time % replication_time == 0:
                 division = True
 
             if division:
@@ -599,7 +607,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     self.potential_events.append(new_event)
 
         # T-CELL RECRUITMENT
-        if self.number_of_bacteria_global > self.parameters['bacteria_threshold_for_t_cells']:
+        if self.number_of_bacteria_global >= self.parameters['bacteria_threshold_for_t_cells']:
             # Each blood vessel
             for bv_address in self.blood_vessels:
                 r = np.random.randint(1, 100)
@@ -613,7 +621,6 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                                 self.get_attribute(n, 'contents') == 0.0 and \
                                 self.chemokine_scale(n) > self.parameters['chemokine_scale_for_t_cell_recruitment']:
                             free_neighbours.append(n)
-
                     # Check there is free space
                     if len(free_neighbours) > 0:
                         # Pick one of the neighbours
@@ -623,16 +630,43 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                         else:
                             internal = False
                         new_event = RecruitTCell(neighbour_address, internal)
+                        self.potential_events.append(new_event)
 
+        # MACROPHAGE RECRUITMENT
+        for bv_address in self.blood_vessels:
+            r = np.random.randint(1, 100)
+            if r <= self.parameters['macrophage_recruitment_probability']:
+                neighbours = self.neighbours_von_neumann(bv_address, 1)
+                free_neighbours = []
+                for n in neighbours:
+                    if self.get(n) is not None and \
+                                self.get_attribute(n, 'blood_vessel') == 0.0 and \
+                                self.get_attribute(n, 'contents') == 0.0 and \
+                                self.chemokine_scale(n) > self.parameters['chemokine_scale_for_macrophage_recruitment']:
+                        free_neighbours.append(n)
 
-
-        # TODO - Macrophage recruitment
+                if len(free_neighbours) > 0:
+                    # Pick one of the neighbours
+                    neighbour_address = free_neighbours[np.random.randint(len(free_neighbours))]
+                    if self.address_is_on_grid(neighbour_address):
+                        internal = True
+                    else:
+                        internal = False
+                    new_event = RecruitMacrophage(neighbour_address, internal)
+                    self.potential_events.append(new_event)
 
         # TODO - Chemo killing
 
         # TODO - T-cell movement & killing
 
         # TODO - Macrophage movement & death
+
+        # Reorder events
+        self.reorder_events()
+
+    def reorder_events(self):
+        # TODO - other methods - currently just random
+        np.random.shuffle(self.potential_events)
 
     def process_events(self, events):
 
@@ -923,4 +957,14 @@ class RecruitTCell(Event):
         Event.__init__(self,[address], internal)
 
     def clone(self, new_addresses):
-        return BacteriaReplication(new_addresses[0], self.internal)
+        return RecruitTCell(new_addresses[0], self.internal)
+
+
+class RecruitMacrophage(Event):
+
+    def __init__(self, address, internal):
+        self.macrophage_address = address
+        Event.__init__(self, [address], internal)
+
+    def clone(self, new_addresses):
+        return RecruitMacrophage(new_addresses[0], self.internal)
