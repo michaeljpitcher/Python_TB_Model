@@ -85,8 +85,6 @@ def run_many_serial(topology, time_limit):
                 received_events[automaton.tile_id] = []
             # ----------------- BACK ----------------------------
 
-        print received_events
-
         # 6. VETO CONFLICTING EVENTS
         for i in range(total_num_events):
             tile_id = automata_with_events_left[np.random.randint(0, len(automata_with_events_left))]
@@ -132,12 +130,6 @@ def run_many_serial(topology, time_limit):
             if len(received_events[tile_id]) == 0:
                 automata_with_events_left.remove(tile_id)
 
-        print addresses_processed
-        print events_to_return
-
-        for e in events_to_return:
-            print events_to_return[e]
-
         # SEND EVENTS TO TILES TO PERFORM
         for tile_id in range(len(topology.automata)):
             automaton = topology.automata[tile_id]
@@ -145,6 +137,7 @@ def run_many_serial(topology, time_limit):
             # 7 & 8. Send events, perform events
             automaton.process_events(events_to_return[tile_id])
             # ------------------- OUT ----------------------------
+            print automaton.grid
 
 
 def run_many_parallel(topology, time_limit):

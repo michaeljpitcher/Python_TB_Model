@@ -418,12 +418,26 @@ class Neighbourhood:
         return self.calculate_neighbours_locations(address, reduced_table)
 
 
-class Automaton(Tile, Neighbourhood):
+class EventHandler:
+
+    def __init__(self):
+        pass
+
+    def handle_event(self, event):
+        if isinstance(event, BacteriaReplication):
+            self.process_bacteria_replication(event)
+
+    def process_bacteria_replication(self, event):
+        self.add_bacteria(event.new_bacteria_address, event.new_metabolism)
+
+
+class Automaton(Tile, Neighbourhood, EventHandler):
 
     def __init__(self, shape, tile_id, attributes, parameters, blood_vessels, fast_bacteria=None, slow_bacteria=None,
                  macrophages=None):
         Tile.__init__(self, shape, attributes)
         Neighbourhood.__init__(self, len(shape), parameters['max_depth'])
+        EventHandler.__init__(self)
         self.tile_id = tile_id
         self.parameters = parameters
         self.time = 0
@@ -437,21 +451,23 @@ class Automaton(Tile, Neighbourhood):
         self.max_chemokine_global = 0.0
 
         self.blood_vessels = []
-        # TODO - agents or individual lists
         self.agents = []
         self.bacteria = []
         self.macrophages = []
-
         self.potential_events = []
 
-        # INITIAL
+        # INITIAL VESSELS
         self.initialise_blood_vessels(blood_vessels)
-        self.initialise_bacteria(fast_bacteria, slow_bacteria)
-        self.initialise_macrophages(macrophages)
         self.initialise_oxygen_levels()
 
         # COPY GRID TO WORK GRID
         self.create_work_grid()
+
+        # INITIAL AGENTS
+        self.initialise_bacteria(fast_bacteria, slow_bacteria)
+        self.initialise_macrophages(macrophages)
+
+        self.swap_grids()
 
     def initialise_blood_vessels(self, addresses):
         for address in addresses:
@@ -554,7 +570,8 @@ class Automaton(Tile, Neighbourhood):
 
                     for neighbour_address in neighbours:
                         neighbour = self.get(neighbour_address)
-                        if neighbour is not None and neighbour['contents'] == 0.0:
+                        if neighbour is not None and neighbour['contents'] == 0.0 and \
+                                neighbour_address not in self.blood_vessels:
                             free_neighbours.append(neighbour_address)
 
                     if len(free_neighbours) > 0:
@@ -585,7 +602,14 @@ class Automaton(Tile, Neighbourhood):
 
     def process_events(self, events):
 
-        # TODO - event processing
+        for event in events:
+            self.handle_event(event)
+
+        # Persist any remaining agents
+        for b in self.bacteria:
+            self.set_attribute_work_grid(b.address, 'contents', b)
+        for m in self.macrophages:
+            self.set_attribute_work_grid(m.address, 'contents', m)
 
         self.swap_grids()
 
@@ -783,12 +807,12 @@ class Automaton(Tile, Neighbourhood):
     def add_bacteria(self, address, metabolism):
         new_bacteria = Bacteria(address, metabolism)
         self.bacteria.append(new_bacteria)
-        self.set_attribute_grid(address, 'contents', new_bacteria)
+        self.set_attribute_work_grid(address, 'contents', new_bacteria)
 
     def add_macrophage(self, address, state):
         new_macrophage = Macrophage(address, state)
         self.macrophages.append(new_macrophage)
-        self.set_attribute_grid(address, 'contents', new_macrophage)
+        self.set_attribute_work_grid(address, 'contents', new_macrophage)
 
 
 class Agent:
