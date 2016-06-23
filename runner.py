@@ -69,6 +69,7 @@ def run_many_serial(topology, time_limit):
             automaton.set_max_oxygen_global(max_oxygen)
             automaton.set_max_chemotherapy_global(max_chemotherapy)
             automaton.set_max_chemokine_global(max_chemokine)
+            automaton.set_global_bacteria_number(number_bacteria)
             # 4. Calculate cell values
             automaton.update()
             # ------------------ OUT ----------------------------
@@ -137,7 +138,7 @@ def run_many_serial(topology, time_limit):
             # 7 & 8. Send events, perform events
             automaton.process_events(events_to_return[tile_id])
             # ------------------- OUT ----------------------------
-            print automaton.grid
+            # print automaton.grid
 
 
 def run_many_parallel(topology, time_limit):

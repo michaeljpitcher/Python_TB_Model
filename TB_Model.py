@@ -426,9 +426,14 @@ class EventHandler:
     def handle_event(self, event):
         if isinstance(event, BacteriaReplication):
             self.process_bacteria_replication(event)
+        elif isinstance(event, RecruitTCell):
+            self.process_t_cell_recruitment(event)
 
     def process_bacteria_replication(self, event):
         self.add_bacteria(event.new_bacteria_address, event.new_metabolism)
+
+    def process_t_cell_recruitment(self, event):
+        self.add_t_cell(event.t_cell_address)
 
 
 class Automaton(Tile, Neighbourhood, EventHandler):
@@ -449,11 +454,13 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         self.max_oxygen_global = 0.0
         self.max_chemotherapy_global = 0.0
         self.max_chemokine_global = 0.0
+        self.number_of_bacteria_global = 0
 
         self.blood_vessels = []
         self.agents = []
         self.bacteria = []
         self.macrophages = []
+        self.t_cells = []
         self.potential_events = []
 
         # INITIAL VESSELS
@@ -541,7 +548,8 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
         self.potential_events = []
 
-        # TODO - bacteria replication
+        # BACTERIA REPLICATION
+
         for bacteria in self.bacteria:
             bacteria.age += self.parameters['time_step']
 
@@ -590,7 +598,33 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     new_event = BacteriaReplication(neighbour_address, bacteria, internal)
                     self.potential_events.append(new_event)
 
-        # TODO - T-cell recruitment
+        # T-CELL RECRUITMENT
+        if self.number_of_bacteria_global > self.parameters['bacteria_threshold_for_t_cells']:
+            # Each blood vessel
+            for bv_address in self.blood_vessels:
+                r = np.random.randint(1, 100)
+                if r <= self.parameters['t_cell_recruitment_probability']:
+                    neighbours = self.neighbours_von_neumann(bv_address, 1)
+                    # Get neighbours which are empty and have a high enough chemokine level
+                    free_neighbours = []
+                    for n in neighbours:
+                        if self.get(n) is not None and \
+                                self.get_attribute(n, 'blood_vessel') == 0.0 and \
+                                self.get_attribute(n, 'contents') == 0.0 and \
+                                self.chemokine_scale(n) > self.parameters['chemokine_scale_for_t_cell_recruitment']:
+                            free_neighbours.append(n)
+
+                    # Check there is free space
+                    if len(free_neighbours) > 0:
+                        # Pick one of the neighbours
+                        neighbour_address = free_neighbours[np.random.randint(len(free_neighbours))]
+                        if self.address_is_on_grid(neighbour_address):
+                            internal = True
+                        else:
+                            internal = False
+                        new_event = RecruitTCell(neighbour_address, internal)
+
+
 
         # TODO - Macrophage recruitment
 
@@ -605,11 +639,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         for event in events:
             self.handle_event(event)
 
-        # Persist any remaining agents
-        for b in self.bacteria:
-            self.set_attribute_work_grid(b.address, 'contents', b)
-        for m in self.macrophages:
-            self.set_attribute_work_grid(m.address, 'contents', m)
+        self.persist_agents()
 
         self.swap_grids()
 
@@ -789,6 +819,9 @@ class Automaton(Tile, Neighbourhood, EventHandler):
     def set_max_chemokine_global(self, max_chemokine):
         self.max_chemokine_global = max_chemokine
 
+    def set_global_bacteria_number(self, number):
+        self.number_of_bacteria_global = number
+
     def oxygen_scale(self, address):
         return (self.get_attribute(address, 'oxygen') / self.max_oxygen_global) * 100
 
@@ -814,7 +847,23 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         self.macrophages.append(new_macrophage)
         self.set_attribute_work_grid(address, 'contents', new_macrophage)
 
+    def add_t_cell(self, address):
+        new_t_cell = TCell(address)
+        self.t_cells.append(new_t_cell)
+        self.set_attribute_work_grid(address, 'contents', new_t_cell)
 
+    def persist_agents(self):
+        for b in self.bacteria:
+            self.set_attribute_work_grid(b.address, 'contents', b)
+        for m in self.macrophages:
+            self.set_attribute_work_grid(m.address, 'contents', m)
+        for t in self.t_cells:
+            self.set_attribute_work_grid(t.address, 'contents', t)
+
+
+# ------------------------------
+# AGENTS
+# ------------------------------
 class Agent:
 
     def __init__(self, address):
@@ -838,6 +887,16 @@ class Macrophage(Agent):
         Agent.__init__(self, address)
 
 
+class TCell(Agent):
+
+    def __init__(self, address):
+        Agent.__init__(self, address)
+        pass
+
+
+# ------------------------------
+# EVENTS
+# ------------------------------
 class Event:
 
     def __init__(self, addresses_affected, internal):
@@ -855,3 +914,13 @@ class BacteriaReplication(Event):
 
     def clone(self, new_addresses):
         return BacteriaReplication(new_addresses[0], self.original_bacteria, self.new_metabolism)
+
+
+class RecruitTCell(Event):
+
+    def __init__(self, address, internal):
+        self.t_cell_address = address
+        Event.__init__(self,[address], internal)
+
+    def clone(self, new_addresses):
+        return BacteriaReplication(new_addresses[0], self.internal)
