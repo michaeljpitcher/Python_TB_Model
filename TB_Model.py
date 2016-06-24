@@ -15,26 +15,31 @@ class Topology:
 
         self.automata = []
 
+        # Create automata
         for i in range(self.number_of_tiles):
-            # TODO
             automaton = Automaton(self.tile_shape, i, attributes, parameters, blood_vessel_local[i],
                                   fast_bacteria_local[i], slow_bacteria_local[i], macrophages_local[i])
             self.automata.append(automaton)
 
+        # Get a list of addresses (relative to tile) that are required by tile but outside of it
+        # Will be the same for all tiles (as they're same shape) so just pull from one
         self.external_addresses_required = self.get_external_addresses_required(self.automata[0],
                                                                                 parameters['max_depth'])
+
         # Halo of depth 1 - needed for calculating diffusion rates
+        # TODO - is there a better way of doing this?
         depth1_addresses = self.get_external_addresses_required(self.automata[0],1)
 
+        # Set the halo address and halo of depth 1 address
         for automaton in self.automata:
             automaton.halo_addresses = self.external_addresses_required
             automaton.halo_depth1 = depth1_addresses
 
     def get_external_addresses_required(self, automaton, depth):
         """
-            The addresses of cells within the overall neighbourhood which don't belong to this automaton
-            :return:
-            """
+        The addresses of cells within the overall neighbourhood which don't belong to the given automaton
+        :return:
+        """
         external_addresses = []
         # Loop through every cell
         for i in range(0, automaton.grid.size):
@@ -57,13 +62,14 @@ class TwoDimensionalTopology(Topology):
 
     def __init__(self, tile_arrangement, total_shape, attributes, parameters, blood_vessel_global=[],
                  fast_bacteria_global=[], slow_bacteria_global=[], macrophages_global = []):
+        # Check it's two dimensions
         assert len(total_shape) == 2
         self.number_of_tiles = reduce(lambda x, y: x * y, tile_arrangement)
         self.total_shape = np.array(total_shape)
         self.tile_shape = self.total_shape / tile_arrangement
         self.tile_arrangement = tile_arrangement
 
-        # Initialise
+        # Initialise (turn the global addresses into lists of local ones)
         blood_vessel_local = self.get_local_addresses(blood_vessel_global)
         fast_bacteria_local = self.get_local_addresses(fast_bacteria_global)
         slow_bacteria_local = self.get_local_addresses(slow_bacteria_global)
@@ -92,7 +98,7 @@ class TwoDimensionalTopology(Topology):
                 if address is not None:
                     self.global_addresses_required.append(address)
 
-        # Use required global addresses to create danger zones
+        # Use required global addresses to create danger zones on tiles
         self.danger_zone_addresses = dict()
         for tile_id in range(self.number_of_tiles):
             self.danger_zone_addresses[tile_id] = []
@@ -118,6 +124,11 @@ class TwoDimensionalTopology(Topology):
         return [x, y]
 
     def global_to_local(self, global_address):
+        """
+        Turn a global address into a tile ID and a local address
+        :param global_address:
+        :return:
+        """
         if global_address is None:
             return [None, None]
 
@@ -132,12 +143,26 @@ class TwoDimensionalTopology(Topology):
         return output
 
     def local_to_global(self, tile_id, local_address):
+        """
+        Turn a tile ID and a local address into a global address
+        :param tile_id:
+        :param local_address:
+        :return:
+        """
         x, y = local_address
         origin = self.origins[tile_id]
         # Normalise the address before it's returned
         return self.normalise_address([origin[0] + x, origin[1] + y])
 
     def local_to_local(self, original_tile_id, local_address, new_tile_id):
+        """
+        Turn a tile ID and a local address into a local address for the given tile
+        Basically does local -> global -> local
+        :param original_tile_id:
+        :param local_address:
+        :param new_tile_id:
+        :return:
+        """
         global_address = self.local_to_global(original_tile_id, local_address)
         origin_x, origin_y = self.origins[new_tile_id]
         return [global_address[0] - origin_x, global_address[1] - origin_y]
@@ -173,6 +198,11 @@ class TwoDimensionalTopology(Topology):
         return halos
 
     def get_local_addresses(self, global_addresses):
+        """
+        Turn a set of global address into local addresses
+        :param global_addresses:
+        :return:
+        """
 
         local_addresses = []
         for i in range(self.number_of_tiles):
@@ -192,10 +222,14 @@ class Tile:
         self.shape = shape
         self.attributes = attributes
         self.size = reduce(lambda x, y: x * y, shape)
-
-        self.create_grid(attributes)
+        self.grid = self.create_grid(attributes)
 
     def create_grid(self, attributes):
+        """
+        Create a grid where cells are dictionaries of given attributes
+        :param attributes:
+        :return:
+        """
 
         cells = []
         for i in range(self.size):
@@ -203,11 +237,14 @@ class Tile:
             for att in attributes:
                 cell[att] = 0.0
             cells.append(cell)
-
-        self.grid = np.array(cells).reshape(self.shape)
+        # Turn flat list into the necessary dimensional array
+        return np.array(cells).reshape(self.shape)
 
     def create_work_grid(self):
-
+        """
+        Create a working grid placeholder by cloning the current grid
+        :return:
+        """
         cells = []
         for i in range(self.size):
             address = self.location_to_address(i)
@@ -237,6 +274,7 @@ class Tile:
         :param address:
         :return:
         """
+        # TODO - probably redundant function now
         result = 0
         acc = 1
         for pi, si in zip(reversed(address), reversed(self.grid.shape)):
@@ -260,6 +298,10 @@ class Tile:
         self.danger_zone_addresses = addresses
 
     def get_danger_zone(self):
+        """
+        Get the cell values of cells in the danger zone
+        :return:
+        """
         danger_zone = []
         for address in self.danger_zone_addresses:
             # Get cell from the work grid
@@ -271,13 +313,18 @@ class Tile:
         self.halo_addresses = addresses
 
     def set_halo(self, cells):
+        """
+        Update the halo
+        :param cells:
+        :return:
+        """
         self.halo_cells = []
         for i in range(len(cells)):
             self.halo_cells.append(cells[i])
 
     def get(self, address):
         """
-        Get a cell from the active grid
+        Get a cell from the active grid (or from halo)
         :param address:
         :return:
         """
@@ -292,7 +339,7 @@ class Tile:
 
     def get_attribute(self, address, attribute):
         """
-        Get an attribute from a cell on the active grid
+        Get an attribute from a cell on the active grid (or halo)
         :param address:
         :param attribute:
         :return:
@@ -317,6 +364,7 @@ class Tile:
         :param value:
         :return:
         """
+        # TODO - probably not needed
         address = tuple(address)
         if attribute in self.grid[address].keys():
             self.grid[address][attribute] = value
@@ -430,6 +478,10 @@ class EventHandler:
             self.process_t_cell_recruitment(event)
         elif isinstance(event, RecruitMacrophage):
             self.process_macrophage_recruitment(event)
+        elif isinstance(event, ChemoKillBacteria):
+            self.process_chemo_kill_bacteria(event)
+        elif isinstance(event, ChemoKillMacrophage):
+            self.process_chemo_kill_macrophage(event)
 
     def process_bacteria_replication(self, event):
         print "BACTERIA REPLICATION"
@@ -442,6 +494,16 @@ class EventHandler:
     def process_macrophage_recruitment(self, event):
         print "MACROPHAGE RECRUITMENT"
         self.add_macrophage(event.macrophage_address, "resting")
+
+    def process_chemo_kill_bacteria(self, event):
+        print "CHEMO KILL BACTERIA"
+        self.bacteria.remove(event.bacteria_to_kill)
+        self.set_attribute_work_grid(event.bacteria_to_kill.address, 'contents', 0.0)
+
+    def process_chemo_kill_macrophage(self, event):
+        print "CHEMO KILL MACROPHAGE"
+        self.macrophage.remove(event.macrophage_to_kill)
+        self.set_attribute_work_grid(event.macrophage_to_kill.address, 'contents', 0.0)
 
 
 class Automaton(Tile, Neighbourhood, EventHandler):
@@ -655,7 +717,22 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     new_event = RecruitMacrophage(neighbour_address, internal)
                     self.potential_events.append(new_event)
 
-        # TODO - Chemo killing
+        # CHEMOTHERAPY KILLING BACTERIA
+        for b in self.bacteria:
+            chemo_scale = self.chemotherapy_scale(b.address)
+            if (b.metabolism == 'fast' and chemo_scale > self.parameters['chemotherapy_scale_for_kill_fast_bacteria']) \
+                or \
+                (b.metabolism == 'slow' and chemo_scale > self.parameters['chemotherapy_scale_for_kill_slow_bacteria']):
+                new_event = ChemoKillBacteria(b)
+                self.potential_events.append(new_event)
+
+        # CHEMOTHERAPY KILLING MACROPHAGES
+        for m in self.macrophages:
+            chemo_scale = self.chemotherapy_scale(m.address)
+            if ((m.state == 'infected' or m.state == 'chronically_infected') and chemo_scale >
+                    self.parameters['chemotherapy_scale_for_kill_macrophage']):
+                new_event = ChemoKillMacrophage(m)
+                self.potential_events.append(new_event)
 
         # TODO - T-cell movement & killing
 
@@ -968,3 +1045,19 @@ class RecruitMacrophage(Event):
 
     def clone(self, new_addresses):
         return RecruitMacrophage(new_addresses[0], self.internal)
+
+
+class ChemoKillBacteria(Event):
+
+    def __init__(self, bacteria_to_kill):
+        self.bacteria_to_kill = bacteria_to_kill
+        # Chemo killing is always internal
+        Event.__init__(self, [bacteria_to_kill.address], True)
+
+
+class ChemoKillMacrophage(Event):
+
+    def __init__(self, macrophage_to_kill):
+        self.macrophage_to_kill = macrophage_to_kill
+        # Chemo killing is always internal
+        Event.__init__(self, [macrophage_to_kill.address], True)
