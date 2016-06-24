@@ -482,6 +482,10 @@ class EventHandler:
             self.process_chemo_kill_bacteria(event)
         elif isinstance(event, ChemoKillMacrophage):
             self.process_chemo_kill_macrophage(event)
+        elif isinstance(event, TCellMovement):
+            self.process_t_cell_movement(event)
+        else:
+            raise Exception("Event ", type(event), "not handled")
 
     def process_bacteria_replication(self, event):
         print "BACTERIA REPLICATION"
@@ -504,6 +508,16 @@ class EventHandler:
         print "CHEMO KILL MACROPHAGE"
         self.macrophage.remove(event.macrophage_to_kill)
         self.set_attribute_work_grid(event.macrophage_to_kill.address, 'contents', 0.0)
+
+    def process_t_cell_movement(self, event):
+        print "T-CELL MOVEMENT"
+        from_address = event.addresses_affected[0]
+        to_address = event.addresses_affected[1]
+
+        if self.address_is_on_grid(from_address) and self.address_is_on_grid(to_address):
+            event.t_cell_to_move.address = to_address
+            self.set_attribute_work_grid(from_address, 'contents', 0.0)
+            self.set_attribute_work_grid(to_address, 'contents', event.t_cell_to_move)
 
 
 class Automaton(Tile, Neighbourhood, EventHandler):
@@ -619,7 +633,6 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         self.potential_events = []
 
         # BACTERIA REPLICATION
-
         for bacteria in self.bacteria:
             bacteria.age += self.parameters['time_step']
 
@@ -734,7 +747,58 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 new_event = ChemoKillMacrophage(m)
                 self.potential_events.append(new_event)
 
-        # TODO - T-cell movement & killing
+        # T-CELL DEATH, MOVEMENT & MACROPHAGE KILLING
+        # TODO - does this make sense - if number drops below threshold then t-cells just stop (and don't age)
+        if self.number_of_bacteria_global >= self.parameters['bacteria_threshold_for_t_cells'] and \
+                self.time % self.parameters['macrophage_movement_time'] == 0:
+
+            for t_cell in self.t_cells:
+                t_cell.age += self.parameters['time_step']
+
+                age_threshold = np.random.randint(0, self.parameters['t_cell_age_threshold'])
+
+                # T-CELL DEATH
+                if t_cell.age >= age_threshold:
+                    new_event = TCellDeath(t_cell)
+                    self.potential_events.append(new_event)
+                elif self.time % self.parameters['t_cell_movement_time'] == 0: #  T-CELL MOVE
+                    random_move = False
+                    prob_random_move = np.random.randint(1,101)
+                    if self.parameters['t_cell_random_move_probability'] <= prob_random_move:
+                        random_move = True
+
+                    neighbours = self.neighbours_moore(t_cell.address, 1)
+                    if random_move:
+                        possible_neighbours = []
+                        for n in neighbours:
+                            if self.get(n) is not None:
+                                possible_neighbours.append(n)
+                        index = np.random.randint(0, len(possible_neighbours))
+                        chosen_neighbour_address = possible_neighbours[index]
+                    else:
+                        max_chemokine_scale = 0
+                        chosen_index = 0
+                        for index in range(len(neighbours)):
+                            if self.get(neighbours[index]) is not None:
+                                chemokine_scale = self.chemokine_scale(neighbours[index])
+                                if chemokine_scale >= max_chemokine_scale:
+                                    max_chemokine_scale = chemokine_scale
+                                    chosen_index = index
+                        chosen_neighbour_address = neighbours[chosen_index]
+
+                    # Check if leaving the grid
+                    internal = self.address_is_on_grid(chosen_neighbour_address)
+                    neighbour = self.get(chosen_neighbour_address)
+
+                    if neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
+                        new_event = TCellMovement(t_cell, chosen_neighbour_address, internal)
+                        self.potential_events.append(new_event)
+                    elif isinstance(neighbour['contents'], Macrophage) and (neighbour['contents'].state == 'infected'
+                            or neighbour['contents'].state == 'chronically_infected'):
+                        prob_tcell_killing = np.random.randint(1, 101)
+                        if prob_tcell_killing <= self.parameters['t_cell_kills_macrophage_probability']:
+                            new_event = TCellKillsMacrophage(t_cell, chosen_neighbour_address, internal)
+                            self.potential_events.append(new_event)
 
         # TODO - Macrophage movement & death
 
@@ -1008,7 +1072,7 @@ class TCell(Agent):
 # ------------------------------
 # EVENTS
 # ------------------------------
-class Event:
+class Event(object):
 
     def __init__(self, addresses_affected, internal):
         self.addresses_affected = addresses_affected
@@ -1046,7 +1110,6 @@ class RecruitMacrophage(Event):
     def clone(self, new_addresses):
         return RecruitMacrophage(new_addresses[0], self.internal)
 
-
 class ChemoKillBacteria(Event):
 
     def __init__(self, bacteria_to_kill):
@@ -1061,3 +1124,29 @@ class ChemoKillMacrophage(Event):
         self.macrophage_to_kill = macrophage_to_kill
         # Chemo killing is always internal
         Event.__init__(self, [macrophage_to_kill.address], True)
+
+
+class TCellDeath(Event):
+
+    def __init__(self, t_cell_to_die):
+        self.t_cell_to_die = t_cell_to_die
+        Event.__init__(self, [t_cell_to_die.address], True)
+
+
+class TCellMovement(Event):
+
+    def __init__(self, t_cell_to_move, new_address, internal):
+        self.t_cell_to_move = t_cell_to_move
+        self.new_address = new_address
+        Event.__init__(self, [t_cell_to_move.address, new_address], internal)
+
+    def clone(self, new_addresses):
+        return TCellMovement(self.t_cell_to_move, new_addresses[1], self.internal)
+
+
+class TCellKillsMacrophage(Event):
+
+    def __init__(self, t_cell, macrophage_address, internal):
+        self.t_cell_to_move = t_cell
+        self.macrophage_address = macrophage_address
+        Event.__init__(self, [t_cell.address, macrophage_address], internal)
