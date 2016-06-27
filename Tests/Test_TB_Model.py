@@ -71,9 +71,9 @@ class TileTestCase(unittest.TestCase):
     def test_get_DZ(self):
 
         self.tile.set_addresses_for_danger_zone([[4, 4], [4, 3], [3, 4]])
-        self.tile.set_attribute_work_grid([4, 4], 'a', 99)
-        self.tile.set_attribute_work_grid([4, 3], 'b', 99)
-        self.tile.set_attribute_work_grid([3, 4], 'c', 99)
+        self.tile.grid[4, 4]['a'] = 99
+        self.tile.grid[4, 3]['b'] = 99
+        self.tile.grid[3, 4]['c'] = 99
 
         danger_zone = self.tile.get_danger_zone()
 
@@ -394,7 +394,7 @@ class TwoDimensionalTopologyTestCase(unittest.TestCase):
         x = 0
         y = 0
         for i in range(36):
-            self.topology.automata[tile_id].set_attribute_work_grid([x, y], 'a', i)
+            self.topology.automata[tile_id].grid[x, y]['a'] = i
             y += 1
             if y == 3 and x == 2:
                 tile_id += 1
@@ -492,7 +492,7 @@ class TwoDimensionalTopologyTestCase(unittest.TestCase):
         x = 0
         y = 0
         for i in range(36):
-            self.topology.automata[tile_id].set_attribute_work_grid([x, y], 'a', i)
+            self.topology.automata[tile_id].grid[x, y]['a'] = i
             y += 1
             if y == 3 and x == 2:
                 tile_id += 1
@@ -822,6 +822,111 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         self.assertAlmostEqual(self.topology.automata[0].oxygen_scale([3, 3]), 1.3536/1.59 * 100)
         self.assertAlmostEqual(self.topology.automata[0].chemotherapy_scale([3, 3]), 0.0015 / 0.5 * 100)
         self.assertAlmostEqual(self.topology.automata[0].chemokine_scale([1, 1]), 0.0005 / 0.12 * 100)
+
+
+class EventTestCase(unittest.TestCase):
+
+    def setUp(self):
+        params = dict()
+        params['max_depth'] = 3
+        params['initial_oxygen'] = 1.5
+        params['oxygen_diffusion'] = 1.0
+        params['chemotherapy_diffusion'] = 0.75
+        params['caseum_distance'] = 2
+        params['caseum_threshold'] = 2
+        params['oxygen_diffusion_caseum_reduction'] = 1.5
+        params['chemotherapy_diffusion_caseum_reduction'] = 1.5
+        params['spatial_step'] = 0.2
+        params['oxygen_from_source'] = 2.4
+        params['oxygen_uptake_from_bacteria'] = 1.0
+        params['time_step'] = 0.001
+        params['chemotherapy_from_source'] = 1.0
+        params['chemotherapy_decay'] = 0.35
+        params['chemokine_diffusion'] = 0.05
+        params['chemokine_from_bacteria'] = 0.5
+        params['chemokine_from_macrophages'] = 1
+        params['chemokine_decay'] = 0.347
+        params['chemotherapy_schedule1_start'] = 100
+        params['chemotherapy_schedule2_start'] = 200
+
+        # Set the limits to 1 and 2 - forces random number to be 1 and thus always replicates each step
+        params['bacteria_replication_fast_upper'] = 2
+        params['bacteria_replication_fast_lower'] = 1
+
+        params['bacteria_threshold_for_t_cells'] = 100
+        params['macrophage_recruitment_probability'] = 1
+        params['chemotherapy_scale_for_kill_fast_bacteria'] = 100
+
+        atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
+                'chemotherapy', 'chemokine']
+        blood_vessels = [[3, 3]]
+        fast_bacteria = [[0, 0], [3, 5]]
+        slow_bacteria = [[9, 9]]
+        macrophages = [[7, 1]]
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
+                                                        slow_bacteria, macrophages)
+
+    def sort_out_halos(self):
+
+        dz = []
+
+        for i in self.topology.automata:
+            dz.append(self.topology.automata[0].get_danger_zone())
+
+        halos = self.topology.create_halos(dz)
+
+        for i in range(4):
+            self.topology.automata[i].set_halo(halos[i])
+
+    def test_bacteria_replication_event_creation(self):
+        self.sort_out_halos()
+
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.BacteriaReplication))
+        self.assertEqual(len(event.addresses_affected), 1)
+        self.assertTrue(event.addresses_affected[0] == [0,1] or event.addresses_affected[0] == [1,0] or
+                        event.addresses_affected[0] == [1,1])
+
+    def test_bacteria_replication_event_process(self):
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.BacteriaReplication))
+
+        self.topology.automata[0].process_events([event])
+
+        self.assertEqual(len(self.topology.automata[0].bacteria), 2)
+        self.assertTrue(isinstance(self.topology.automata[0].get_attribute(event.addresses_affected[0], 'contents')
+                        , TB_Model.Bacteria))
+
+    def test_bacteria_replication_across_boundary(self):
+
+        #    C C C
+        #      B C
+        #    C C C
+
+        # Forces bacteria to replicate into (3,4) (globally) the only free cell in its immediate neighbourhood
+
+        self.topology.automata[0].grid[2, 4]['contents'] = 'caseum'
+        self.topology.automata[0].grid[4, 4]['contents'] = 'caseum'
+        self.topology.automata[1].grid[2, 0]['contents'] = 'caseum'
+        self.topology.automata[1].grid[2, 1]['contents'] = 'caseum'
+        self.topology.automata[1].grid[3, 1]['contents'] = 'caseum'
+        self.topology.automata[1].grid[4, 0]['contents'] = 'caseum'
+        self.topology.automata[1].grid[4, 1]['contents'] = 'caseum'
+
+        self.sort_out_halos()
+
+        self.topology.automata[1].update()
+
+        self.assertEqual(len(self.topology.automata[1].potential_events), 1)
+        self.assertTrue(self.topology.automata[1].potential_events[0].addresses_affected[0] == [3, -1])
+
+        # TODO - convert and send
 
 if __name__ == '__main__':
     unittest.main()
