@@ -305,7 +305,7 @@ class Tile:
         danger_zone = []
         for address in self.danger_zone_addresses:
             # Get cell from the work grid
-            danger_zone.append(self.work_grid[tuple(address)])
+            danger_zone.append(self.grid[tuple(address)])
 
         return danger_zone
 
@@ -674,7 +674,6 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 division = True
 
             if division:
-
                 free_neighbours = []
 
                 for depth in range(1,4):
