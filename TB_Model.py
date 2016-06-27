@@ -484,6 +484,8 @@ class EventHandler:
             self.process_chemo_kill_macrophage(event)
         elif isinstance(event, TCellMovement):
             self.process_t_cell_movement(event)
+        elif isinstance(event, TCellKillsMacrophage):
+            self.process_t_cell_kill_macrophage(event)
         else:
             raise Exception("Event ", type(event), "not handled")
 
@@ -514,10 +516,32 @@ class EventHandler:
         from_address = event.addresses_affected[0]
         to_address = event.addresses_affected[1]
 
-        if self.address_is_on_grid(from_address) and self.address_is_on_grid(to_address):
+        # T-cell moving between 2 cells in the same tile
+        if event.internal:
             event.t_cell_to_move.address = to_address
             self.set_attribute_work_grid(from_address, 'contents', 0.0)
             self.set_attribute_work_grid(to_address, 'contents', event.t_cell_to_move)
+        elif self.address_is_on_grid(from_address):  # T-cell is moving to a new tile
+            self.set_attribute_work_grid(from_address, 'contents', 0.0)
+            self.t_cells.remove(event.t_cell_to_move)
+        elif self.address_is_on_grid(to_address):  # T-cell has arrived from another tile
+            self.set_attribute_work_grid(to_address, 'contents', event.t_cell_to_move)
+            self.t_cells.append(event.t_cell_to_move)
+
+    def process_t_cell_kill_macrophage(self, event):
+        print "T-Cell kills macrophage"
+        from_address = event.addresses_affected[0]
+        to_address = event.addresses_affected[1]
+
+        if self.address_is_on_grid(to_address):
+            # Turn macrophage into caseum
+            self.macrophages.remove(self.get_attribute(to_address, 'contents'))
+            self.set_attribute_work_grid(to_address, 'contents', 'caseum')
+
+        if self.address_is_on_grid(from_address):
+            # Remove t-cell
+            self.t_cells.remove(self.get_attribute(from_address, 'contents'))
+            self.set_attribute_work_grid(from_address, 'contents', 0.0)
 
 
 class Automaton(Tile, Neighbourhood, EventHandler):
@@ -1109,6 +1133,7 @@ class RecruitMacrophage(Event):
 
     def clone(self, new_addresses):
         return RecruitMacrophage(new_addresses[0], self.internal)
+
 
 class ChemoKillBacteria(Event):
 
