@@ -27,7 +27,7 @@ class Topology:
                                                                                 parameters['max_depth'])
 
         # Halo of depth 1 - needed for calculating diffusion rates
-        # TODO - is there a better way of doing this?
+        # TODO - COMP -is there a better way of doing this?
         depth1_addresses = self.get_external_addresses_required(self.automata[0],1)
 
         # Set the halo address and halo of depth 1 address
@@ -268,20 +268,6 @@ class Tile:
         """
         return list(np.unravel_index(integer, self.grid.shape))
 
-    def address_to_location(self, address):
-        """
-        Convert an address set of coordinates into an integer location
-        :param address:
-        :return:
-        """
-        # TODO - probably redundant function now
-        result = 0
-        acc = 1
-        for pi, si in zip(reversed(address), reversed(self.grid.shape)):
-            result += pi * acc
-            acc *= si
-        return result
-
     def address_is_on_grid(self, address):
         """
         Check if address is within the boundaries
@@ -358,13 +344,12 @@ class Tile:
 
     def set_attribute_grid(self, address, attribute, value):
         """
-        Set an attribute of a cell on the active grid (for initialisation)
+        Set an attribute of a cell on the active grid (for initialisation and pre-processing)
         :param address:
         :param attribute:
         :param value:
         :return:
         """
-        # TODO - probably not needed
         address = tuple(address)
         if attribute in self.grid[address].keys():
             self.grid[address][attribute] = value
@@ -432,7 +417,7 @@ class Neighbourhood:
         """
         table = self.neighbour_table[depth]
         # If not inclusive, remove any neighbours in smaller depths
-        # TODO - is this a slow way of doing things?
+        # TODO - COMP - is this a slow way of doing things?
         if not inclusive:
             reduced_table = []
             for neighbour in table:
@@ -455,7 +440,7 @@ class Neighbourhood:
         # Build truth table of all possible values based on depth of the neighbourhood and number of dimensions
         table = self.neighbour_table[depth]
         # Reduce the values based on their Manhattan distance
-        # TODO - is this a slow way of doing things?
+        # TODO - COMP - is this a slow way of doing things?
         reduced_table = []
         for k in table:
             # Check the Manhattan distance is up to the depth (inclusive) or equal to depth (exclusive)
@@ -482,10 +467,18 @@ class EventHandler:
             self.process_chemo_kill_bacteria(event)
         elif isinstance(event, ChemoKillMacrophage):
             self.process_chemo_kill_macrophage(event)
+        elif isinstance(event, TCellDeath):
+            self.process_t_cell_death(event)
         elif isinstance(event, TCellMovement):
             self.process_t_cell_movement(event)
         elif isinstance(event, TCellKillsMacrophage):
             self.process_t_cell_kill_macrophage(event)
+        elif isinstance(event, MacrophageDeath):
+            self.process_macrophage_death(event)
+        elif isinstance(event, MacrophageMovement):
+            self.process_macrophage_movement(event)
+        elif isinstance(event, MacrophageKillsBacteria):
+            self.process_macrophage_kills_bacteria(event)
         else:
             raise Exception("Event ", type(event), "not handled")
 
@@ -511,6 +504,11 @@ class EventHandler:
         self.macrophage.remove(event.macrophage_to_kill)
         self.set_attribute_work_grid(event.macrophage_to_kill.address, 'contents', 0.0)
 
+    def process_t_cell_death(self, event):
+        print "T-CELL DEATH"
+        self.set_attribute_work_grid(event.addresses_affected[0], 'contents', 0.0)
+        self.t_cells.remove(event.t_cell_to_die)
+
     def process_t_cell_movement(self, event):
         print "T-CELL MOVEMENT"
         from_address = event.addresses_affected[0]
@@ -525,6 +523,7 @@ class EventHandler:
             self.set_attribute_work_grid(from_address, 'contents', 0.0)
             self.t_cells.remove(event.t_cell_to_move)
         elif self.address_is_on_grid(to_address):  # T-cell has arrived from another tile
+            event.t_cell_to_move.address = to_address
             self.set_attribute_work_grid(to_address, 'contents', event.t_cell_to_move)
             self.t_cells.append(event.t_cell_to_move)
 
@@ -542,6 +541,55 @@ class EventHandler:
             # Remove t-cell
             self.t_cells.remove(self.get_attribute(from_address, 'contents'))
             self.set_attribute_work_grid(from_address, 'contents', 0.0)
+
+    def process_macrophage_death(self, event):
+        print "MACROPHAGE DEATH"
+        self.set_attribute_work_grid(event.macrophage_to_die.address, 'contents', 0.0)
+        self.macrophages.remove(event.macrophage_to_die)
+
+    def process_macrophage_movement(self, event):
+        print "MACROPHAGE MOVEMENT"
+        from_address = event.addresses_affected[0]
+        to_address = event.addresses_affected[1]
+
+        # Macrophage moving between 2 cells in the same tile
+        if event.internal:
+            event.macrophage_to_move.address = to_address
+            self.set_attribute_work_grid(from_address, 'contents', 0.0)
+            self.set_attribute_work_grid(to_address, 'contents', event.macrophage_to_move)
+        elif self.address_is_on_grid(from_address):  # Macrophage is moving to a new tile
+            self.set_attribute_work_grid(from_address, 'contents', 0.0)
+            self.macrophages.remove(event.macrophage_to_move)
+        elif self.address_is_on_grid(to_address):  # Macrophage has arrived from another tile
+            event.macrophage_to_move.address = to_address
+            self.set_attribute_work_grid(to_address, 'contents', event.macrophage_to_move)
+            self.macrophages.append(event.macrophage_to_move)
+
+    def process_macrophage_kills_bacteria(self, event):
+        print "MACROPHAGE_KILLS_BACTERIA"
+        from_address = event.addresses_affected[0]
+        to_address = event.addresses_affected[1]
+
+        # Different outcomes depending on macrophage state
+        if event.macrophage_to_move.state == 'resting' or event.macrophage_to_move.state == 'infected' or \
+                event.macrophage_to_move.state == 'chronically_infected':
+            # Macrophage ingests bacteria, doesn't kill
+            event.macrophage_to_move.intracellular_bacteria += 1
+
+        # Macrophage moving between 2 cells in the same tile
+        if event.internal:
+            event.macrophage_to_move.address = to_address
+            self.bacteria.remove(self.get_attribute(to_address, 'contents'))
+            self.set_attribute_work_grid(from_address, 'contents', 0.0)
+            self.set_attribute_work_grid(to_address, 'contents', event.macrophage_to_move)
+        elif self.address_is_on_grid(from_address):  # Macrophage is moving to a new tile
+            self.set_attribute_work_grid(from_address, 'contents', 0.0)
+            self.macrophages.remove(event.t_cell_to_move)
+        elif self.address_is_on_grid(to_address):  # Macrophage has arrived from another tile
+            event.macrophage_to_move.address = to_address
+            self.bacteria.remove(self.get_attribute(to_address, 'contents'))
+            self.set_attribute_work_grid(to_address, 'contents', event.macrophage_to_move)
+            self.macrophages.append(event.macrophage_to_move)
 
 
 class Automaton(Tile, Neighbourhood, EventHandler):
@@ -644,6 +692,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 chemotherapy_level = self.chemotherapy(address)
                 self.set_attribute_work_grid(address, 'chemotherapy', chemotherapy_level)
             else:
+                # TODO - MED - check validity of this (why does chemotherapy suddenly disappear)
                 self.set_attribute_work_grid(address, 'chemotherapy', 0.0)
 
             # CHEMOKINE
@@ -771,7 +820,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 self.potential_events.append(new_event)
 
         # T-CELL DEATH, MOVEMENT & MACROPHAGE KILLING
-        # TODO - does this make sense - if number drops below threshold then t-cells just stop (and don't age)
+        # TODO - MED - does this make sense - if number drops below threshold then t-cells just stop (and don't age)
         if self.number_of_bacteria_global >= self.parameters['bacteria_threshold_for_t_cells'] and \
                 self.time % self.parameters['macrophage_movement_time'] == 0:
 
@@ -799,14 +848,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                         index = np.random.randint(0, len(possible_neighbours))
                         chosen_neighbour_address = possible_neighbours[index]
                     else:
-                        max_chemokine_scale = 0
-                        chosen_index = 0
-                        for index in range(len(neighbours)):
-                            if self.get(neighbours[index]) is not None:
-                                chemokine_scale = self.chemokine_scale(neighbours[index])
-                                if chemokine_scale >= max_chemokine_scale:
-                                    max_chemokine_scale = chemokine_scale
-                                    chosen_index = index
+                        chosen_index = self.find_max_chemokine_neighbour(neighbours)[0]
                         chosen_neighbour_address = neighbours[chosen_index]
 
                     # Check if leaving the grid
@@ -823,13 +865,139 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                             new_event = TCellKillsMacrophage(t_cell, chosen_neighbour_address, internal)
                             self.potential_events.append(new_event)
 
-        # TODO - Macrophage movement & death
+        # MACROPHAGES - death, movement, bacteria ingestion
+        for macrophage in self.macrophages:
+            macrophage.age += self.parameters['time_step']
+
+            if macrophage.state == 'resting':
+
+                # TODO - COMP/MED - can't do 0 as get division errors
+                random_macrophage_age = np.random.randint(1, self.parameters['resting_macrophage_age_limit'])
+
+                if macrophage.age % random_macrophage_age == 0:
+                    new_event = MacrophageDeath(macrophage)
+                    self.potential_events.append(new_event)
+                    # Progress to the next macrophage
+                    continue
+
+                # TODO - MED - movement based on time not age
+                if self.time % self.parameters['resting_macrophage_movement_time'] == 0:
+
+                    neighbours = self.neighbours_moore(macrophage.address, 1)
+                    chosen_index, max_chemokine_scale = self.find_max_chemokine_neighbour(neighbours)
+
+                    prob_random_move = np.random.randint(1,101)
+                    random_move = False
+                    if prob_random_move <= self.parameters['prob_resting_macrophage_random_move'] \
+                            or max_chemokine_scale <= \
+                            self.parameters['minimum_chemokine_for_resting_macrophage_movement']:
+                        random_move = True
+
+                    if random_move:
+                        chosen_neighbour_address = neighbours[np.random.randint(0, len(neighbours))]
+                    else:
+                        chosen_neighbour_address = neighbours[chosen_index]
+
+                    # Check if leaving the grid
+                    internal = self.address_is_on_grid(chosen_neighbour_address)
+                    neighbour = self.get(chosen_neighbour_address)
+
+                    if neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
+                        new_event = MacrophageMovement(macrophage, chosen_neighbour_address, internal)
+                        self.potential_events.append(new_event)
+                    elif isinstance(neighbour['contents'], Bacteria):
+                        new_event = MacrophageKillsBacteria(macrophage, chosen_neighbour_address, internal)
+                        self.potential_events.append(new_event)
+
+            elif macrophage.state == 'active':
+                # TODO - MED - death is based on age > limit, no prob
+                if macrophage.age > self.parameters['active_macrophage_age_limit']:
+                    new_event = MacrophageDeath(macrophage)
+                    self.potential_events.append(new_event)
+                    # Progress to the next macrophage
+                    continue
+
+                if self.time % self.parameters['active_macrophage_movement_time'] == 0:
+                    neighbours = self.neighbours_moore(macrophage.address, 1)
+                    chosen_neighbour_address = neighbours[self.find_max_chemokine_neighbour(neighbours)[0]]
+                    neighbour = self.get(chosen_neighbour_address)
+
+                    internal = False
+                    if self.address_is_on_grid(chosen_neighbour_address):
+                        internal = True
+
+                    if isinstance(neighbour['contents'], Bacteria):
+
+                        prob_macrophage_kill =  np.random.randint(1,101)
+                        if (neighbour['contents'].metabolism == 'fast' and prob_macrophage_kill <= self.parameters[
+                                'prob_active_macrophage_kill_fast_bacteria']) or (
+                                neighbour['contents'].metabolism == 'slow' and prob_macrophage_kill <= self.parameters[
+                                'prob_active_macrophage_kill_slow_bacteria']):
+                            new_event = MacrophageKillsBacteria(macrophage, chosen_neighbour_address, internal)
+                            self.potential_events.append(new_event)
+
+                    elif neighbour['contents'] == 0.0:
+                        new_event = MacrophageMovement(macrophage, chosen_neighbour_address, internal)
+                        self.potential_events.append(new_event)
+
+            elif macrophage.state == 'infected':
+                # TODO - COMP/MED - can't do 0 as get division errors
+                random_macrophage_age = np.random.randint(1, self.parameters['infected_macrophage_age_limit'])
+
+                if macrophage.age % random_macrophage_age == 0:
+                    new_event = MacrophageDeath(macrophage)
+                    self.potential_events.append(new_event)
+                    # Progress to the next macrophage
+                    continue
+
+                if self.time % self.parameters['infected_macrophage_movement_time'] == 0:
+                    neighbours = self.neighbours_moore(macrophage.address, 1)
+                    chosen_neighbour_address = neighbours[self.find_max_chemokine_neighbour(neighbours)[0]]
+                    neighbour = self.get(chosen_neighbour_address)
+
+                    internal = False
+                    if self.address_is_on_grid(chosen_neighbour_address):
+                        internal = True
+
+                    if neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
+                        new_event = MacrophageMovement(macrophage, chosen_neighbour_address, internal)
+                        self.potential_events.append(new_event)
+                    elif isinstance(neighbour['contents'], Bacteria):
+                        new_event = MacrophageKillsBacteria(macrophage, chosen_neighbour_address, internal)
+                        self.potential_events.append(new_event)
+
+            elif macrophage.state == 'chronically_infected':
+                # TODO - COMP/MED - can't do 0 as get division errors
+                random_macrophage_age = np.random.randint(1,
+                                                          self.parameters['chronically_infected_macrophage_age_limit'])
+
+                if macrophage.age % random_macrophage_age == 0:
+                    new_event = MacrophageDeath(macrophage)
+                    self.potential_events.append(new_event)
+                    # Progress to the next macrophage
+                    continue
+
+                if self.time % self.parameters['chronically_infected_macrophage_movement_time'] == 0:
+                    neighbours = self.neighbours_moore(macrophage.address, 1)
+                    chosen_neighbour_address = neighbours[self.find_max_chemokine_neighbour(neighbours)[0]]
+                    neighbour = self.get(chosen_neighbour_address)
+
+                    internal = False
+                    if self.address_is_on_grid(chosen_neighbour_address):
+                        internal = True
+
+                    if neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
+                        new_event = MacrophageMovement(macrophage, chosen_neighbour_address, internal)
+                        self.potential_events.append(new_event)
+                    elif isinstance(neighbour['contents'], Bacteria):
+                        new_event = MacrophageKillsBacteria(macrophage, chosen_neighbour_address, internal)
+                        self.potential_events.append(new_event)
 
         # Reorder events
         self.reorder_events()
 
     def reorder_events(self):
-        # TODO - other methods - currently just random
+        # TODO - COMP - other methods - currently just random
         np.random.shuffle(self.potential_events)
 
     def process_events(self, events):
@@ -1058,6 +1226,18 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         for t in self.t_cells:
             self.set_attribute_work_grid(t.address, 'contents', t)
 
+    def find_max_chemokine_neighbour(self, neighbours):
+
+        max_chemokine_scale = 0
+        chosen_index = 0
+        for index in range(len(neighbours)):
+            if self.get(neighbours[index]) is not None:
+                chemokine_scale = self.chemokine_scale(neighbours[index])
+                if chemokine_scale >= max_chemokine_scale:
+                    max_chemokine_scale = chemokine_scale
+                    chosen_index = index
+
+        return chosen_index, max_chemokine_scale
 
 # ------------------------------
 # AGENTS
@@ -1082,6 +1262,7 @@ class Macrophage(Agent):
 
     def __init__(self, address, state):
         self.state = state
+        self.intracellular_bacteria = 0
         Agent.__init__(self, address)
 
 
@@ -1101,6 +1282,8 @@ class Event(object):
         self.addresses_affected = addresses_affected
         self.internal = internal
 
+    def clone(self, new_addresses):
+        raise NotImplementedError
 
 class BacteriaReplication(Event):
 
@@ -1154,6 +1337,7 @@ class TCellDeath(Event):
 
     def __init__(self, t_cell_to_die):
         self.t_cell_to_die = t_cell_to_die
+        # T-cell death is always internal
         Event.__init__(self, [t_cell_to_die.address], True)
 
 
@@ -1174,3 +1358,37 @@ class TCellKillsMacrophage(Event):
         self.t_cell_to_move = t_cell
         self.macrophage_address = macrophage_address
         Event.__init__(self, [t_cell.address, macrophage_address], internal)
+
+    def clone(self, new_addresses):
+        # TODO - COMP - check this
+        return TCellKillsMacrophage(self.t_cell_to_move, new_addresses[1], self.internal)
+
+
+class MacrophageDeath(Event):
+
+    def __init__(self, macrophage_to_die):
+        self.macrophage_to_die = macrophage_to_die
+        # Macrophage death is always internal
+        Event.__init__(self, [macrophage_to_die.address], True)
+
+
+class MacrophageMovement(Event):
+
+    def __init__(self, macrophage_to_move, new_address, internal):
+        self.macrophage_to_move = macrophage_to_move
+        self.new_address = new_address
+        Event.__init__(self, [macrophage_to_move.address, new_address], internal)
+
+    def clone(self, new_addresses):
+        return MacrophageMovement(self.macrophage_to_move, new_addresses[1], self.internal)
+
+
+class MacrophageKillsBacteria(Event):
+
+    def __init__(self, macrophage_to_move, bacteria_address, internal):
+        self.macrophage_to_move = macrophage_to_move
+        self.bacteria_address = bacteria_address
+        Event.__init__(self, [macrophage_to_move.address, bacteria_address], internal)
+
+    def clone(self, new_addresses):
+        return  MacrophageKillsBacteria(self.macrophage_to_move, new_addresses[1], self.internal)

@@ -48,16 +48,6 @@ class TileTestCase(unittest.TestCase):
                 self.assertEqual(self.tile.location_to_address(location), [x, y])
                 location += 1
 
-    def test_address_to_integer(self):
-        x = 0
-        y = 0
-        for i in range(25):
-            self.assertEqual(self.tile.address_to_location([x, y]), i)
-            y += 1
-            if y == 5:
-                y = 0
-                x += 1
-
     def test_swap_grids(self):
         self.tile.set_attribute_work_grid([0, 1], 'a', 1)
         self.tile.swap_grids()
@@ -924,9 +914,16 @@ class EventTestCase(unittest.TestCase):
         self.topology.automata[1].update()
 
         self.assertEqual(len(self.topology.automata[1].potential_events), 1)
-        self.assertTrue(self.topology.automata[1].potential_events[0].addresses_affected[0] == [3, -1])
+        event = self.topology.automata[1].potential_events[0]
+        self.assertTrue(event.addresses_affected[0] == [3, -1])
 
         # TODO - convert and send
+        new_address = self.topology.local_to_local(1, event.addresses_affected[0], 0)
+        self.assertTrue(new_address == [3, 4])
+
+        new_event = event.clone([new_address])
+        print new_event.addresses_affected
+
 
 if __name__ == '__main__':
     unittest.main()
