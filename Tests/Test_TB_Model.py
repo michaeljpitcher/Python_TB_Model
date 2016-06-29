@@ -1,5 +1,6 @@
 import unittest
 import TB_Model
+import math
 
 
 class TileTestCase(unittest.TestCase):
@@ -814,7 +815,7 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         self.assertAlmostEqual(self.topology.automata[0].chemokine_scale([1, 1]), 0.0005 / 0.12 * 100)
 
 
-class EventTestCase(unittest.TestCase):
+class BacteriaReplicationTestCase(unittest.TestCase):
 
     def setUp(self):
         params = dict()
@@ -857,14 +858,10 @@ class EventTestCase(unittest.TestCase):
                                                         slow_bacteria, macrophages)
 
     def sort_out_halos(self):
-
         dz = []
-
         for i in self.topology.automata:
-            dz.append(self.topology.automata[0].get_danger_zone())
-
+            dz.append(i.get_danger_zone())
         halos = self.topology.create_halos(dz)
-
         for i in range(4):
             self.topology.automata[i].set_halo(halos[i])
 
@@ -895,12 +892,15 @@ class EventTestCase(unittest.TestCase):
 
     def test_bacteria_replication_across_boundary(self):
 
+        self.topology.automata[0].bacteria = []
+        self.topology.automata[0].grid[0,0]['contents'] = 0.0
+        self.topology.automata[0].work_grid[0, 0]['contents'] = 0.0
+
         #    C C C
         #      B C
         #    C C C
 
         # Forces bacteria to replicate into (3,4) (globally) the only free cell in its immediate neighbourhood
-
         self.topology.automata[0].grid[2, 4]['contents'] = 'caseum'
         self.topology.automata[0].grid[4, 4]['contents'] = 'caseum'
         self.topology.automata[1].grid[2, 0]['contents'] = 'caseum'
@@ -911,13 +911,15 @@ class EventTestCase(unittest.TestCase):
 
         self.sort_out_halos()
 
+        self.assertEqual(len(self.topology.automata[0].bacteria), 0)
+        self.assertEqual(len(self.topology.automata[1].bacteria), 1)
+
         self.topology.automata[1].update()
 
         self.assertEqual(len(self.topology.automata[1].potential_events), 1)
         event = self.topology.automata[1].potential_events[0]
         self.assertTrue(event.addresses_affected[0] == [3, -1])
 
-        # TODO - convert and send
         new_address = self.topology.local_to_local(1, event.addresses_affected[0], 0)
         self.assertTrue(new_address == [3, 4])
 
@@ -925,6 +927,251 @@ class EventTestCase(unittest.TestCase):
 
         self.topology.automata[0].process_events([new_event])
         self.topology.automata[1].process_events([event])
+
+        self.assertEqual(len(self.topology.automata[0].bacteria), 1)
+        self.assertEqual(len(self.topology.automata[1].bacteria), 1)
+
+        for x in range(5):
+            for y in range(5):
+                if x == 3 and y == 4:
+                    self.assertTrue(isinstance(self.topology.automata[0].grid[x,y]['contents'], TB_Model.Bacteria))
+
+                if x == 3 and y == 0:
+                    self.assertTrue(isinstance(self.topology.automata[1].grid[x, y]['contents'], TB_Model.Bacteria))
+
+
+class TCellRecruitmentTestCase(unittest.TestCase):
+
+    def setUp(self):
+        params = dict()
+        params['max_depth'] = 3
+        params['initial_oxygen'] = 1.5
+        params['oxygen_diffusion'] = 1.0
+        params['chemotherapy_diffusion'] = 0.75
+        params['caseum_distance'] = 2
+        params['spatial_step'] = 0.2
+        params['oxygen_from_source'] = 2.4
+        params['time_step'] = 0.001
+        params['chemokine_diffusion'] = 0.05
+        params['chemokine_decay'] = 0.347
+        params['chemotherapy_schedule1_start'] = 100
+        params['chemotherapy_schedule2_start'] = 200
+        params['macrophage_recruitment_probability'] = 0
+        params['t_cell_movement_time'] = 1
+
+        # PARAMETERS WHICH ARE RELEVANT FOR THESE TESTS
+        # Each of these require negative testing as well (later)
+
+        # Threshold = 0: not dependent on bacteria
+        params['bacteria_threshold_for_t_cells'] = 0
+        # Probability = 100: will always recruit based on random number
+        params['t_cell_recruitment_probability'] = 100
+        # Scale = -1, will always place in a cell regardless of scale
+        params['chemokine_scale_for_t_cell_recruitment'] = -1
+
+        atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
+                'chemotherapy', 'chemokine']
+        blood_vessels = [[3, 3]]
+        fast_bacteria = [[9, 9], [8, 9]]
+        slow_bacteria = []
+        macrophages = []
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
+                                                        slow_bacteria, macrophages)
+
+    def sort_out_halos(self):
+        dz = []
+        bacteria_global = 0
+        for i in self.topology.automata:
+            dz.append(i.get_danger_zone())
+            bacteria_global += len(i.bacteria)
+        halos = self.topology.create_halos(dz)
+        for i in range(4):
+            self.topology.automata[i].set_halo(halos[i])
+            self.topology.automata[i].set_global_bacteria_number(bacteria_global)
+
+    def test_t_cell_recruited_internally(self):
+        self.sort_out_halos()
+        for i in range(4):
+            self.assertEqual(self.topology.automata[1].number_of_bacteria_global, 2)
+
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        self.assertTrue(isinstance(self.topology.automata[0].potential_events[0], TB_Model.RecruitTCell))
+
+        address = self.topology.automata[0].potential_events[0].addresses_affected[0]
+        distance = math.fabs(address[0] - 3) + math.fabs(address[1] - 3)
+        self.assertEqual(distance, 1)
+
+    def test_t_cell_recruit_process_event(self):
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+        event = self.topology.automata[0].potential_events[0]
+        self.topology.automata[0].process_events([event])
+
+        for x in range(5):
+            for y in range(5):
+                if x == event.addresses_affected[0][0] and y == event.addresses_affected[0][1]:
+                    self.assertTrue(isinstance(self.topology.automata[0].get_attribute([x,y], 'contents'),
+                                   TB_Model.TCell))
+                else:
+                    self.assertEqual(self.topology.automata[0].get_attribute([x,y], 'contents'), 0.0)
+
+    def test_t_cell_recruited_across_boundary(self):
+
+        # Need a different set-up
+        params = dict()
+        params['max_depth'] = 3
+        params['initial_oxygen'] = 1.5
+        params['oxygen_diffusion'] = 1.0
+        params['chemotherapy_diffusion'] = 0.75
+        params['caseum_distance'] = 2
+        params['caseum_threshold'] = 200
+        params['spatial_step'] = 0.2
+        params['oxygen_from_source'] = 2.4
+        params['time_step'] = 0.001
+        params['chemokine_diffusion'] = 0.05
+        params['chemokine_decay'] = 0.347
+        params['chemotherapy_schedule1_start'] = 100
+        params['chemotherapy_schedule2_start'] = 200
+        params['macrophage_recruitment_probability'] = 0
+        params['t_cell_movement_time'] = 1
+
+        # PARAMETERS WHICH ARE RELEVANT FOR THESE TESTS
+        params['bacteria_threshold_for_t_cells'] = 0
+        params['t_cell_recruitment_probability'] = 100
+        params['chemokine_scale_for_t_cell_recruitment'] = -1
+
+        atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
+                'chemotherapy', 'chemokine']
+
+
+        # Only 1 space next to the blood vessel is free (and it's on a different tile)
+        blood_vessels = [[0,4]]
+        fast_bacteria = []
+        slow_bacteria = []
+        macrophages = []
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
+                                                        slow_bacteria, macrophages)
+
+        self.sort_out_halos()
+
+        self.topology.automata[0].grid[0, 3]['contents'] = 'caseum'
+        self.topology.automata[0].grid[1, 3]['contents'] = 'caseum'
+        self.topology.automata[0].grid[1, 4]['contents'] = 'caseum'
+        self.topology.automata[1].grid[1, 0]['contents'] = 'caseum'
+
+        self.topology.automata[0].update()
+        self.assertTrue(self.topology.automata[0].potential_events[0].addresses_affected[0] == [0,5])
+
+        event = self.topology.automata[0].potential_events[0]
+
+        new_address = self.topology.local_to_local(0, event.addresses_affected[0], 1)
+        self.assertTrue(new_address == [0,0])
+
+        new_event = event.clone([new_address])
+
+        self.topology.automata[0].process_events([event])
+        self.topology.automata[1].process_events([new_event])
+
+        self.assertEqual(len(self.topology.automata[0].t_cells), 0)
+        self.assertEqual(len(self.topology.automata[1].t_cells), 1)
+
+    def test_t_cell_recruit_negative_global_bacteria(self):
+        self.sort_out_halos()
+        # Alter the parameter
+        for i in range(4):
+            self.topology.automata[i].parameters['bacteria_threshold_for_t_cells'] = 1000000
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+    def test_t_cell_recruit_negative_probability(self):
+        self.sort_out_halos()
+        # Alter the parameter
+        for i in range(4):
+            self.topology.automata[i].parameters['t_cell_recruitment_probability'] = 0
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+    def test_t_cell_recruit_negative_scale(self):
+        self.sort_out_halos()
+        # Alter the parameter
+        for i in range(4):
+            self.topology.automata[i].parameters['chemokine_scale_for_t_cell_recruitment'] = 101
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+
+class MacrophageRecruitmentTestCase(unittest.TestCase):
+
+    def setUp(self):
+        params = dict()
+        params['max_depth'] = 3
+        params['initial_oxygen'] = 1.5
+        params['oxygen_diffusion'] = 1.0
+        params['chemotherapy_diffusion'] = 0.75
+        params['caseum_distance'] = 2
+        params['spatial_step'] = 0.2
+        params['oxygen_from_source'] = 2.4
+        params['time_step'] = 0.001
+        params['chemokine_diffusion'] = 0.05
+        params['chemokine_decay'] = 0.347
+        params['chemotherapy_schedule1_start'] = 100
+        params['chemotherapy_schedule2_start'] = 200
+        params['t_cell_movement_time'] = 1
+        params['bacteria_threshold_for_t_cells'] = 1000
+
+        params['macrophage_recruitment_probability'] = 100
+        params['chemokine_scale_for_macrophage_recruitment'] = -1
+
+        atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
+                'chemotherapy', 'chemokine']
+
+        blood_vessels = [[3, 3]]
+        fast_bacteria = [[9, 9], [8, 9]]
+        slow_bacteria = []
+        macrophages = []
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
+                                                    slow_bacteria, macrophages)
+
+    def sort_out_halos(self):
+        dz = []
+        bacteria_global = 0
+        for i in self.topology.automata:
+            dz.append(i.get_danger_zone())
+            bacteria_global += len(i.bacteria)
+        halos = self.topology.create_halos(dz)
+        for i in range(4):
+            self.topology.automata[i].set_halo(halos[i])
+            self.topology.automata[i].set_global_bacteria_number(bacteria_global)
+
+    def test_macrophage_recruitment(self):
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.RecruitMacrophage))
+
+        address = event.addresses_affected[0]
+        distance = math.fabs(address[0] - 3) + math.fabs(address[1] - 3)
+        self.assertEqual(distance, 1)
+
+    def test_macrophage_recruit_negative_probability(self):
+        self.sort_out_halos()
+        for i in self.topology.automata:
+            i.parameters['macrophage_recruitment_probability'] = 0
+
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+    def test_macrophage_recruit_negative_scale(self):
+        self.sort_out_halos()
+        for i in self.topology.automata:
+            i.parameters['chemokine_scale_for_macrophage_recruitment'] = 101
+
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -479,6 +479,8 @@ class EventHandler:
             self.process_macrophage_movement(event)
         elif isinstance(event, MacrophageKillsBacteria):
             self.process_macrophage_kills_bacteria(event)
+        elif isinstance(event, MacrophageChangesState):
+            self.process_macrophage_state_change(event)
         else:
             raise Exception("Event ", type(event), "not handled")
 
@@ -588,12 +590,18 @@ class EventHandler:
             self.set_attribute_work_grid(to_address, 'contents', event.macrophage_to_move)
         elif self.address_is_on_grid(from_address):  # Macrophage is moving to a new tile
             self.set_attribute_work_grid(from_address, 'contents', 0.0)
-            self.macrophages.remove(event.t_cell_to_move)
+            self.macrophages.remove(self.get_attribute(from_address, 'contents'))
         elif self.address_is_on_grid(to_address):  # Macrophage has arrived from another tile
             event.macrophage_to_move.address = to_address
             self.bacteria.remove(self.get_attribute(to_address, 'contents'))
             self.set_attribute_work_grid(to_address, 'contents', event.macrophage_to_move)
             self.macrophages.append(event.macrophage_to_move)
+
+    def process_macrophage_state_change(self, event):
+        print "MACROPHAGE_STATE_CHANGE", event.macrophage.state, "TO", event.new_state
+
+        macrophage = self.get_attribute(event.macrophage.address, 'contents')
+        macrophage.state = event.new_state
 
 
 class Automaton(Tile, Neighbourhood, EventHandler):
@@ -683,6 +691,14 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
         for i in range(self.size):
             address = self.location_to_address(i)
+
+            # Clear any agents off the work grid
+            # TODO - check this (and caseum below). Should work though.
+            self.set_attribute_work_grid(address, 'contents', 0.0)
+
+            # Maintain caseum on the work grid
+            if self.get_attribute(address, 'contents') == 'caseum':
+                self.set_attribute_work_grid(address, 'contents', 'caseum')
 
             # OXYGEN
             oxygen_level = self.oxygen(address)
@@ -823,7 +839,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         # T-CELL DEATH, MOVEMENT & MACROPHAGE KILLING
         # TODO - MED - does this make sense - if number drops below threshold then t-cells just stop (and don't age)
         if self.number_of_bacteria_global >= self.parameters['bacteria_threshold_for_t_cells'] and \
-                self.time % self.parameters['macrophage_movement_time'] == 0:
+                self.time % self.parameters['t_cell_movement_time'] == 0:
 
             for t_cell in self.t_cells:
                 t_cell.age += self.parameters['time_step']
@@ -993,6 +1009,19 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     elif isinstance(neighbour['contents'], Bacteria):
                         new_event = MacrophageKillsBacteria(macrophage, chosen_neighbour_address, internal)
                         self.potential_events.append(new_event)
+
+        # MACROPHAGE STATE CHANGES
+
+        if self.time < 2 / self.parameters['time_step']:
+
+            for macrophage in self.macrophages:
+
+                if macrophage.state == 'resting' and macrophage.intracellular_bacteria == 0 and self.chemokine_scale(
+                        macrophage.address) > self.parameters['chemokine_scale_for_macrophage_activation']:
+                    new_event = MacrophageChangesState(macrophage, 'active')
+                    self.potential_events.append(new_event)
+
+                # TODO - more state changes
 
         # Reorder events
         self.reorder_events()
@@ -1286,6 +1315,7 @@ class Event(object):
     def clone(self, new_addresses):
         raise NotImplementedError
 
+
 class BacteriaReplication(Event):
 
     def __init__(self, address, bacteria, internal):
@@ -1393,3 +1423,11 @@ class MacrophageKillsBacteria(Event):
 
     def clone(self, new_addresses):
         return  MacrophageKillsBacteria(self.macrophage_to_move, new_addresses[1], self.internal)
+
+
+class MacrophageChangesState(Event):
+
+    def __init__(self, macrophage, new_state):
+        self.macrophage = macrophage
+        self.new_state = new_state
+        Event.__init__(self, [macrophage.address], True)
