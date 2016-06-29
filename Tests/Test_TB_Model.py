@@ -1156,6 +1156,62 @@ class MacrophageRecruitmentTestCase(unittest.TestCase):
         distance = math.fabs(address[0] - 3) + math.fabs(address[1] - 3)
         self.assertEqual(distance, 1)
 
+    def test_macrophage_recruited_across_boundary(self):
+
+        params = dict()
+        params['max_depth'] = 3
+        params['initial_oxygen'] = 1.5
+        params['oxygen_diffusion'] = 1.0
+        params['chemotherapy_diffusion'] = 0.75
+        params['caseum_distance'] = 2
+        params['caseum_threshold'] = 100
+        params['spatial_step'] = 0.2
+        params['oxygen_from_source'] = 2.4
+        params['time_step'] = 0.001
+        params['chemokine_diffusion'] = 0.05
+        params['chemokine_decay'] = 0.347
+        params['chemotherapy_schedule1_start'] = 100
+        params['chemotherapy_schedule2_start'] = 200
+        params['t_cell_movement_time'] = 1
+        params['bacteria_threshold_for_t_cells'] = 1000
+
+        params['macrophage_recruitment_probability'] = 100
+        params['chemokine_scale_for_macrophage_recruitment'] = -1
+
+        atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
+                'chemotherapy', 'chemokine']
+
+        blood_vessels = [[0, 4]]
+        fast_bacteria = []
+        slow_bacteria = []
+        macrophages = []
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
+                                                        slow_bacteria, macrophages)
+
+        self.sort_out_halos()
+
+        self.topology.automata[0].grid[0, 3]['contents'] = 'caseum'
+        self.topology.automata[0].grid[1, 3]['contents'] = 'caseum'
+        self.topology.automata[0].grid[1, 4]['contents'] = 'caseum'
+        self.topology.automata[1].grid[1, 0]['contents'] = 'caseum'
+
+        self.topology.automata[0].update()
+        self.assertTrue(self.topology.automata[0].potential_events[0].addresses_affected[0] == [0, 5])
+
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event,TB_Model.RecruitMacrophage))
+
+        new_address = self.topology.local_to_local(0, event.addresses_affected[0], 1)
+        self.assertTrue(new_address == [0, 0])
+
+        new_event = event.clone([new_address])
+
+        self.topology.automata[0].process_events([event])
+        self.topology.automata[1].process_events([new_event])
+
+        self.assertEqual(len(self.topology.automata[0].macrophages), 0)
+        self.assertEqual(len(self.topology.automata[1].macrophages), 1)
+
     def test_macrophage_recruit_negative_probability(self):
         self.sort_out_halos()
         for i in self.topology.automata:
