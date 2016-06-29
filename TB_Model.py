@@ -484,15 +484,19 @@ class EventHandler:
 
     def process_bacteria_replication(self, event):
         print "BACTERIA REPLICATION"
-        self.add_bacteria(event.new_bacteria_address, event.new_metabolism)
+        # Only process if the new bacteria is on the grid
+        if self.address_is_on_grid(event.new_bacteria_address):
+            self.add_bacteria(event.new_bacteria_address, event.new_metabolism)
 
     def process_t_cell_recruitment(self, event):
         print "T CELL RECRUITMENT"
-        self.add_t_cell(event.t_cell_address)
+        if self.address_is_on_grid(event.t_cell_address):
+            self.add_t_cell(event.t_cell_address)
 
     def process_macrophage_recruitment(self, event):
         print "MACROPHAGE RECRUITMENT"
-        self.add_macrophage(event.macrophage_address, "resting")
+        if self.address_is_on_grid(event.macrophage_address):
+            self.add_macrophage(event.macrophage_address, "resting")
 
     def process_chemo_kill_bacteria(self, event):
         print "CHEMO KILL BACTERIA"
@@ -666,13 +670,10 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         self.diffusion_pre_process()
 
         if (((self.parameters['chemotherapy_schedule1_start'] / self.parameters['time_step']) <=
-                 self.time <
-                 (self.parameters['chemotherapy_schedule1_end'] / self.parameters['time_step']))
-            or
-                (self.parameters['chemotherapy_schedule2_start'] / self.parameters['time_step'] <=
-                     self.time)):
+                self.time <
+                (self.parameters['chemotherapy_schedule1_end'] / self.parameters['time_step'])) or
+                (self.parameters['chemotherapy_schedule2_start'] / self.parameters['time_step'] <= self.time)):
             chemo = True
-
         else:
             chemo = False
 

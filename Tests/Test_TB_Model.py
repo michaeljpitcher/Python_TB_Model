@@ -922,8 +922,9 @@ class EventTestCase(unittest.TestCase):
         self.assertTrue(new_address == [3, 4])
 
         new_event = event.clone([new_address])
-        print new_event.addresses_affected
 
+        self.topology.automata[0].process_events([new_event])
+        self.topology.automata[1].process_events([event])
 
 if __name__ == '__main__':
     unittest.main()
