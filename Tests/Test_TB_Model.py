@@ -1,6 +1,7 @@
 import unittest
 import TB_Model
 import math
+import numpy as np
 
 
 class TileTestCase(unittest.TestCase):
@@ -1588,6 +1589,7 @@ class TCellDeathTestCase(unittest.TestCase):
         params['chemokine_decay'] = 0.0
         params['macrophage_recruitment_probability'] = 0
         params['chemotherapy_scale_for_kill_macrophage'] = 0
+        params['t_cell_random_move_probability'] = 100
 
         params['bacteria_threshold_for_t_cells'] = 0
         params['t_cell_recruitment_probability'] = 0
@@ -1677,8 +1679,30 @@ class TCellDeathTestCase(unittest.TestCase):
 
         self.assertEqual(len(self.topology.automata[0].potential_events), 0)
 
-    # TODO - COMP - can we negatively test age threshold? Condition is age > random(0, threshold). So t-cells
-        # can always die
+    def test_tcell_death_negative_age_threshold(self):
+        for i in self.topology.automata:
+            i.parameters['t_cell_age_threshold'] = 999
+
+        # Set seed - forces random age to be 320
+        np.random.seed(10)
+
+        t_cell = TB_Model.TCell([1, 1])
+        self.topology.automata[0].grid[1, 1]['contents'] = t_cell
+        self.topology.automata[0].t_cells.append(t_cell)
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        # Cells either move or die when time % movement_time = 0 so check it's a move
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.TCellMovement))
+
+        # Just in case
+        np.random.seed(None)
+
+
+
 
 
 if __name__ == '__main__':

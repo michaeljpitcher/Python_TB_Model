@@ -845,12 +845,13 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 t_cell.age += self.parameters['time_step']
 
                 age_threshold = np.random.randint(0, self.parameters['t_cell_age_threshold'])
+                print "age_threshold = ", age_threshold
 
                 # T-CELL DEATH
                 if t_cell.age >= age_threshold:
                     new_event = TCellDeath(t_cell)
                     self.potential_events.append(new_event)
-                elif self.time % self.parameters['t_cell_movement_time'] == 0: #  T-CELL MOVE
+                else: #  T-CELL MOVE
                     random_move = False
                     prob_random_move = np.random.randint(1,101)
                     if self.parameters['t_cell_random_move_probability'] <= prob_random_move:
