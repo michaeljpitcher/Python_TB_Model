@@ -815,6 +815,8 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         self.assertAlmostEqual(self.topology.automata[0].chemokine_scale([1, 1]), 0.0005 / 0.12 * 100)
 
 
+# EVENT TESTING
+
 class BacteriaReplicationTestCase(unittest.TestCase):
 
     def setUp(self):
@@ -1362,5 +1364,158 @@ class ChemotherapyKillsBacteriaTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[1].potential_events), 0)
 
 
+class ChemotherapyKillsMacrophageTestCase(unittest.TestCase):
+
+    def setUp(self):
+        params = dict()
+        params['max_depth'] = 3
+        params['initial_oxygen'] = 1.5
+        params['oxygen_diffusion'] = 0.0
+        params['chemotherapy_diffusion'] = 0.0
+        params['caseum_distance'] = 2
+        params['spatial_step'] = 0.2
+        params['time_step'] = 0.001
+        params['oxygen_from_source'] = 0.0
+        params['chemokine_diffusion'] = 0.0
+        params['chemokine_decay'] = 0.0
+        params['chemokine_from_macrophage'] = 0.0
+        params['bacteria_threshold_for_t_cells'] = 1000
+        params['macrophage_recruitment_probability'] = 0
+        params['chemokine_scale_for_macrophage_activation'] = 101
+        params['resting_macrophage_age_limit'] = 1000000
+        params['resting_macrophage_movement_time'] = 1000000
+        params['active_macrophage_age_limit'] = 999
+        params['active_macrophage_movement_time'] = 999
+        params['infected_macrophage_age_limit'] = 999
+        params['infected_macrophage_movement_time'] = 999
+        params['chronically_infected_macrophage_age_limit'] = 999
+        params['chronically_infected_macrophage_movement_time'] = 999
+
+        params['chemotherapy_scale_for_kill_macrophage'] = 0
+
+        params['chemotherapy_schedule1_start'] = 99
+        params['chemotherapy_schedule2_start'] = 200
+
+        atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
+                'chemotherapy', 'chemokine']
+
+        blood_vessels = [[3, 3]]
+        fast_bacteria = []
+        slow_bacteria = []
+        macrophages = [[1, 1]]
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
+                                                        slow_bacteria, macrophages)
+
+    def sort_out_halos(self):
+        dz = []
+        max_chemo = 0
+        for i in self.topology.automata:
+            dz.append(i.get_danger_zone())
+            max_chemo = max(max_chemo, i.max_chemotherapy_local)
+
+        halos = self.topology.create_halos(dz)
+        for i in range(4):
+            self.topology.automata[i].set_halo(halos[i])
+            self.topology.automata[i].set_max_chemotherapy_global(max_chemo)
+
+    def test_chemokillmacrophage_infected(self):
+
+        self.topology.automata[0].grid[1, 1]['contents'].state = 'infected'
+
+        # Only 1 macrophage and it's resting
+
+        self.topology.automata[0].grid[1, 1]['chemotherapy'] = 1.0
+        self.topology.automata[3].grid[4, 4]['chemotherapy'] = 2.0
+        self.topology.automata[0].max_chemotherapy_local = 1.0
+        self.topology.automata[3].max_chemotherapy_local = 2.0
+
+        # So 1,1 has scale of 50%
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.ChemoKillMacrophage))
+        address = event.addresses_affected[0]
+        self.assertTrue(address == [1,1])
+
+    def test_chemokillmacrophage_chronic_infected(self):
+
+        self.topology.automata[0].grid[1, 1]['contents'].state = 'chronically_infected'
+
+        # Only 1 macrophage and it's resting
+
+        self.topology.automata[0].grid[1, 1]['chemotherapy'] = 1.0
+        self.topology.automata[3].grid[4, 4]['chemotherapy'] = 2.0
+        self.topology.automata[0].max_chemotherapy_local = 1.0
+        self.topology.automata[3].max_chemotherapy_local = 2.0
+
+        # So 1,1 has scale of 50%
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.ChemoKillMacrophage))
+        address = event.addresses_affected[0]
+        self.assertTrue(address == [1, 1])
+
+    def test_chemokillmacrophage_negative_resting(self):
+
+        # Only 1 macrophage and it's resting
+
+        self.topology.automata[0].grid[1, 1]['chemotherapy'] = 1.0
+        self.topology.automata[3].grid[4, 4]['chemotherapy'] = 2.0
+        self.topology.automata[0].max_chemotherapy_local = 1.0
+        self.topology.automata[3].max_chemotherapy_local = 2.0
+
+        # So 1,1 has scale of 50%
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+    def test_chemokillmacrophage_negative_active(self):
+
+        self.topology.automata[0].grid[1, 1]['contents'].state = 'active'
+        # Only 1 macrophage and it's active
+
+        self.topology.automata[0].grid[1, 1]['chemotherapy'] = 1.0
+        self.topology.automata[3].grid[4, 4]['chemotherapy'] = 2.0
+        self.topology.automata[0].max_chemotherapy_local = 1.0
+        self.topology.automata[3].max_chemotherapy_local = 2.0
+
+        # So 1,1 has scale of 50%
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+    def test_chemokillmacrophage_negative_scale(self):
+
+        self.topology.automata[0].grid[1, 1]['contents'].state = 'infected'
+
+        for i in self.topology.automata:
+            i.parameters['chemotherapy_scale_for_kill_macrophage'] = 75.
+
+        # Only 1 macrophage and it's resting
+
+        self.topology.automata[0].grid[1, 1]['chemotherapy'] = 1.0
+        self.topology.automata[3].grid[4, 4]['chemotherapy'] = 2.0
+        self.topology.automata[0].max_chemotherapy_local = 1.0
+        self.topology.automata[3].max_chemotherapy_local = 2.0
+
+        # So 1,1 has scale of 50%
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+        
 if __name__ == '__main__':
     unittest.main()
