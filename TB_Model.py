@@ -507,7 +507,7 @@ class EventHandler:
 
     def process_chemo_kill_macrophage(self, event):
         print "CHEMO KILL MACROPHAGE"
-        self.macrophage.remove(event.macrophage_to_kill)
+        self.macrophages.remove(event.macrophage_to_kill)
         self.set_attribute_work_grid(event.macrophage_to_kill.address, 'contents', 0.0)
 
     def process_t_cell_death(self, event):
