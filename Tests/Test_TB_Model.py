@@ -1156,6 +1156,16 @@ class MacrophageRecruitmentTestCase(unittest.TestCase):
         distance = math.fabs(address[0] - 3) + math.fabs(address[1] - 3)
         self.assertEqual(distance, 1)
 
+    def test_macrophage_recruit_process(self):
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+        events = self.topology.automata[0].potential_events
+        self.topology.automata[0].process_events(events)
+
+        self.assertEqual(len(self.topology.automata[0].macrophages), 1)
+        self.assertTrue(isinstance(self.topology.automata[0].get_attribute(events[0].addresses_affected[0], 'contents'),
+                                   TB_Model.Macrophage))
+
     def test_macrophage_recruited_across_boundary(self):
 
         params = dict()
@@ -1227,6 +1237,129 @@ class MacrophageRecruitmentTestCase(unittest.TestCase):
 
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+
+class ChemotherapyKillsBacteriaTestCase(unittest.TestCase):
+
+    def setUp(self):
+        params = dict()
+        params['max_depth'] = 3
+        params['initial_oxygen'] = 1.5
+        params['oxygen_diffusion'] = 0.0
+        params['chemotherapy_diffusion'] = 0.0
+        params['caseum_distance'] = 2
+        params['spatial_step'] = 0.2
+        params['oxygen_from_source'] = 0.0
+        params['time_step'] = 0.001
+        params['chemokine_diffusion'] = 0.0
+        params['chemokine_decay'] = 0.0
+        params['oxygen_uptake_from_bacteria'] = 0.0
+        params['chemokine_from_bacteria'] = 0.0
+        params['macrophage_recruitment_probability'] = 0
+        params['bacteria_threshold_for_t_cells'] = 1000
+        params['bacteria_replication_fast_upper'] = 99999
+        params['bacteria_replication_fast_lower'] = 99998
+        params['bacteria_replication_slow_upper'] = 99999
+        params['bacteria_replication_slow_lower'] = 99998
+
+        # Scale = 0, so any chemo will kill bacteria (will change later for negative tests)
+        params['chemotherapy_scale_for_kill_fast_bacteria'] = 0
+        params['chemotherapy_scale_for_kill_slow_bacteria'] = 0
+        # No chemo - will manually add chemotherapy to necessary squares
+        params['chemotherapy_schedule1_start'] = 99
+        params['chemotherapy_schedule1_end'] = 100
+        params['chemotherapy_schedule2_start'] = 200
+
+        atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
+                'chemotherapy', 'chemokine']
+
+        blood_vessels = [[3, 3]]
+        fast_bacteria = [[1, 1]]
+        slow_bacteria = [[2, 7]]
+        macrophages = []
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
+                                                        slow_bacteria, macrophages)
+
+    def sort_out_halos(self):
+        dz = []
+        max_chemo = 0
+        for i in self.topology.automata:
+            dz.append(i.get_danger_zone())
+            max_chemo = max(max_chemo, i.max_chemotherapy_local)
+
+        halos = self.topology.create_halos(dz)
+        for i in range(4):
+            self.topology.automata[i].set_halo(halos[i])
+            self.topology.automata[i].set_max_chemotherapy_global(max_chemo)
+
+    def test_chemo_kills_bacteria(self):
+
+        self.topology.automata[0].grid[1, 1]['chemotherapy'] = 1
+        self.topology.automata[1].grid[2, 2]['chemotherapy'] = 1
+        self.topology.automata[3].grid[4, 4]['chemotherapy'] = 2
+        self.topology.automata[0].max_chemotherapy_local = 1
+        self.topology.automata[1].max_chemotherapy_local = 1
+
+        # So max chemo is 2, and 1,1 / 2,2 have 50%.
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.ChemoKillBacteria))
+        self.assertTrue(event.addresses_affected[0] == [1,1])
+
+        self.topology.automata[1].update()
+        self.assertEqual(len(self.topology.automata[1].potential_events), 1)
+        self.assertTrue(isinstance(self.topology.automata[1].potential_events[0], TB_Model.ChemoKillBacteria))
+        event = self.topology.automata[1].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.ChemoKillBacteria))
+        self.assertTrue(event.addresses_affected[0] == [2, 2])
+
+    def test_chemokillbacteria_negative_both(self):
+
+        for i in self.topology.automata:
+            i.parameters['chemotherapy_scale_for_kill_fast_bacteria'] = 70
+            i.parameters['chemotherapy_scale_for_kill_slow_bacteria'] = 70
+
+        self.topology.automata[0].grid[1, 1]['chemotherapy'] = 1
+        self.topology.automata[1].grid[2, 2]['chemotherapy'] = 1
+        self.topology.automata[3].grid[4, 4]['chemotherapy'] = 2
+        self.topology.automata[0].max_chemotherapy_local = 1
+        self.topology.automata[1].max_chemotherapy_local = 1
+        self.topology.automata[3].max_chemotherapy_local = 2
+
+
+        # So max chemo is 2, and 1,1 / 2,2 have 50%.
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+        self.topology.automata[1].update()
+        self.assertEqual(len(self.topology.automata[1].potential_events), 0)
+
+    def test_chemokillsbacteria_fast_but_not_slow(self):
+        for i in self.topology.automata:
+            i.parameters['chemotherapy_scale_for_kill_fast_bacteria'] = 20.0
+            i.parameters['chemotherapy_scale_for_kill_slow_bacteria'] = 70.0
+
+        self.topology.automata[0].grid[1, 1]['chemotherapy'] = 1.0
+        self.topology.automata[1].grid[2, 2]['chemotherapy'] = 1.0
+        self.topology.automata[3].grid[4, 4]['chemotherapy'] = 2.0
+        self.topology.automata[0].max_chemotherapy_local = 1.0
+        self.topology.automata[1].max_chemotherapy_local = 1.0
+        self.topology.automata[3].max_chemotherapy_local = 2.0
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.ChemoKillBacteria))
+        self.assertTrue(event.addresses_affected[0] == [1, 1])
+
+        self.topology.automata[1].update()
+        self.assertEqual(len(self.topology.automata[1].potential_events), 0)
 
 
 if __name__ == '__main__':
