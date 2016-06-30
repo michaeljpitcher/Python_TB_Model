@@ -845,7 +845,6 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 t_cell.age += self.parameters['time_step']
 
                 age_threshold = np.random.randint(0, self.parameters['t_cell_age_threshold'])
-                print "age_threshold = ", age_threshold
 
                 # T-CELL DEATH
                 if t_cell.age >= age_threshold:
@@ -854,7 +853,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 else: #  T-CELL MOVE
                     random_move = False
                     prob_random_move = np.random.randint(1,101)
-                    if self.parameters['t_cell_random_move_probability'] <= prob_random_move:
+                    if prob_random_move <= self.parameters['t_cell_random_move_probability']:
                         random_move = True
 
                     neighbours = self.neighbours_moore(t_cell.address, 1)
@@ -874,7 +873,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     neighbour = self.get(chosen_neighbour_address)
 
                     if neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
-                        new_event = TCellMovement(t_cell, chosen_neighbour_address, internal)
+                        new_event = TCellMovement(t_cell, t_cell.address, chosen_neighbour_address, internal)
                         self.potential_events.append(new_event)
                     elif isinstance(neighbour['contents'], Macrophage) and (neighbour['contents'].state == 'infected'
                             or neighbour['contents'].state == 'chronically_infected'):
@@ -1375,13 +1374,13 @@ class TCellDeath(Event):
 
 class TCellMovement(Event):
 
-    def __init__(self, t_cell_to_move, new_address, internal):
+    def __init__(self, t_cell_to_move, from_address, to_address, internal):
         self.t_cell_to_move = t_cell_to_move
-        self.new_address = new_address
-        Event.__init__(self, [t_cell_to_move.address, new_address], internal)
+        self.to_address = to_address
+        Event.__init__(self, [from_address, to_address], internal)
 
     def clone(self, new_addresses):
-        return TCellMovement(self.t_cell_to_move, new_addresses[1], self.internal)
+        return TCellMovement(self.t_cell_to_move, new_addresses[0], new_addresses[1], self.internal)
 
 
 class TCellKillsMacrophage(Event):
