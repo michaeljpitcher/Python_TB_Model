@@ -837,7 +837,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 self.potential_events.append(new_event)
 
         # T-CELL DEATH, MOVEMENT & MACROPHAGE KILLING
-        # TODO - MED - does this make sense - if number drops below threshold then t-cells just stop (and don't age)
+        # TODO - MED - does this make sense - e.g. t-cell death is dependent on the bacteria number and movement time
         if self.number_of_bacteria_global >= self.parameters['bacteria_threshold_for_t_cells'] and \
                 self.time % self.parameters['t_cell_movement_time'] == 0:
 

@@ -1572,58 +1572,113 @@ class ChemotherapyKillsMacrophageTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 0)
 
 
-# class TCellDeathTestCase(unittest.TestCase):
-#     def setUp(self):
-#         params = dict()
-#         params['max_depth'] = 3
-#         params['initial_oxygen'] = 1.5
-#         params['oxygen_diffusion'] = 0.0
-#         params['chemotherapy_diffusion'] = 0.0
-#         params['caseum_distance'] = 2
-#         params['spatial_step'] = 0.2
-#         params['chemotherapy_schedule1_start'] = 99
-#         params['chemotherapy_schedule2_start'] = 200
-#         params['time_step'] = 0.001
-#         # params['oxygen_from_source'] = 0.0
-#         # params['chemokine_diffusion'] = 0.0
-#         # params['chemokine_decay'] = 0.0
-#         # params['chemokine_from_macrophage'] = 0.0
-#         # params['bacteria_threshold_for_t_cells'] = 1000
-#         # params['macrophage_recruitment_probability'] = 0
-#         # params['chemokine_scale_for_macrophage_activation'] = 101
-#         # params['resting_macrophage_age_limit'] = 1000000
-#         # params['resting_macrophage_movement_time'] = 1000000
-#         # params['active_macrophage_age_limit'] = 999
-#         # params['active_macrophage_movement_time'] = 999
-#         # params['infected_macrophage_age_limit'] = 999
-#         # params['infected_macrophage_movement_time'] = 999
-#         # params['chronically_infected_macrophage_age_limit'] = 999
-#         # params['chronically_infected_macrophage_movement_time'] = 999
-#
-#         params['chemotherapy_scale_for_kill_macrophage'] = 0
-#
-#
-#
-#         atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
-#                 'chemotherapy', 'chemokine']
-#
-#         blood_vessels = [[3, 3]]
-#         fast_bacteria = []
-#         slow_bacteria = []
-#         macrophages = []
-#         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
-#                                                         slow_bacteria, macrophages)
-#
-#     def sort_out_halos(self):
-#         dz = []
-#         for i in self.topology.automata:
-#             dz.append(i.get_danger_zone())
-#
-#         halos = self.topology.create_halos(dz)
-#         for i in range(4):
-#             self.topology.automata[i].set_halo(halos[i])
-#
-#     def test_t_cell_death(self):
+class TCellDeathTestCase(unittest.TestCase):
+    def setUp(self):
+        params = dict()
+        params['max_depth'] = 3
+        params['initial_oxygen'] = 1.5
+        params['oxygen_diffusion'] = 0.0
+        params['chemotherapy_diffusion'] = 0.0
+        params['caseum_distance'] = 2
+        params['spatial_step'] = 0.2
+        params['chemotherapy_schedule1_start'] = 99
+        params['chemotherapy_schedule2_start'] = 200
+        params['oxygen_from_source'] = 0.0
+        params['chemokine_diffusion'] = 0.0
+        params['chemokine_decay'] = 0.0
+        params['macrophage_recruitment_probability'] = 0
+        params['chemotherapy_scale_for_kill_macrophage'] = 0
+
+        params['bacteria_threshold_for_t_cells'] = 0
+        params['t_cell_recruitment_probability'] = 0
+        params['t_cell_movement_time'] = 1
+        params['t_cell_age_threshold'] = 2
+        params['time_step'] = 2
+
+        atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
+                'chemotherapy', 'chemokine']
+        blood_vessels = [[3, 3]]
+        fast_bacteria = []
+        slow_bacteria = []
+        macrophages = []
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
+                                                        slow_bacteria, macrophages)
+
+    def sort_out_halos(self):
+        dz = []
+        for i in self.topology.automata:
+            dz.append(i.get_danger_zone())
+        halos = self.topology.create_halos(dz)
+        for i in range(4):
+            self.topology.automata[i].set_halo(halos[i])
+
+    def test_t_cell_death(self):
+
+        t_cell = TB_Model.TCell([1, 1])
+        self.topology.automata[0].grid[1, 1]['contents'] = t_cell
+        self.topology.automata[0].t_cells.append(t_cell)
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.TCellDeath))
+        address = event.addresses_affected[0]
+        self.assertTrue(address == [1, 1])
+
+    def test_process_tcell_death(self):
+
+        t_cell = TB_Model.TCell([1, 1])
+        self.topology.automata[0].grid[1, 1]['contents'] = t_cell
+        self.topology.automata[0].t_cells.append(t_cell)
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.TCellDeath))
+
+        # PROCESS
+        self.topology.automata[0].process_events([event])
+        self.assertEqual(len(self.topology.automata[0].t_cells), 0)
+        self.assertEqual(self.topology.automata[0].grid[1,1]['contents'], 0.0)
+
+    def test_tcell_death_negative_bacteria_threshold(self):
+        # Don't think this makes sense, but based on Ruth's code (i.e. why does number of bacteria stop/cause
+        # t-cell death)
+
+        for i in self.topology.automata:
+            i.parameters['bacteria_threshold_for_t_cells'] = 1
+
+        t_cell = TB_Model.TCell([1, 1])
+        self.topology.automata[0].grid[1, 1]['contents'] = t_cell
+        self.topology.automata[0].t_cells.append(t_cell)
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+    def test_tcell_death_negative_movement_time(self):
+        # Don't think this makes sense, but based on Ruth's code (i.e. why does movement time for t-cells stop/cause
+        # t-cell death)
+
+        for i in self.topology.automata:
+            i.parameters['t_cell_movement_time'] = 15
+
+        t_cell = TB_Model.TCell([1, 1])
+        self.topology.automata[0].grid[1, 1]['contents'] = t_cell
+        self.topology.automata[0].t_cells.append(t_cell)
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+    # TODO - COMP - can we negatively test age threshold? Condition is age > random(0, threshold). So t-cells
+        # can always die
 
 
 if __name__ == '__main__':
