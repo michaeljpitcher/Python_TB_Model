@@ -1702,7 +1702,188 @@ class TCellDeathTestCase(unittest.TestCase):
         np.random.seed(None)
 
 
+class TCellMovementTestCase(unittest.TestCase):
 
+    def setUp(self):
+        params = dict()
+        params['max_depth'] = 3
+        params['initial_oxygen'] = 1.5
+        params['oxygen_diffusion'] = 0.0
+        params['chemotherapy_diffusion'] = 0.0
+        params['caseum_distance'] = 2
+        params['spatial_step'] = 0.2
+        params['chemotherapy_schedule1_start'] = 99
+        params['chemotherapy_schedule2_start'] = 200
+        params['oxygen_from_source'] = 0.0
+        params['chemokine_diffusion'] = 0.0
+        params['chemokine_decay'] = 0.0
+        params['macrophage_recruitment_probability'] = 0
+        params['chemotherapy_scale_for_kill_macrophage'] = 0
+
+        params['bacteria_threshold_for_t_cells'] = 0
+        params['t_cell_recruitment_probability'] = 0
+        params['t_cell_movement_time'] = 1
+        params['t_cell_age_threshold'] = 1000
+        params['time_step'] = 2
+        params['t_cell_random_move_probability'] = 100
+
+        atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
+                'chemotherapy', 'chemokine']
+        blood_vessels = [[3, 3]]
+        fast_bacteria = []
+        slow_bacteria = []
+        macrophages = []
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
+                                                        slow_bacteria, macrophages)
+
+    def sort_out_halos(self):
+        dz = []
+        for i in self.topology.automata:
+            dz.append(i.get_danger_zone())
+        halos = self.topology.create_halos(dz)
+        for i in range(4):
+            self.topology.automata[i].set_halo(halos[i])
+
+    def test_t_cell_movement_random(self):
+
+        t_cell = TB_Model.TCell([1, 1])
+        self.topology.automata[0].grid[1, 1]['contents'] = t_cell
+        self.topology.automata[0].t_cells.append(t_cell)
+
+        # Forces [0,1] as 'random' choice
+        np.random.seed(10)
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.TCellMovement))
+        self.assertTrue(event.addresses_affected[0] == [1, 1])
+        self.assertSequenceEqual(event.addresses_affected[1], [0, 1])
+
+        # Just in case
+        np.random.seed(None)
+
+    def test_t_cell_movement_max_chemokine(self):
+
+        # Never random
+        for i in self.topology.automata:
+            i.parameters['t_cell_random_move_probability'] = 0.0
+
+        # Add a t-cell to [1,1]
+        t_cell = TB_Model.TCell([1, 1])
+        self.topology.automata[0].grid[1, 1]['contents'] = t_cell
+        self.topology.automata[0].t_cells.append(t_cell)
+
+        # Make [0,0] have the highest chemokine
+        self.topology.automata[0].grid[0, 0]['chemokine'] = 99.9
+        self.topology.automata[0].set_max_chemokine_global(99.9)
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.TCellMovement))
+
+        self.assertTrue(event.addresses_affected[0] == [1, 1])
+        self.assertSequenceEqual(event.addresses_affected[1], [0, 0])
+
+    def test_t_cell_movement_process(self):
+        t_cell = TB_Model.TCell([1, 1])
+        self.topology.automata[0].grid[1, 1]['contents'] = t_cell
+        self.topology.automata[0].t_cells.append(t_cell)
+
+        # Forces [0,1] as 'random' choice
+        np.random.seed(10)
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.TCellMovement))
+        self.assertTrue(event.addresses_affected[0] == [1, 1])
+        self.assertSequenceEqual(event.addresses_affected[1], [0, 1])
+
+        # Now process
+        self.topology.automata[0].process_events([event])
+
+        self.assertTrue(isinstance(self.topology.automata[0].grid[0, 1]['contents'], TB_Model.TCell))
+        self.assertEqual(self.topology.automata[0].grid[1, 1]['contents'], 0.0)
+
+    def test_t_cell_movement_across_boundary_process(self):
+
+        # Never random
+        for i in self.topology.automata:
+            i.parameters['t_cell_random_move_probability'] = 0.0
+
+        # Add a t-cell to [1,1]
+        t_cell = TB_Model.TCell([4, 4])
+        self.topology.automata[0].grid[4, 4]['contents'] = t_cell
+        self.topology.automata[0].t_cells.append(t_cell)
+
+        # Make [0,0] have the highest chemokine
+        self.topology.automata[1].grid[4, 0]['chemokine'] = 99.9
+        self.topology.automata[0].set_max_chemokine_global(99.9)
+        self.topology.automata[1].set_max_chemokine_global(99.9)
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.TCellMovement))
+
+        self.assertSequenceEqual(event.addresses_affected[0], [4, 4])
+        self.assertSequenceEqual(event.addresses_affected[1], [4, 5])
+
+        # Now process
+        new_addresses = []
+        new_addresses.append(self.topology.local_to_local(0, event.addresses_affected[0], 1))
+        new_addresses.append(self.topology.local_to_local(0, event.addresses_affected[1], 1))
+
+        self.assertSequenceEqual(new_addresses[0], [4, -1])
+        self.assertSequenceEqual(new_addresses[1], [4, 0])
+
+        new_event = event.clone(new_addresses)
+        self.assertSequenceEqual(new_event.addresses_affected[0], [4, -1])
+        self.assertSequenceEqual(new_event.addresses_affected[1], [4, 0])
+
+        self.topology.automata[0].process_events([event])
+        self.assertEqual(self.topology.automata[0].grid[4,4]['contents'], 0.0)
+
+        self.topology.automata[1].process_events([new_event])
+        self.assertTrue(isinstance(self.topology.automata[1].grid[4,0]['contents'], TB_Model.TCell))
+
+    def test_t_cell_movement_negative_number_bacteria(self):
+
+        for i in self.topology.automata:
+            i.parameters['bacteria_threshold_for_t_cells'] = 1
+
+        t_cell = TB_Model.TCell([1, 1])
+        self.topology.automata[0].grid[1, 1]['contents'] = t_cell
+        self.topology.automata[0].t_cells.append(t_cell)
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+    def test_t_cell_movement_negative_movement_time(self):
+
+        for i in self.topology.automata:
+            i.parameters['t_cell_movement_time'] = 99
+
+        t_cell = TB_Model.TCell([1, 1])
+        self.topology.automata[0].grid[1, 1]['contents'] = t_cell
+        self.topology.automata[0].t_cells.append(t_cell)
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
 
 
 if __name__ == '__main__':
