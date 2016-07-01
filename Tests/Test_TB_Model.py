@@ -2121,9 +2121,8 @@ class TCellKillsMacrophageTestCase(unittest.TestCase):
         self.assertSequenceEqual(addresses[0], [4, 4])
         self.assertSequenceEqual(addresses[1], [4, 5])
 
-        new_addresses = []
-        new_addresses.append(self.topology.local_to_local(0, addresses[0], 1))
-        new_addresses.append(self.topology.local_to_local(0, addresses[1], 1))
+        new_addresses = [self.topology.local_to_local(0, addresses[0], 1),
+                         self.topology.local_to_local(0, addresses[1], 1)]
 
         self.assertSequenceEqual(new_addresses[0], [4, -1])
         self.assertSequenceEqual(new_addresses[1], [4, 0])
@@ -2139,6 +2138,224 @@ class TCellKillsMacrophageTestCase(unittest.TestCase):
         self.topology.automata[1].process_events([new_event])
         self.assertEqual(self.topology.automata[1].grid[4, 0]['contents'], 'caseum')
         self.assertEqual(len(self.topology.automata[1].macrophages), 0)
+
+class MacrophageDeathTestCase(unittest.TestCase):
+
+    def setUp(self):
+        params = dict()
+        params['max_depth'] = 3
+        params['initial_oxygen'] = 1.5
+        params['oxygen_diffusion'] = 0.0
+        params['chemotherapy_diffusion'] = 0.0
+        params['caseum_distance'] = 2
+        params['spatial_step'] = 0.2
+        params['chemotherapy_schedule1_start'] = 99
+        params['chemotherapy_schedule2_start'] = 200
+        params['oxygen_from_source'] = 0.0
+        params['chemokine_diffusion'] = 0.0
+        params['chemokine_decay'] = 0.0
+        params['chemokine_from_macrophage'] = 0
+        params['bacteria_threshold_for_t_cells'] = 100
+        params['chemokine_scale_for_macrophage_activation'] = 101
+        params['chemotherapy_scale_for_kill_macrophage'] = 101
+        params['resting_macrophage_movement_time'] = 999
+        params['active_macrophage_movement_time'] = 999
+        params['infected_macrophage_movement_time'] = 999
+        params['chronically_infected_macrophage_movement_time'] = 999
+
+        params['time_step'] = 1
+        params['resting_macrophage_age_limit'] = 2
+        params['active_macrophage_age_limit'] = 4
+        params['infected_macrophage_age_limit'] = 2
+        params['chronically_infected_macrophage_age_limit'] = 2
+
+        # params['macrophage_recruitment_probability'] = 0
+        # params['chemotherapy_scale_for_kill_macrophage'] = 0
+        # params['resting_macrophage_age_limit'] = 999
+        # params['infected_macrophage_movement_time'] = 999
+        # params['chronically_infected_macrophage_movement_time'] = 999
+        # params['t_cell_recruitment_probability'] = 0
+        # params['t_cell_movement_time'] = 1
+        # params['t_cell_age_threshold'] = 1000
+        # params['t_cell_random_move_probability'] = 0
+        # params['t_cell_kills_macrophage_probability'] = 100
+
+        atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
+                'chemotherapy', 'chemokine']
+        blood_vessels = [[8, 8]]
+        fast_bacteria = []
+        slow_bacteria = []
+        macrophages = [[1, 1]]
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
+                                                        slow_bacteria, macrophages)
+
+    def sort_out_halos(self):
+        dz = []
+        for i in self.topology.automata:
+            dz.append(i.get_danger_zone())
+        halos = self.topology.create_halos(dz)
+        for i in range(4):
+            self.topology.automata[i].set_halo(halos[i])
+
+    def test_macrophage_death_resting(self):
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.MacrophageDeath))
+        address = event.addresses_affected[0]
+        self.assertSequenceEqual(address, [1,1])
+
+    def test_macrophage_death_active(self):
+
+        self.topology.automata[0].grid[1, 1]['contents'].state = 'active'
+        self.topology.automata[0].grid[1, 1]['contents'].age = 999
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.MacrophageDeath))
+        address = event.addresses_affected[0]
+        self.assertSequenceEqual(address, [1, 1])
+
+    def test_macrophage_death_infected(self):
+
+        self.topology.automata[0].grid[1, 1]['contents'].state = 'infected'
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.MacrophageDeath))
+        address = event.addresses_affected[0]
+        self.assertSequenceEqual(address, [1, 1])
+
+    def test_macrophage_death_chronically_infected(self):
+
+        self.topology.automata[0].grid[1, 1]['contents'].state = 'chronically_infected'
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.MacrophageDeath))
+        address = event.addresses_affected[0]
+        self.assertSequenceEqual(address, [1, 1])
+
+    def test_macrophage_resting_death_negative_age(self):
+
+        self.topology.automata[0].parameters['resting_macrophage_age_limit'] = 200
+
+        # Seed forces age to 9
+        np.random.seed(100)
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+    def test_macrophage_active_death_negative_age(self):
+
+        self.topology.automata[0].parameters['active_macrophage_age_limit'] = 200
+
+        self.topology.automata[0].grid[1, 1]['contents'].state = 'active'
+        self.topology.automata[0].grid[1, 1]['contents'].age = 2
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+    def test_macrophage_infected_death_negative_age(self):
+
+        self.topology.automata[0].parameters['infected_macrophage_age_limit'] = 200
+
+        # Seed forces age to 9
+        np.random.seed(100)
+
+        self.topology.automata[0].grid[1, 1]['contents'].state = 'infected'
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+    def test_macrophage_chronically_infected_death_negative_age(self):
+
+        self.topology.automata[0].parameters['chronically_infected_macrophage_age_limit'] = 200
+
+        # Seed forces age to 9
+        np.random.seed(100)
+
+        self.topology.automata[0].grid[1, 1]['contents'].state = 'chronically_infected'
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+    def test_macrophage_death_resting_process(self):
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.MacrophageDeath))
+
+        # Now process
+        self.topology.automata[0].process_events([event])
+        self.assertEqual(len(self.topology.automata[0].macrophages), 0)
+        self.assertEqual(self.topology.automata[0].grid[1, 1]['contents'], 0.0)
+
+    def test_macrophage_death_active_process(self):
+
+        self.topology.automata[0].grid[1, 1]['contents'].state = 'active'
+        self.topology.automata[0].grid[1, 1]['contents'].age = 999
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.MacrophageDeath))
+
+        # Now process
+        self.topology.automata[0].process_events([event])
+        self.assertEqual(len(self.topology.automata[0].macrophages), 0)
+        self.assertEqual(self.topology.automata[0].grid[1, 1]['contents'], 0.0)
+
+    def test_macrophage_death_infected_process(self):
+
+        self.topology.automata[0].grid[1, 1]['contents'].state = 'infected'
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.MacrophageDeath))
+
+        # Now process
+        self.topology.automata[0].process_events([event])
+        self.assertEqual(len(self.topology.automata[0].macrophages), 0)
+        self.assertEqual(self.topology.automata[0].grid[1, 1]['contents'], 'caseum')
+
+    def test_macrophage_death_chronically_infected_process(self):
+
+        self.topology.automata[0].grid[1, 1]['contents'].state = 'chronically_infected'
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.MacrophageDeath))
+
+        # Now process
+        self.topology.automata[0].process_events([event])
+        self.assertEqual(len(self.topology.automata[0].macrophages), 0)
+        self.assertEqual(self.topology.automata[0].grid[1, 1]['contents'], 'caseum')
+
 
 if __name__ == '__main__':
     unittest.main()
