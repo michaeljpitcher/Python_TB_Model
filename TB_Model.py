@@ -534,7 +534,7 @@ class EventHandler:
             self.t_cells.append(event.t_cell_to_move)
 
     def process_t_cell_kill_macrophage(self, event):
-        print "T-Cell kills macrophage"
+        print "T-CELL KILLS MACROPHAGE"
         from_address = event.addresses_affected[0]
         to_address = event.addresses_affected[1]
 
@@ -879,7 +879,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                             or neighbour['contents'].state == 'chronically_infected'):
                         prob_tcell_killing = np.random.randint(1, 101)
                         if prob_tcell_killing <= self.parameters['t_cell_kills_macrophage_probability']:
-                            new_event = TCellKillsMacrophage(t_cell, chosen_neighbour_address, internal)
+                            new_event = TCellKillsMacrophage(t_cell, t_cell.address, chosen_neighbour_address, internal)
                             self.potential_events.append(new_event)
 
         # MACROPHAGES - death, movement, bacteria ingestion
@@ -1385,14 +1385,14 @@ class TCellMovement(Event):
 
 class TCellKillsMacrophage(Event):
 
-    def __init__(self, t_cell, macrophage_address, internal):
+    def __init__(self, t_cell, t_cell_address, macrophage_address, internal):
         self.t_cell_to_move = t_cell
         self.macrophage_address = macrophage_address
-        Event.__init__(self, [t_cell.address, macrophage_address], internal)
+        Event.__init__(self, [t_cell_address, macrophage_address], internal)
 
     def clone(self, new_addresses):
         # TODO - COMP - check this
-        return TCellKillsMacrophage(self.t_cell_to_move, new_addresses[1], self.internal)
+        return TCellKillsMacrophage(self.t_cell_to_move, new_addresses[0], new_addresses[1], self.internal)
 
 
 class MacrophageDeath(Event):

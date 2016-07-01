@@ -848,7 +848,7 @@ class BacteriaReplicationTestCase(unittest.TestCase):
         params['bacteria_replication_fast_lower'] = 1
 
         params['bacteria_threshold_for_t_cells'] = 100
-        params['macrophage_recruitment_probability'] = 1
+        params['macrophage_recruitment_probability'] = 0
         params['chemotherapy_scale_for_kill_fast_bacteria'] = 100
 
         atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
@@ -1885,6 +1885,260 @@ class TCellMovementTestCase(unittest.TestCase):
 
         self.assertEqual(len(self.topology.automata[0].potential_events), 0)
 
+
+class TCellKillsMacrophageTestCase(unittest.TestCase):
+
+    def setUp(self):
+        params = dict()
+        params['max_depth'] = 3
+        params['initial_oxygen'] = 1.5
+        params['oxygen_diffusion'] = 0.0
+        params['chemotherapy_diffusion'] = 0.0
+        params['caseum_distance'] = 2
+        params['spatial_step'] = 0.2
+        params['chemotherapy_schedule1_start'] = 99
+        params['chemotherapy_schedule2_start'] = 200
+        params['oxygen_from_source'] = 0.0
+        params['chemokine_diffusion'] = 0.0
+        params['chemokine_decay'] = 0.0
+        params['macrophage_recruitment_probability'] = 0
+        params['chemotherapy_scale_for_kill_macrophage'] = 0
+        params['chemokine_from_macrophage'] = 0
+        params['resting_macrophage_age_limit'] = 999
+        params['resting_macrophage_movement_time'] = 999
+        params['active_macrophage_age_limit'] = 999
+        params['active_macrophage_movement_time'] = 999
+        params['infected_macrophage_age_limit'] = 999
+        params['infected_macrophage_movement_time'] = 999
+        params['chronically_infected_macrophage_age_limit'] = 999
+        params['chronically_infected_macrophage_movement_time'] = 999
+
+        params['bacteria_threshold_for_t_cells'] = 0
+        params['t_cell_recruitment_probability'] = 0
+        params['t_cell_movement_time'] = 1
+        params['t_cell_age_threshold'] = 1000
+        params['time_step'] = 2
+        params['t_cell_random_move_probability'] = 0
+        params['t_cell_kills_macrophage_probability'] = 100
+
+        atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
+                'chemotherapy', 'chemokine']
+        blood_vessels = [[8, 8]]
+        fast_bacteria = []
+        slow_bacteria = []
+        macrophages = [[1, 2]]
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
+                                                        slow_bacteria, macrophages)
+
+    def sort_out_halos(self):
+        dz = []
+        for i in self.topology.automata:
+            dz.append(i.get_danger_zone())
+        halos = self.topology.create_halos(dz)
+        for i in range(4):
+            self.topology.automata[i].set_halo(halos[i])
+
+    def test_tcell_kill_macrophage_infected_event(self):
+
+        # Add a t-cell to [1,1]
+        t_cell = TB_Model.TCell([1, 1])
+        self.topology.automata[0].grid[1, 1]['contents'] = t_cell
+        self.topology.automata[0].t_cells.append(t_cell)
+
+        # Make [0,0] have the highest chemokine
+        self.topology.automata[0].grid[1, 2]['chemokine'] = 99.9
+        self.topology.automata[0].set_max_chemokine_global(99.9)
+
+        self.topology.automata[0].macrophages[0].state = 'infected'
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.TCellKillsMacrophage))
+        addresses = event.addresses_affected
+        self.assertSequenceEqual(addresses[0], [1, 1])
+        self.assertSequenceEqual(addresses[1], [1, 2])
+
+    def test_tcell_kill_macrophage_chronic_infected_event(self):
+        # Add a t-cell to [1,1]
+        t_cell = TB_Model.TCell([1, 1])
+        self.topology.automata[0].grid[1, 1]['contents'] = t_cell
+        self.topology.automata[0].t_cells.append(t_cell)
+
+        # Make [0,0] have the highest chemokine
+        self.topology.automata[0].grid[1, 2]['chemokine'] = 99.9
+        self.topology.automata[0].set_max_chemokine_global(99.9)
+
+        self.topology.automata[0].macrophages[0].state = 'chronically_infected'
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.TCellKillsMacrophage))
+        addresses = event.addresses_affected
+        self.assertSequenceEqual(addresses[0], [1, 1])
+        self.assertSequenceEqual(addresses[1], [1, 2])
+
+    def test_tcell_kill_macrophage_process(self):
+        # Add a t-cell to [1,1]
+        t_cell = TB_Model.TCell([1, 1])
+        self.topology.automata[0].grid[1, 1]['contents'] = t_cell
+        self.topology.automata[0].t_cells.append(t_cell)
+
+        # Make [0,0] have the highest chemokine
+        self.topology.automata[0].grid[1, 2]['chemokine'] = 99.9
+        self.topology.automata[0].set_max_chemokine_global(99.9)
+
+        self.topology.automata[0].macrophages[0].state = 'infected'
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.TCellKillsMacrophage))
+
+        # Now process
+        self.topology.automata[0].process_events([event])
+        self.assertEqual(self.topology.automata[0].grid[1, 1]['contents'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[1, 2]['contents'], 'caseum')
+
+
+
+    def test_tcell_kill_macrophage_negative_resting(self):
+        # Add a t-cell to [1,1]
+        t_cell = TB_Model.TCell([1, 1])
+        self.topology.automata[0].grid[1, 1]['contents'] = t_cell
+        self.topology.automata[0].t_cells.append(t_cell)
+
+        # Make [0,0] have the highest chemokine
+        self.topology.automata[0].grid[1, 2]['chemokine'] = 99.9
+        self.topology.automata[0].set_max_chemokine_global(99.9)
+
+        self.topology.automata[0].macrophages[0].state = 'resting'
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+    def test_tcell_kill_macrophage_negative_active(self):
+        # Add a t-cell to [1,1]
+        t_cell = TB_Model.TCell([1, 1])
+        self.topology.automata[0].grid[1, 1]['contents'] = t_cell
+        self.topology.automata[0].t_cells.append(t_cell)
+
+        # Make [0,0] have the highest chemokine
+        self.topology.automata[0].grid[1, 2]['chemokine'] = 99.9
+        self.topology.automata[0].set_max_chemokine_global(99.9)
+
+        self.topology.automata[0].macrophages[0].state = 'active'
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+    def test_tcell_kill_macrophage_negative_probability(self):
+
+        for i in self.topology.automata:
+            i.parameters['t_cell_kills_macrophage_probability'] = 0
+
+        # Add a t-cell to [1,1]
+        t_cell = TB_Model.TCell([1, 1])
+        self.topology.automata[0].grid[1, 1]['contents'] = t_cell
+        self.topology.automata[0].t_cells.append(t_cell)
+
+        # Make [0,0] have the highest chemokine
+        self.topology.automata[0].grid[1, 2]['chemokine'] = 99.9
+        self.topology.automata[0].set_max_chemokine_global(99.9)
+
+        self.topology.automata[0].macrophages[0].state = 'infected'
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+    def test_tcell_kills_macrophage_across_boundary_process(self):
+        params = dict()
+        params['max_depth'] = 3
+        params['initial_oxygen'] = 1.5
+        params['oxygen_diffusion'] = 0.0
+        params['chemotherapy_diffusion'] = 0.0
+        params['caseum_distance'] = 2
+        params['spatial_step'] = 0.2
+        params['chemotherapy_schedule1_start'] = 99
+        params['chemotherapy_schedule2_start'] = 200
+        params['oxygen_from_source'] = 0.0
+        params['chemokine_diffusion'] = 0.0
+        params['chemokine_decay'] = 0.0
+        params['macrophage_recruitment_probability'] = 0
+        params['chemotherapy_scale_for_kill_macrophage'] = 0
+        params['chemokine_from_macrophage'] = 0
+        params['resting_macrophage_age_limit'] = 999
+        params['resting_macrophage_movement_time'] = 999
+        params['active_macrophage_age_limit'] = 999
+        params['active_macrophage_movement_time'] = 999
+        params['infected_macrophage_age_limit'] = 999
+        params['infected_macrophage_movement_time'] = 999
+        params['chronically_infected_macrophage_age_limit'] = 999
+        params['chronically_infected_macrophage_movement_time'] = 999
+
+        params['bacteria_threshold_for_t_cells'] = 0
+        params['t_cell_recruitment_probability'] = 0
+        params['t_cell_movement_time'] = 1
+        params['t_cell_age_threshold'] = 1000
+        params['time_step'] = 2
+        params['t_cell_random_move_probability'] = 0
+        params['t_cell_kills_macrophage_probability'] = 100
+
+        atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
+                'chemotherapy', 'chemokine']
+        blood_vessels = [[8, 8]]
+        fast_bacteria = []
+        slow_bacteria = []
+        macrophages = [[4, 5]]
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
+                                                        slow_bacteria, macrophages)
+
+        # Add a t-cell to [1,1]
+        t_cell = TB_Model.TCell([4, 4])
+        self.topology.automata[0].grid[4, 4]['contents'] = t_cell
+        self.topology.automata[0].t_cells.append(t_cell)
+
+        # Make [0,0] have the highest chemokine
+        self.topology.automata[1].grid[4, 0]['chemokine'] = 99.9
+        self.topology.automata[0].set_max_chemokine_global(99.9)
+        self.topology.automata[1].set_max_chemokine_global(99.9)
+
+        self.topology.automata[1].macrophages[0].state = 'infected'
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.TCellKillsMacrophage))
+        addresses = event.addresses_affected
+        self.assertSequenceEqual(addresses[0], [4, 4])
+        self.assertSequenceEqual(addresses[1], [4, 5])
+
+        new_addresses = []
+        new_addresses.append(self.topology.local_to_local(0, addresses[0], 1))
+        new_addresses.append(self.topology.local_to_local(0, addresses[1], 1))
+
+        self.assertSequenceEqual(new_addresses[0], [4, -1])
+        self.assertSequenceEqual(new_addresses[1], [4, 0])
+
+        new_event = event.clone(new_addresses)
+        self.assertSequenceEqual(new_event.addresses_affected[0], [4, -1])
+        self.assertSequenceEqual(new_event.addresses_affected[1], [4, 0])
+
+        self.topology.automata[0].process_events([event])
+        self.assertEqual(self.topology.automata[0].grid[4, 4]['contents'], 0.0)
+        self.assertEqual(len(self.topology.automata[0].t_cells), 0)
+
+        self.topology.automata[1].process_events([new_event])
+        self.assertEqual(self.topology.automata[1].grid[4, 0]['contents'], 'caseum')
+        self.assertEqual(len(self.topology.automata[1].macrophages), 0)
 
 if __name__ == '__main__':
     unittest.main()
