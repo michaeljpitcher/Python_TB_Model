@@ -2040,6 +2040,8 @@ class TCellKillsMacrophageTestCase(unittest.TestCase):
 
     def test_tcell_kill_macrophage_negative_probability(self):
 
+        # TODO - this failed once
+
         for i in self.topology.automata:
             i.parameters['t_cell_kills_macrophage_probability'] = 0
 
@@ -2057,6 +2059,7 @@ class TCellKillsMacrophageTestCase(unittest.TestCase):
         self.sort_out_halos()
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+        print self.topology.automata[0].potential_events
 
     def test_tcell_kills_macrophage_across_boundary_process(self):
         params = dict()
@@ -2168,17 +2171,6 @@ class MacrophageDeathTestCase(unittest.TestCase):
         params['active_macrophage_age_limit'] = 4
         params['infected_macrophage_age_limit'] = 2
         params['chronically_infected_macrophage_age_limit'] = 2
-
-        # params['macrophage_recruitment_probability'] = 0
-        # params['chemotherapy_scale_for_kill_macrophage'] = 0
-        # params['resting_macrophage_age_limit'] = 999
-        # params['infected_macrophage_movement_time'] = 999
-        # params['chronically_infected_macrophage_movement_time'] = 999
-        # params['t_cell_recruitment_probability'] = 0
-        # params['t_cell_movement_time'] = 1
-        # params['t_cell_age_threshold'] = 1000
-        # params['t_cell_random_move_probability'] = 0
-        # params['t_cell_kills_macrophage_probability'] = 100
 
         atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
                 'chemotherapy', 'chemokine']
@@ -2355,6 +2347,118 @@ class MacrophageDeathTestCase(unittest.TestCase):
         self.topology.automata[0].process_events([event])
         self.assertEqual(len(self.topology.automata[0].macrophages), 0)
         self.assertEqual(self.topology.automata[0].grid[1, 1]['contents'], 'caseum')
+
+class MacrophageMovementTestCase(unittest.TestCase):
+
+    def setUp(self):
+        params = dict()
+        params['max_depth'] = 3
+        params['initial_oxygen'] = 1.5
+        params['oxygen_diffusion'] = 0.0
+        params['chemotherapy_diffusion'] = 0.0
+        params['caseum_distance'] = 2
+        params['spatial_step'] = 0.2
+        params['chemotherapy_schedule1_start'] = 99
+        params['chemotherapy_schedule2_start'] = 200
+        params['oxygen_from_source'] = 0.0
+        params['chemokine_diffusion'] = 0.0
+        params['chemokine_decay'] = 0.0
+        params['chemokine_from_macrophage'] = 0
+        params['bacteria_threshold_for_t_cells'] = 100
+        params['chemokine_scale_for_macrophage_activation'] = 101
+        params['chemotherapy_scale_for_kill_macrophage'] = 101
+
+        params['time_step'] = 1
+        params['resting_macrophage_age_limit'] = 999
+        params['active_macrophage_age_limit'] = 999
+        params['infected_macrophage_age_limit'] = 999
+        params['chronically_infected_macrophage_age_limit'] = 999
+        params['resting_macrophage_movement_time'] = 1
+        params['active_macrophage_movement_time'] = 1
+        params['infected_macrophage_movement_time'] = 1
+        params['chronically_infected_macrophage_movement_time'] = 1
+        params['prob_resting_macrophage_random_move'] = 100
+        params['minimum_chemokine_for_resting_macrophage_movement'] = 101
+
+        atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
+                'chemotherapy', 'chemokine']
+        blood_vessels = [[8, 8]]
+        fast_bacteria = []
+        slow_bacteria = []
+        macrophages = [[1, 1]]
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
+                                                        slow_bacteria, macrophages)
+
+    def sort_out_halos(self):
+        dz = []
+        for i in self.topology.automata:
+            dz.append(i.get_danger_zone())
+        halos = self.topology.create_halos(dz)
+        for i in range(4):
+            self.topology.automata[i].set_halo(halos[i])
+
+    def test_macrophage_resting_movement_random_through_prob(self):
+        self.sort_out_halos()
+
+        # Random choice is [1,0]
+        np.random.seed(100)
+
+        # Set [1,2] as max chemokine cell - make sure it doesn't go here though (cause it's a random move)
+        self.topology.automata[0].grid[1,2]['chemokine'] = 99
+        self.topology.automata[0].max_chemokine_global = 99
+
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(event, TB_Model.MacrophageMovement)
+        addresses = event.addresses_affected
+        self.assertSequenceEqual(addresses[0], [1, 1])
+        self.assertSequenceEqual(addresses[1], [1, 0])
+
+    def test_macrophage_resting_movement_random_through_lack_of_chemokine(self):
+
+        # Random choice is [1,0]
+        np.random.seed(100)
+
+        # Not random (sort of)
+        self.topology.automata[0].parameters['prob_resting_macrophage_random_move'] = 0
+
+        # Set [1,2] as max chemokine cell - make sure it doesn't go here though (cause it's scale is too low)
+        self.topology.automata[0].grid[1, 2]['chemokine'] = 99.9
+        self.topology.automata[0].max_chemokine_global = 99999.9
+
+        self.sort_out_halos()
+
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(event, TB_Model.MacrophageMovement)
+        addresses = event.addresses_affected
+        self.assertSequenceEqual(addresses[0], [1, 1])
+        self.assertSequenceEqual(addresses[1], [1, 0])
+
+    def test_macrophage_resting_movement_max_chemokine(self):
+        # Not random
+        self.topology.automata[0].parameters['prob_resting_macrophage_random_move'] = 0
+        # Any chemokine forces a move there
+        self.topology.automata[0].parameters['minimum_chemokine_for_resting_macrophage_movement'] = 0
+
+        # Set [1,0] as max chemokine cell - make sure it goes here
+        self.topology.automata[0].grid[1, 0]['chemokine'] = 99.9
+        self.topology.automata[0].max_chemokine_global = 99.9
+
+        self.sort_out_halos()
+
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(event, TB_Model.MacrophageMovement)
+        addresses = event.addresses_affected
+        self.assertSequenceEqual(addresses[0], [1, 1])
+        self.assertSequenceEqual(addresses[1], [1, 0])
+
+
+
 
 
 if __name__ == '__main__':
