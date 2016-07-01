@@ -550,7 +550,13 @@ class EventHandler:
 
     def process_macrophage_death(self, event):
         print "MACROPHAGE DEATH"
-        self.set_attribute_work_grid(event.macrophage_to_die.address, 'contents', 0.0)
+
+        # Resting or active die, infected/chronically infected trun to caseum
+        if event.macrophage_to_die.state == 'resting' or event.macrophage_to_die.state == 'active':
+            self.set_attribute_work_grid(event.macrophage_to_die.address, 'contents', 0.0)
+        elif event.macrophage_to_die.state == 'infected' or event.macrophage_to_die.state == 'chronically_infected':
+            self.set_attribute_work_grid(event.macrophage_to_die.address, 'contents', 'caseum')
+
         self.macrophages.remove(event.macrophage_to_die)
 
     def process_macrophage_movement(self, event):
