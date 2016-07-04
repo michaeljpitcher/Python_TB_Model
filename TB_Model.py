@@ -512,8 +512,9 @@ class EventHandler:
 
     def process_t_cell_death(self, event):
         print "T-CELL DEATH"
-        self.set_attribute_work_grid(event.addresses_affected[0], 'contents', 0.0)
-        self.t_cells.remove(event.t_cell_to_die)
+        t_cell_to_die = self.get_attribute(event.address, 'contents')
+        self.set_attribute_work_grid(event.address, 'contents', 0.0)
+        self.t_cells.remove(t_cell_to_die)
 
     def process_t_cell_movement(self, event):
         print "T-CELL MOVEMENT"
@@ -702,8 +703,8 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         for i in range(self.size):
             address = self.location_to_address(i)
 
-            # Clear any agents off the work grid
-            # TODO - check this (and caseum below). Should work though.
+            # CLEAR AGENTS OFF WORK GRID
+            # TODO - COMP - check this (and caseum below). Should work though.
             self.set_attribute_work_grid(address, 'contents', 0.0)
 
             # Maintain caseum on the work grid
@@ -858,7 +859,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
                 # T-CELL DEATH
                 if t_cell.age >= age_threshold:
-                    new_event = TCellDeath(t_cell)
+                    new_event = TCellDeath(t_cell.address)
                     self.potential_events.append(new_event)
                 else: #  T-CELL MOVE
                     random_move = False
@@ -1406,10 +1407,10 @@ class ChemoKillMacrophage(Event):
 
 class TCellDeath(Event):
 
-    def __init__(self, t_cell_to_die):
-        self.t_cell_to_die = t_cell_to_die
+    def __init__(self, address):
+        self.address = address
         # T-cell death is always internal
-        Event.__init__(self, [t_cell_to_die.address], True)
+        Event.__init__(self, [address], True)
 
 
 class TCellMovement(Event):
