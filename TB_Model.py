@@ -945,9 +945,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     chosen_neighbour_address = neighbours[self.find_max_chemokine_neighbour(neighbours)[0]]
                     neighbour = self.get(chosen_neighbour_address)
 
-                    internal = False
-                    if self.address_is_on_grid(chosen_neighbour_address):
-                        internal = True
+                    internal = self.address_is_on_grid(chosen_neighbour_address)
 
                     if isinstance(neighbour['contents'], Bacteria):
 
@@ -959,7 +957,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                             new_event = MacrophageKillsBacteria(macrophage, chosen_neighbour_address, internal)
                             self.potential_events.append(new_event)
 
-                    elif neighbour['contents'] == 0.0:
+                    elif neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
                         new_event = MacrophageMovement(macrophage, chosen_neighbour_address, internal)
                         self.potential_events.append(new_event)
 
