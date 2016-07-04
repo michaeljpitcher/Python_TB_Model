@@ -604,10 +604,12 @@ class EventHandler:
             self.macrophages.append(event.macrophage_to_move)
 
     def process_macrophage_state_change(self, event):
-        print "MACROPHAGE_STATE_CHANGE", event.macrophage.state, "TO", event.new_state
+        print "MACROPHAGE_STATE_CHANGE: to", event.new_state
 
-        macrophage = self.get_attribute(event.macrophage.address, 'contents')
+        # Pulling the macrophage from the grid
+        macrophage = self.get_attribute(event.address, 'contents')
         macrophage.state = event.new_state
+        self.set_attribute_work_grid(event.address, 'contents', macrophage)
 
 
 class Automaton(Tile, Neighbourhood, EventHandler):
@@ -1023,17 +1025,41 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                         self.potential_events.append(new_event)
 
         # MACROPHAGE STATE CHANGES
+        # TODO - MED - not time-dependent (awaiting clarification if this is ok)
+        for macrophage in self.macrophages:
 
-        if self.time < 2 / self.parameters['time_step']:
-
-            for macrophage in self.macrophages:
-
-                if macrophage.state == 'resting' and macrophage.intracellular_bacteria == 0 and self.chemokine_scale(
-                        macrophage.address) > self.parameters['chemokine_scale_for_macrophage_activation']:
-                    new_event = MacrophageChangesState(macrophage, 'active')
+            if macrophage.state == 'resting':
+                if self.chemokine_scale(macrophage.address) > \
+                        self.parameters['chemokine_scale_for_macrophage_activation'] and \
+                        macrophage.intracellular_bacteria == 0:
+                    new_event = MacrophageChangesState(macrophage.address, "active")
                     self.potential_events.append(new_event)
+                elif macrophage.intracellular_bacteria == 1:
+                    new_event = MacrophageChangesState(macrophage.address, "infected")
+                    self.potential_events.append(new_event)
+            elif macrophage.state == 'active':
+                if self.chemokine_scale(macrophage.address) < \
+                        self.parameters['chemokine_scale_for_macrophage_deactivation']:
+                    new_event = MacrophageChangesState(macrophage.address, "resting")
+                    self.potential_events.append(new_event)
+            elif macrophage.state == 'infected':
+                if macrophage.intracellular_bacteria > self.parameters['bacteria_to_turn_chronically_infected']:
+                    new_event = MacrophageChangesState(macrophage.address, "chronically_infected")
+                    self.potential_events.append(new_event)
+            elif macrophage.state == 'chronically_infected':
+                # TODO - Chronically bursts
+                pass
 
-                # TODO - more state changes
+        # BACTERIA STATE CHANGES
+        if self.time > 2 / self.parameters['time_step']:
+
+            for bacteria in self.bacteria:
+
+                # TODO - Fast to slow
+
+                # TODO - Slow to fast
+
+                pass
 
         # Reorder events
         self.reorder_events()
@@ -1434,12 +1460,21 @@ class MacrophageKillsBacteria(Event):
         Event.__init__(self, [macrophage_address, bacteria_address], internal)
 
     def clone(self, new_addresses):
-        return  MacrophageKillsBacteria(self.macrophage_to_move, new_addresses[0], new_addresses[1], self.internal)
+        return MacrophageKillsBacteria(self.macrophage_to_move, new_addresses[0], new_addresses[1], self.internal)
 
 
 class MacrophageChangesState(Event):
 
-    def __init__(self, macrophage, new_state):
-        self.macrophage = macrophage
+    def __init__(self, address, new_state):
+        self.address = address
         self.new_state = new_state
-        Event.__init__(self, [macrophage.address], True)
+        Event.__init__(self, [address], True)
+
+
+class MacrophageBursts(Event):
+    def __init__(self, macrophage, internal):
+        self.macrophage = macrophage
+        Event.__init__(self, [macrophage.address], internal)
+
+    def clone(self, new_addresses):
+        return MacrophageBursts(self.macrophage)
