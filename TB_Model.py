@@ -552,12 +552,14 @@ class EventHandler:
         print "MACROPHAGE DEATH"
 
         # Resting or active die, infected/chronically infected trun to caseum
-        if event.macrophage_to_die.state == 'resting' or event.macrophage_to_die.state == 'active':
-            self.set_attribute_work_grid(event.macrophage_to_die.address, 'contents', 0.0)
-        elif event.macrophage_to_die.state == 'infected' or event.macrophage_to_die.state == 'chronically_infected':
-            self.set_attribute_work_grid(event.macrophage_to_die.address, 'contents', 'caseum')
+        macrophage_to_die = self.get_attribute(event.address, 'contents')
 
-        self.macrophages.remove(event.macrophage_to_die)
+        if macrophage_to_die.state == 'resting' or macrophage_to_die.state == 'active':
+            self.set_attribute_work_grid(macrophage_to_die.address, 'contents', 0.0)
+        elif macrophage_to_die.state == 'infected' or macrophage_to_die.state == 'chronically_infected':
+            self.set_attribute_work_grid(macrophage_to_die.address, 'contents', 'caseum')
+
+        self.macrophages.remove(macrophage_to_die)
 
     def process_macrophage_movement(self, event):
         print "MACROPHAGE MOVEMENT"
@@ -900,7 +902,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 random_macrophage_age = np.random.randint(1, self.parameters['resting_macrophage_age_limit'])
 
                 if macrophage.age % random_macrophage_age == 0:
-                    new_event = MacrophageDeath(macrophage)
+                    new_event = MacrophageDeath(macrophage.address)
                     self.potential_events.append(new_event)
                     # Progress to the next macrophage
                     continue
@@ -939,7 +941,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             elif macrophage.state == 'active':
                 # TODO - MED - death is based on age > limit, no prob
                 if macrophage.age > self.parameters['active_macrophage_age_limit']:
-                    new_event = MacrophageDeath(macrophage)
+                    new_event = MacrophageDeath(macrophage.address)
                     self.potential_events.append(new_event)
                     # Progress to the next macrophage
                     continue
@@ -972,7 +974,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 random_macrophage_age = np.random.randint(1, self.parameters['infected_macrophage_age_limit'])
 
                 if macrophage.age % random_macrophage_age == 0:
-                    new_event = MacrophageDeath(macrophage)
+                    new_event = MacrophageDeath(macrophage.address)
                     self.potential_events.append(new_event)
                     # Progress to the next macrophage
                     continue
@@ -1001,7 +1003,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                                                           self.parameters['chronically_infected_macrophage_age_limit'])
 
                 if macrophage.age % random_macrophage_age == 0:
-                    new_event = MacrophageDeath(macrophage)
+                    new_event = MacrophageDeath(macrophage.address)
                     self.potential_events.append(new_event)
                     # Progress to the next macrophage
                     continue
@@ -1435,10 +1437,10 @@ class TCellKillsMacrophage(Event):
 
 class MacrophageDeath(Event):
 
-    def __init__(self, macrophage_to_die):
-        self.macrophage_to_die = macrophage_to_die
+    def __init__(self, address):
+        self.address = address
         # Macrophage death is always internal
-        Event.__init__(self, [macrophage_to_die.address], True)
+        Event.__init__(self, [address], True)
 
 
 class MacrophageMovement(Event):
@@ -1470,11 +1472,3 @@ class MacrophageChangesState(Event):
         self.new_state = new_state
         Event.__init__(self, [address], True)
 
-
-class MacrophageBursts(Event):
-    def __init__(self, macrophage, internal):
-        self.macrophage = macrophage
-        Event.__init__(self, [macrophage.address], internal)
-
-    def clone(self, new_addresses):
-        return MacrophageBursts(self.macrophage)
