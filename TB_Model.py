@@ -457,14 +457,14 @@ class EventHandler:
         pass
 
     def handle_event(self, event):
-        if isinstance(event, BacteriaReplication):
-            self.process_bacteria_replication(event)
+        if isinstance(event, BacteriumReplication):
+            self.process_bacterium_replication(event)
         elif isinstance(event, RecruitTCell):
             self.process_t_cell_recruitment(event)
         elif isinstance(event, RecruitMacrophage):
             self.process_macrophage_recruitment(event)
-        elif isinstance(event, ChemoKillBacteria):
-            self.process_chemo_kill_bacteria(event)
+        elif isinstance(event, ChemoKillBacterium):
+            self.process_chemo_kill_bacterium(event)
         elif isinstance(event, ChemoKillMacrophage):
             self.process_chemo_kill_macrophage(event)
         elif isinstance(event, TCellDeath):
@@ -477,18 +477,18 @@ class EventHandler:
             self.process_macrophage_death(event)
         elif isinstance(event, MacrophageMovement):
             self.process_macrophage_movement(event)
-        elif isinstance(event, MacrophageKillsBacteria):
-            self.process_macrophage_kills_bacteria(event)
+        elif isinstance(event, MacrophageKillsBacterium):
+            self.process_macrophage_kills_bacterium(event)
         elif isinstance(event, MacrophageChangesState):
             self.process_macrophage_state_change(event)
         else:
             raise Exception("Event ", type(event), "not handled")
 
-    def process_bacteria_replication(self, event):
-        print "BACTERIA REPLICATION"
-        # Only process if the new bacteria is on the grid
-        if self.address_is_on_grid(event.new_bacteria_address):
-            self.add_bacteria(event.new_bacteria_address, event.new_metabolism)
+    def process_bacterium_replication(self, event):
+        print "BACTERIUM REPLICATION"
+        # Only process if the new bacterium is on the grid
+        if self.address_is_on_grid(event.new_bacterium_address):
+            self.add_bacterium(event.new_bacterium_address, event.new_metabolism)
 
     def process_t_cell_recruitment(self, event):
         print "T CELL RECRUITMENT"
@@ -500,10 +500,11 @@ class EventHandler:
         if self.address_is_on_grid(event.macrophage_address):
             self.add_macrophage(event.macrophage_address, "resting")
 
-    def process_chemo_kill_bacteria(self, event):
-        print "CHEMO KILL BACTERIA"
-        self.bacteria.remove(event.bacteria_to_kill)
-        self.set_attribute_work_grid(event.bacteria_to_kill.address, 'contents', 0.0)
+    def process_chemo_kill_bacterium(self, event):
+        print "CHEMO KILL BACTERIUM"
+        bacterium = self.get_attribute(event.address, 'contents')
+        self.bacteria.remove(bacterium)
+        self.set_attribute_work_grid(event.address, 'contents', 0.0)
 
     def process_chemo_kill_macrophage(self, event):
         print "CHEMO KILL MACROPHAGE"
@@ -586,8 +587,8 @@ class EventHandler:
             self.set_attribute_work_grid(to_address, 'contents', event.macrophage_to_move)
             self.macrophages.append(event.macrophage_to_move)
 
-    def process_macrophage_kills_bacteria(self, event):
-        print "MACROPHAGE_KILLS_BACTERIA"
+    def process_macrophage_kills_bacterium(self, event):
+        print "MACROPHAGE_KILLS_BACTERIUM"
         from_address = event.addresses_affected[0]
         to_address = event.addresses_affected[1]
 
@@ -596,8 +597,8 @@ class EventHandler:
 
             macrophage = self.get_attribute(from_address, 'contents')
             macrophage.address = to_address
-            bacteria = self.get_attribute(to_address, 'contents')
-            self.bacteria.remove(bacteria)
+            bacterium = self.get_attribute(to_address, 'contents')
+            self.bacteria.remove(bacterium)
             self.set_attribute_work_grid(from_address, 'contents', 0.0)
             self.set_attribute_work_grid(to_address, 'contents', macrophage)
 
@@ -613,14 +614,14 @@ class EventHandler:
 
         elif self.address_is_on_grid(to_address):  # Macrophage has arrived from another tile
             event.macrophage_to_move.address = to_address
-            bacteria = self.get_attribute(to_address, 'contents')
-            self.bacteria.remove(bacteria)
+            bacterium = self.get_attribute(to_address, 'contents')
+            self.bacteria.remove(bacterium)
             self.set_attribute_work_grid(to_address, 'contents', event.macrophage_to_move)
             self.macrophages.append(event.macrophage_to_move)
 
             if event.macrophage_to_move.state == 'resting' or event.macrophage_to_move.state == 'infected' or \
                     event.macrophage_to_move.state == 'chronically_infected':
-                # Macrophage ingests bacteria, doesn't kill
+                # Macrophage ingests bacterium, doesn't kill
                 event.macrophage_to_move.intracellular_bacteria += 1
 
     def process_macrophage_state_change(self, event):
@@ -680,9 +681,9 @@ class Automaton(Tile, Neighbourhood, EventHandler):
     def initialise_bacteria(self, fast_bacteria, slow_bacteria):
 
         for address in fast_bacteria:
-            self.add_bacteria(address, "fast")
+            self.add_bacterium(address, "fast")
         for address in slow_bacteria:
-            self.add_bacteria(address, "slow")
+            self.add_bacterium(address, "slow")
 
     def initialise_macrophages(self, addresses):
 
@@ -751,11 +752,11 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         self.potential_events = []
 
         # BACTERIA REPLICATION
-        for bacteria in self.bacteria:
-            bacteria.age += self.parameters['time_step']
+        for bacterium in self.bacteria:
+            bacterium.age += self.parameters['time_step']
 
             division = False
-            if bacteria.metabolism == 'fast':
+            if bacterium.metabolism == 'fast':
                 max = self.parameters['bacteria_replication_fast_upper']
                 min = self.parameters['bacteria_replication_fast_lower']
             else:  # Slow
@@ -771,10 +772,10 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 free_neighbours = []
 
                 for depth in range(1,4):
-                    if bacteria.neighbourhood == 'mo':
-                        neighbours = self.neighbours_moore(bacteria.address, depth, False)
+                    if bacterium.neighbourhood == 'mo':
+                        neighbours = self.neighbours_moore(bacterium.address, depth, False)
                     else:
-                        neighbours = self.neighbours_von_neumann(bacteria.address, depth, False)
+                        neighbours = self.neighbours_von_neumann(bacterium.address, depth, False)
 
                     for neighbour_address in neighbours:
                         neighbour = self.get(neighbour_address)
@@ -786,8 +787,8 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                         break
 
                 if len(free_neighbours) == 0:
-                    bacteria.resting = True
-                    bacteria.age = 0.0
+                    bacterium.resting = True
+                    bacterium.age = 0.0
                 else: # Free space found
                     neighbour_address = free_neighbours[np.random.randint(len(free_neighbours))]
 
@@ -795,7 +796,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                         internal = True
                     else:
                         internal = False
-                    new_event = BacteriaReplication(neighbour_address, bacteria, internal)
+                    new_event = BacteriumReplication(neighbour_address, bacterium, internal)
                     self.potential_events.append(new_event)
 
         # T-CELL RECRUITMENT
@@ -848,12 +849,14 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     self.potential_events.append(new_event)
 
         # CHEMOTHERAPY KILLING BACTERIA
-        for b in self.bacteria:
-            chemo_scale = self.chemotherapy_scale(b.address)
-            if (b.metabolism == 'fast' and chemo_scale > self.parameters['chemotherapy_scale_for_kill_fast_bacteria']) \
+        for bacterium in self.bacteria:
+            chemo_scale = self.chemotherapy_scale(bacterium.address)
+            if (bacterium.metabolism == 'fast' and chemo_scale >
+                self.parameters['chemotherapy_scale_for_kill_fast_bacteria']) \
                 or \
-                (b.metabolism == 'slow' and chemo_scale > self.parameters['chemotherapy_scale_for_kill_slow_bacteria']):
-                new_event = ChemoKillBacteria(b)
+                (bacterium.metabolism == 'slow' and chemo_scale >
+                    self.parameters['chemotherapy_scale_for_kill_slow_bacteria']):
+                new_event = ChemoKillBacterium(bacterium.address)
                 self.potential_events.append(new_event)
 
         # CHEMOTHERAPY KILLING MACROPHAGES
@@ -951,9 +954,9 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                         new_event = MacrophageMovement(macrophage, macrophage.address, chosen_neighbour_address,
                                                        internal)
                         self.potential_events.append(new_event)
-                    elif isinstance(neighbour['contents'], Bacteria):
-                        new_event = MacrophageKillsBacteria(macrophage, macrophage.address, chosen_neighbour_address,
-                                                            internal)
+                    elif isinstance(neighbour['contents'], Bacterium):
+                        new_event = MacrophageKillsBacterium(macrophage, macrophage.address, chosen_neighbour_address,
+                                                             internal)
                         self.potential_events.append(new_event)
 
             elif macrophage.state == 'active':
@@ -971,15 +974,15 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
                     internal = self.address_is_on_grid(chosen_neighbour_address)
 
-                    if isinstance(neighbour['contents'], Bacteria):
+                    if isinstance(neighbour['contents'], Bacterium):
 
                         prob_macrophage_kill =  np.random.randint(1,101)
                         if (neighbour['contents'].metabolism == 'fast' and prob_macrophage_kill <= self.parameters[
                                 'prob_active_macrophage_kill_fast_bacteria']) or (
                                 neighbour['contents'].metabolism == 'slow' and prob_macrophage_kill <= self.parameters[
                                 'prob_active_macrophage_kill_slow_bacteria']):
-                            new_event = MacrophageKillsBacteria(macrophage, macrophage.address,
-                                                                chosen_neighbour_address, internal)
+                            new_event = MacrophageKillsBacterium(macrophage, macrophage.address,
+                                                                 chosen_neighbour_address, internal)
                             self.potential_events.append(new_event)
 
                     elif neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
@@ -1010,9 +1013,9 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                         new_event = MacrophageMovement(macrophage, macrophage.address, chosen_neighbour_address,
                                                        internal)
                         self.potential_events.append(new_event)
-                    elif isinstance(neighbour['contents'], Bacteria):
-                        new_event = MacrophageKillsBacteria(macrophage, macrophage.address, chosen_neighbour_address,
-                                                            internal)
+                    elif isinstance(neighbour['contents'], Bacterium):
+                        new_event = MacrophageKillsBacterium(macrophage, macrophage.address, chosen_neighbour_address,
+                                                             internal)
                         self.potential_events.append(new_event)
 
             elif macrophage.state == 'chronically_infected':
@@ -1039,9 +1042,9 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                         new_event = MacrophageMovement(macrophage, macrophage.address, chosen_neighbour_address,
                                                        internal)
                         self.potential_events.append(new_event)
-                    elif isinstance(neighbour['contents'], Bacteria):
-                        new_event = MacrophageKillsBacteria(macrophage, macrophage.address, chosen_neighbour_address,
-                                                            internal)
+                    elif isinstance(neighbour['contents'], Bacterium):
+                        new_event = MacrophageKillsBacterium(macrophage, macrophage.address, chosen_neighbour_address,
+                                                             internal)
                         self.potential_events.append(new_event)
 
         # MACROPHAGE STATE CHANGES
@@ -1070,16 +1073,19 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 # TODO - Chronically bursts
                 pass
 
-        # BACTERIA STATE CHANGES
+        # BACTERIUM STATE CHANGES
         if self.time > 2 / self.parameters['time_step']:
 
-            for bacteria in self.bacteria:
+            for bacterium in self.bacteria:
 
-                # TODO - Fast to slow
-
-                # TODO - Slow to fast
-
-                pass
+                if bacterium.metabolism == 'fast' and self.oxygen_scale(bacterium.address) <= self.parameters[
+                        'oxygen_scale_for_metabolism_change_to_slow']:
+                    new_event = BacteriumChangesMetabolism(bacterium.address, 'slow')
+                    self.potential_events.append(new_event)
+                elif bacterium.metabolism == 'slow' and self.oxygen_scale(bacterium.address) <= self.parameters[
+                        'oxygen_scale_for_metabolism_change_to_fast']:
+                    new_event = BacteriumChangesMetabolism(bacterium.address, 'fast')
+                    self.potential_events.append(new_event)
 
         # Reorder events
         self.reorder_events()
@@ -1175,7 +1181,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         # Add oxygen entering through blood vessel
         expression += (self.parameters['oxygen_from_source'] * cell['blood_vessel'])
         # If there is bacteria in cell, then oxygen is taken up by bacteria so remove
-        if isinstance(cell['contents'], Bacteria):
+        if isinstance(cell['contents'], Bacterium):
             expression -= self.parameters['oxygen_uptake_from_bacteria'] * cell['oxygen']
 
         # Calculate new level
@@ -1247,7 +1253,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                                   self.parameters['spatial_step'] * self.parameters['spatial_step'])
 
         # Release of chemokine by bacteria
-        if isinstance(cell['contents'], Bacteria):
+        if isinstance(cell['contents'], Bacterium):
             expression += self.parameters['chemokine_from_bacteria']
 
         # Release of chemokine by macrophages
@@ -1277,7 +1283,11 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         self.number_of_bacteria_global = number
 
     def oxygen_scale(self, address):
-        return (self.get_attribute(address, 'oxygen') / self.max_oxygen_global) * 100
+
+        if self.max_chemotherapy_global == 0.0:
+            return 0.0
+        else:
+            return (self.get_attribute(address, 'oxygen') / self.max_oxygen_global) * 100
 
     def chemotherapy_scale(self, address):
         if self.max_chemotherapy_global == 0.0:
@@ -1291,10 +1301,10 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         else:
             return (self.get_attribute(address, 'chemokine') / self.max_chemokine_global) * 100
 
-    def add_bacteria(self, address, metabolism):
-        new_bacteria = Bacteria(address, metabolism)
-        self.bacteria.append(new_bacteria)
-        self.set_attribute_work_grid(address, 'contents', new_bacteria)
+    def add_bacterium(self, address, metabolism):
+        new_bacterium = Bacterium(address, metabolism)
+        self.bacteria.append(new_bacterium)
+        self.set_attribute_work_grid(address, 'contents', new_bacterium)
 
     def add_macrophage(self, address, state):
         new_macrophage = Macrophage(address, state)
@@ -1337,7 +1347,7 @@ class Agent:
         self.age = 0
 
 
-class Bacteria(Agent):
+class Bacterium(Agent):
 
     def __init__(self, address, metabolism):
         self.metabolism = metabolism
@@ -1377,16 +1387,16 @@ class Event(object):
         raise NotImplementedError
 
 
-class BacteriaReplication(Event):
+class BacteriumReplication(Event):
 
-    def __init__(self, address, bacteria, internal):
+    def __init__(self, address, bacterium, internal):
         Event.__init__(self, [address], internal)
-        self.new_bacteria_address = address
-        self.new_metabolism = bacteria.metabolism
-        self.original_bacteria = bacteria
+        self.new_bacterium_address = address
+        self.new_metabolism = bacterium.metabolism
+        self.original_bacterium = bacterium
 
     def clone(self, new_addresses):
-        return BacteriaReplication(new_addresses[0], self.original_bacteria, self.new_metabolism)
+        return BacteriumReplication(new_addresses[0], self.original_bacterium, self.new_metabolism)
 
 
 class RecruitTCell(Event):
@@ -1409,12 +1419,12 @@ class RecruitMacrophage(Event):
         return RecruitMacrophage(new_addresses[0], self.internal)
 
 
-class ChemoKillBacteria(Event):
+class ChemoKillBacterium(Event):
 
-    def __init__(self, bacteria_to_kill):
-        self.bacteria_to_kill = bacteria_to_kill
+    def __init__(self, address):
+        self.address = address
         # Chemo killing is always internal
-        Event.__init__(self, [bacteria_to_kill.address], True)
+        Event.__init__(self, [address], True)
 
 
 class ChemoKillMacrophage(Event):
@@ -1474,15 +1484,15 @@ class MacrophageMovement(Event):
         return MacrophageMovement(self.macrophage_to_move, new_addresses[0], new_addresses[1], self.internal)
 
 
-class MacrophageKillsBacteria(Event):
+class MacrophageKillsBacterium(Event):
 
-    def __init__(self, macrophage_to_move, macrophage_address, bacteria_address, internal):
+    def __init__(self, macrophage_to_move, macrophage_address, bacterium_address, internal):
         self.macrophage_to_move = macrophage_to_move
-        self.bacteria_address = bacteria_address
-        Event.__init__(self, [macrophage_address, bacteria_address], internal)
+        self.bacterium_address = bacterium_address
+        Event.__init__(self, [macrophage_address, bacterium_address], internal)
 
     def clone(self, new_addresses):
-        return MacrophageKillsBacteria(self.macrophage_to_move, new_addresses[0], new_addresses[1], self.internal)
+        return MacrophageKillsBacterium(self.macrophage_to_move, new_addresses[0], new_addresses[1], self.internal)
 
 
 class MacrophageChangesState(Event):
@@ -1492,3 +1502,8 @@ class MacrophageChangesState(Event):
         self.new_state = new_state
         Event.__init__(self, [address], True)
 
+class BacteriumChangesMetabolism(Event):
+    def __init__(self, address, new_metabolism):
+        self.address = address
+        self.new_state = new_metabolism
+        Event.__init__(self, [address], True)
