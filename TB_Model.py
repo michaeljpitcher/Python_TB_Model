@@ -926,7 +926,8 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     neighbour = self.get(chosen_neighbour_address)
 
                     if neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
-                        new_event = MacrophageMovement(macrophage, chosen_neighbour_address, internal)
+                        new_event = MacrophageMovement(macrophage, macrophage.address, chosen_neighbour_address,
+                                                       internal)
                         self.potential_events.append(new_event)
                     elif isinstance(neighbour['contents'], Bacteria):
                         new_event = MacrophageKillsBacteria(macrophage, chosen_neighbour_address, internal)
@@ -958,7 +959,8 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                             self.potential_events.append(new_event)
 
                     elif neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
-                        new_event = MacrophageMovement(macrophage, chosen_neighbour_address, internal)
+                        new_event = MacrophageMovement(macrophage, macrophage.address, chosen_neighbour_address,
+                                                       internal)
                         self.potential_events.append(new_event)
 
             elif macrophage.state == 'infected':
@@ -981,7 +983,8 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                         internal = True
 
                     if neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
-                        new_event = MacrophageMovement(macrophage, chosen_neighbour_address, internal)
+                        new_event = MacrophageMovement(macrophage, macrophage.address, chosen_neighbour_address,
+                                                       internal)
                         self.potential_events.append(new_event)
                     elif isinstance(neighbour['contents'], Bacteria):
                         new_event = MacrophageKillsBacteria(macrophage, chosen_neighbour_address, internal)
@@ -1008,7 +1011,8 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                         internal = True
 
                     if neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
-                        new_event = MacrophageMovement(macrophage, chosen_neighbour_address, internal)
+                        new_event = MacrophageMovement(macrophage, macrophage.address, chosen_neighbour_address,
+                                                       internal)
                         self.potential_events.append(new_event)
                     elif isinstance(neighbour['contents'], Bacteria):
                         new_event = MacrophageKillsBacteria(macrophage, chosen_neighbour_address, internal)
@@ -1409,13 +1413,13 @@ class MacrophageDeath(Event):
 
 class MacrophageMovement(Event):
 
-    def __init__(self, macrophage_to_move, new_address, internal):
+    def __init__(self, macrophage_to_move, from_address, to_address, internal):
         self.macrophage_to_move = macrophage_to_move
-        self.new_address = new_address
-        Event.__init__(self, [macrophage_to_move.address, new_address], internal)
+        self.new_address = to_address
+        Event.__init__(self, [from_address, to_address], internal)
 
     def clone(self, new_addresses):
-        return MacrophageMovement(self.macrophage_to_move, new_addresses[1], self.internal)
+        return MacrophageMovement(self.macrophage_to_move, new_addresses[0], new_addresses[1], self.internal)
 
 
 class MacrophageKillsBacteria(Event):
