@@ -2382,6 +2382,10 @@ class MacrophageMovementTestCase(unittest.TestCase):
 
         atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
                 'chemotherapy', 'chemokine']
+
+        self.parameters = params
+        self.attributes = atts
+
         blood_vessels = [[8, 8]]
         fast_bacteria = []
         slow_bacteria = []
@@ -2457,8 +2461,191 @@ class MacrophageMovementTestCase(unittest.TestCase):
         self.assertSequenceEqual(addresses[0], [1, 1])
         self.assertSequenceEqual(addresses[1], [1, 0])
 
+    def test_macrophage_resting_movement_negative_movement_time(self):
+        self.topology.automata[0].parameters['resting_macrophage_movement_time'] = 99
 
+        self.sort_out_halos()
 
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+    def test_macrophage_resting_movement_across_boundary(self):
+        blood_vessels = [[8, 8]]
+        fast_bacteria = []
+        slow_bacteria = []
+        macrophages = [[4, 4]]
+
+        # Not random
+        self.parameters['prob_resting_macrophage_random_move'] = 0
+        # Any chemokine forces a move there
+        self.parameters['minimum_chemokine_for_resting_macrophage_movement'] = 0
+
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.attributes, self.parameters,
+                                                        blood_vessels, fast_bacteria, slow_bacteria, macrophages)
+
+        self.topology.automata[1].grid[4, 0]['chemokine'] = 100
+        self.topology.automata[0].max_chemokine_global = 100
+        self.topology.automata[1].max_chemokine_global = 100
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.MacrophageMovement))
+        self.assertFalse(event.internal)
+        addresses = event.addresses_affected
+        self.assertSequenceEqual(addresses[0], [4, 4])
+        self.assertSequenceEqual(addresses[1], [4, 5])
+
+    def test_macrophage_active_movement_max_chemokine(self):
+        # Active always moves to max chemokine
+        self.topology.automata[0].grid[1, 1]['contents'].state = 'active'
+        self.topology.automata[0].grid[2, 1]['chemokine'] = 100
+        self.topology.automata[0].max_chemokine_global = 100
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.MacrophageMovement))
+        addresses = event.addresses_affected
+        self.assertSequenceEqual(addresses[0], [1, 1])
+        self.assertSequenceEqual(addresses[1], [2, 1])
+
+    def test_macrophage_active_movement_across_boundary(self):
+        blood_vessels = [[8, 8]]
+        fast_bacteria = []
+        slow_bacteria = []
+        macrophages = [[4, 4]]
+
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.attributes, self.parameters,
+                                                        blood_vessels, fast_bacteria, slow_bacteria, macrophages)
+
+        self.topology.automata[1].grid[4, 0]['chemokine'] = 100
+        self.topology.automata[0].max_chemokine_global = 100
+        self.topology.automata[1].max_chemokine_global = 100
+        self.topology.automata[0].grid[4, 4]['contents'].state = 'active'
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.MacrophageMovement))
+        self.assertFalse(event.internal)
+        addresses = event.addresses_affected
+        self.assertSequenceEqual(addresses[0], [4, 4])
+        self.assertSequenceEqual(addresses[1], [4, 5])
+
+    def test_macrophage_active_movement_negative_movement_time(self):
+
+        self.topology.automata[0].grid[1, 1]['contents'].state = 'active'
+        self.topology.automata[0].parameters['active_macrophage_movement_time'] = 99
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+    def test_macrophage_infected_movement_max_chemokine(self):
+        # Active always moves to max chemokine
+        self.topology.automata[0].grid[1, 1]['contents'].state = 'infected'
+        self.topology.automata[0].grid[2, 1]['chemokine'] = 100
+        self.topology.automata[0].max_chemokine_global = 100
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.MacrophageMovement))
+        addresses = event.addresses_affected
+        self.assertSequenceEqual(addresses[0], [1, 1])
+        self.assertSequenceEqual(addresses[1], [2, 1])
+
+    def test_macrophage_infected_movement_across_boundary(self):
+        blood_vessels = [[8, 8]]
+        fast_bacteria = []
+        slow_bacteria = []
+        macrophages = [[4, 4]]
+
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.attributes, self.parameters,
+                                                        blood_vessels, fast_bacteria, slow_bacteria, macrophages)
+
+        self.topology.automata[1].grid[4, 0]['chemokine'] = 100
+        self.topology.automata[0].max_chemokine_global = 100
+        self.topology.automata[1].max_chemokine_global = 100
+        self.topology.automata[0].grid[4, 4]['contents'].state = 'infected'
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.MacrophageMovement))
+        self.assertFalse(event.internal)
+        addresses = event.addresses_affected
+        self.assertSequenceEqual(addresses[0], [4, 4])
+        self.assertSequenceEqual(addresses[1], [4, 5])
+
+    def test_macrophage_infected_movement_negative_movement_time(self):
+
+        self.topology.automata[0].grid[1, 1]['contents'].state = 'infected'
+        self.topology.automata[0].parameters['infected_macrophage_movement_time'] = 99
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+    def test_macrophage_chronically_infected_movement_max_chemokine(self):
+        # Active always moves to max chemokine
+        self.topology.automata[0].grid[1, 1]['contents'].state = 'chronically_infected'
+        self.topology.automata[0].grid[2, 1]['chemokine'] = 100
+        self.topology.automata[0].max_chemokine_global = 100
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.MacrophageMovement))
+        addresses = event.addresses_affected
+        self.assertSequenceEqual(addresses[0], [1, 1])
+        self.assertSequenceEqual(addresses[1], [2, 1])
+
+    def test_macrophage_chronically_infected_movement_across_boundary(self):
+        blood_vessels = [[8, 8]]
+        fast_bacteria = []
+        slow_bacteria = []
+        macrophages = [[4, 4]]
+
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.attributes, self.parameters,
+                                                        blood_vessels, fast_bacteria, slow_bacteria, macrophages)
+
+        self.topology.automata[1].grid[4, 0]['chemokine'] = 100
+        self.topology.automata[0].max_chemokine_global = 100
+        self.topology.automata[1].max_chemokine_global = 100
+        self.topology.automata[0].grid[4, 4]['contents'].state = 'chronically_infected'
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.MacrophageMovement))
+        self.assertFalse(event.internal)
+        addresses = event.addresses_affected
+        self.assertSequenceEqual(addresses[0], [4, 4])
+        self.assertSequenceEqual(addresses[1], [4, 5])
+
+    def test_macrophage_chronically_infected_movement_negative_movement_time(self):
+
+        self.topology.automata[0].grid[1, 1]['contents'].state = 'chronically_infected'
+        self.topology.automata[0].parameters['chronically_infected_macrophage_movement_time'] = 99
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
 
 
 if __name__ == '__main__':
