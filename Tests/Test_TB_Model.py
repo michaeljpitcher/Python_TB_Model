@@ -875,7 +875,7 @@ class BacteriaReplicationTestCase(unittest.TestCase):
 
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
-        self.assertTrue(isinstance(event, TB_Model.BacteriaReplication))
+        self.assertTrue(isinstance(event, TB_Model.BacteriumReplication))
         self.assertEqual(len(event.addresses_affected), 1)
         self.assertTrue(event.addresses_affected[0] == [0,1] or event.addresses_affected[0] == [1,0] or
                         event.addresses_affected[0] == [1,1])
@@ -885,13 +885,13 @@ class BacteriaReplicationTestCase(unittest.TestCase):
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
-        self.assertTrue(isinstance(event, TB_Model.BacteriaReplication))
+        self.assertTrue(isinstance(event, TB_Model.BacteriumReplication))
 
         self.topology.automata[0].process_events([event])
 
         self.assertEqual(len(self.topology.automata[0].bacteria), 2)
         self.assertTrue(isinstance(self.topology.automata[0].get_attribute(event.addresses_affected[0], 'contents')
-                        , TB_Model.Bacteria))
+                                   , TB_Model.Bacterium))
 
     def test_bacteria_replication_across_boundary(self):
 
@@ -937,10 +937,10 @@ class BacteriaReplicationTestCase(unittest.TestCase):
         for x in range(5):
             for y in range(5):
                 if x == 3 and y == 4:
-                    self.assertTrue(isinstance(self.topology.automata[0].grid[x,y]['contents'], TB_Model.Bacteria))
+                    self.assertTrue(isinstance(self.topology.automata[0].grid[x,y]['contents'], TB_Model.Bacterium))
 
                 if x == 3 and y == 0:
-                    self.assertTrue(isinstance(self.topology.automata[1].grid[x, y]['contents'], TB_Model.Bacteria))
+                    self.assertTrue(isinstance(self.topology.automata[1].grid[x, y]['contents'], TB_Model.Bacterium))
 
 
 class TCellRecruitmentTestCase(unittest.TestCase):
@@ -1309,14 +1309,14 @@ class ChemotherapyKillsBacteriaTestCase(unittest.TestCase):
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
-        self.assertTrue(isinstance(event, TB_Model.ChemoKillBacteria))
+        self.assertTrue(isinstance(event, TB_Model.ChemoKillBacterium))
         self.assertTrue(event.addresses_affected[0] == [1,1])
 
         self.topology.automata[1].update()
         self.assertEqual(len(self.topology.automata[1].potential_events), 1)
-        self.assertTrue(isinstance(self.topology.automata[1].potential_events[0], TB_Model.ChemoKillBacteria))
+        self.assertTrue(isinstance(self.topology.automata[1].potential_events[0], TB_Model.ChemoKillBacterium))
         event = self.topology.automata[1].potential_events[0]
-        self.assertTrue(isinstance(event, TB_Model.ChemoKillBacteria))
+        self.assertTrue(isinstance(event, TB_Model.ChemoKillBacterium))
         self.assertTrue(event.addresses_affected[0] == [2, 2])
 
     def test_chemokillbacteria_negative_both(self):
@@ -1358,7 +1358,7 @@ class ChemotherapyKillsBacteriaTestCase(unittest.TestCase):
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
-        self.assertTrue(isinstance(event, TB_Model.ChemoKillBacteria))
+        self.assertTrue(isinstance(event, TB_Model.ChemoKillBacterium))
         self.assertTrue(event.addresses_affected[0] == [1, 1])
 
         self.topology.automata[1].update()
@@ -1377,13 +1377,13 @@ class ChemotherapyKillsBacteriaTestCase(unittest.TestCase):
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event_0 = self.topology.automata[0].potential_events[0]
-        self.assertTrue(isinstance(event_0, TB_Model.ChemoKillBacteria))
+        self.assertTrue(isinstance(event_0, TB_Model.ChemoKillBacterium))
 
         self.topology.automata[1].update()
         self.assertEqual(len(self.topology.automata[1].potential_events), 1)
-        self.assertTrue(isinstance(self.topology.automata[1].potential_events[0], TB_Model.ChemoKillBacteria))
+        self.assertTrue(isinstance(self.topology.automata[1].potential_events[0], TB_Model.ChemoKillBacterium))
         event_1 = self.topology.automata[1].potential_events[0]
-        self.assertTrue(isinstance(event_1, TB_Model.ChemoKillBacteria))
+        self.assertTrue(isinstance(event_1, TB_Model.ChemoKillBacterium))
 
         # Now process
         self.topology.automata[0].process_events([event_0])
@@ -2792,7 +2792,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
-        self.assertTrue(event, TB_Model.MacrophageKillsBacteria)
+        self.assertTrue(event, TB_Model.MacrophageKillsBacterium)
         addresses = event.addresses_affected
         self.assertSequenceEqual(addresses[0], [1, 1])
         self.assertSequenceEqual(addresses[1], [1, 2])
@@ -2816,7 +2816,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
-        self.assertTrue(isinstance(event, TB_Model.MacrophageKillsBacteria))
+        self.assertTrue(isinstance(event, TB_Model.MacrophageKillsBacterium))
         self.assertFalse(event.internal)
         addresses = event.addresses_affected
         self.assertSequenceEqual(addresses[0], [4, 4])
@@ -2836,7 +2836,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
-        self.assertTrue(event, TB_Model.MacrophageKillsBacteria)
+        self.assertTrue(event, TB_Model.MacrophageKillsBacterium)
         addresses = event.addresses_affected
         self.assertSequenceEqual(addresses[0], [1, 1])
         self.assertSequenceEqual(addresses[1], [1, 2])
@@ -2857,7 +2857,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
-        self.assertTrue(event, TB_Model.MacrophageKillsBacteria)
+        self.assertTrue(event, TB_Model.MacrophageKillsBacterium)
         addresses = event.addresses_affected
         self.assertSequenceEqual(addresses[0], [1, 1])
         self.assertSequenceEqual(addresses[1], [1, 2])
@@ -2914,7 +2914,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
-        self.assertTrue(event, TB_Model.MacrophageKillsBacteria)
+        self.assertTrue(event, TB_Model.MacrophageKillsBacterium)
         addresses = event.addresses_affected
         self.assertSequenceEqual(addresses[0], [4, 4])
         self.assertSequenceEqual(addresses[1], [4, 5])
@@ -2932,7 +2932,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
-        self.assertTrue(event, TB_Model.MacrophageKillsBacteria)
+        self.assertTrue(event, TB_Model.MacrophageKillsBacterium)
         addresses = event.addresses_affected
         self.assertSequenceEqual(addresses[0], [1, 1])
         self.assertSequenceEqual(addresses[1], [1, 2])
@@ -2950,7 +2950,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
-        self.assertTrue(event, TB_Model.MacrophageKillsBacteria)
+        self.assertTrue(event, TB_Model.MacrophageKillsBacterium)
         addresses = event.addresses_affected
         self.assertSequenceEqual(addresses[0], [1, 1])
         self.assertSequenceEqual(addresses[1], [1, 2])
@@ -2970,7 +2970,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
-        self.assertTrue(event, TB_Model.MacrophageKillsBacteria)
+        self.assertTrue(event, TB_Model.MacrophageKillsBacterium)
 
         self.topology.automata[0].process_events([event])
 
@@ -2998,7 +2998,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
-        self.assertTrue(event, TB_Model.MacrophageKillsBacteria)
+        self.assertTrue(event, TB_Model.MacrophageKillsBacterium)
 
         self.topology.automata[0].process_events([event])
 
@@ -3025,7 +3025,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
-        self.assertTrue(event, TB_Model.MacrophageKillsBacteria)
+        self.assertTrue(event, TB_Model.MacrophageKillsBacterium)
 
         self.topology.automata[0].process_events([event])
 
@@ -3052,7 +3052,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
-        self.assertTrue(event, TB_Model.MacrophageKillsBacteria)
+        self.assertTrue(event, TB_Model.MacrophageKillsBacterium)
 
         self.topology.automata[0].process_events([event])
 
@@ -3082,7 +3082,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
-        self.assertTrue(event, TB_Model.MacrophageKillsBacteria)
+        self.assertTrue(event, TB_Model.MacrophageKillsBacterium)
 
         new_addresses = []
         new_addresses.append(self.topology.local_to_local(0, event.addresses_affected[0], 1))
@@ -3257,8 +3257,126 @@ class MacrophageChangesState(unittest.TestCase):
         self.topology.automata[0].process_events([event])
         self.assertEqual(self.topology.automata[0].grid[1, 1]['contents'].state, 'active')
 
+class BacteriaChangesMetabolismTestCase(unittest.TestCase):
+    def setUp(self):
+        params = dict()
+        params['max_depth'] = 3
+        params['initial_oxygen'] = 1.5
+        params['oxygen_diffusion'] = 0.0
+        params['chemotherapy_diffusion'] = 0.0
+        params['caseum_distance'] = 2
+        params['spatial_step'] = 0.2
+        params['chemotherapy_schedule1_start'] = 99
+        params['chemotherapy_schedule2_start'] = 200
+        params['oxygen_from_source'] = 0.0
+        params['chemokine_diffusion'] = 0.0
+        params['chemokine_decay'] = 0.0
+        params['chemokine_from_macrophage'] = 0
+        params['bacteria_threshold_for_t_cells'] = 100
+        params['chemotherapy_scale_for_kill_macrophage'] = 101
+        params['oxygen_uptake_from_bacteria'] = 0
+        params['chemokine_from_bacteria'] = 0
+        params['bacteria_replication_fast_upper'] = 999
+        params['bacteria_replication_fast_lower'] = 998
+        params['bacteria_replication_slow_upper'] = 999
+        params['bacteria_replication_slow_lower'] = 998
+        params['chemotherapy_scale_for_kill_fast_bacteria'] = 101
+        params['chemotherapy_scale_for_kill_slow_bacteria'] = 101
+        params['resting_macrophage_age_limit'] = 999
+        params['active_macrophage_age_limit'] = 999
+        params['infected_macrophage_age_limit'] = 999
+        params['chronically_infected_macrophage_age_limit'] = 999
+        params['resting_macrophage_movement_time'] = 1000
+        params['active_macrophage_movement_time'] = 1000
+        params['infected_macrophage_movement_time'] = 1000
+        params['chronically_infected_macrophage_movement_time'] = 1000
+        params['prob_resting_macrophage_random_move'] = 0
+        params['minimum_chemokine_for_resting_macrophage_movement'] = 0
+        params['bacteria_to_turn_chronically_infected'] = 10
+        params['chemokine_scale_for_macrophage_activation'] = 0
+        params['chemokine_scale_for_macrophage_deactivation'] = 100
 
+        params['time_step'] = 4
+        params['oxygen_scale_for_metabolism_change_to_slow'] = 100
+        params['oxygen_scale_for_metabolism_change_to_fast'] = 0
 
+        atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
+                'chemotherapy', 'chemokine']
+
+        self.parameters = params
+        self.attributes = atts
+
+        blood_vessels = [[6, 2]]
+        fast_bacteria = [[1, 1]]
+        slow_bacteria = [[7, 7]]
+        macrophages = []
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
+                                                        slow_bacteria, macrophages)
+
+    def sort_out_halos(self):
+        dz = []
+        for i in self.topology.automata:
+            dz.append(i.get_danger_zone())
+        halos = self.topology.create_halos(dz)
+        for i in range(4):
+            self.topology.automata[i].set_halo(halos[i])
+
+    def test_fast_to_slow(self):
+        self.sort_out_halos()
+        self.topology.automata[0].grid[1, 1]['oxygen'] = 1
+        self.topology.automata[0].max_oxygen_global = 100
+
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.BacteriumChangesMetabolism))
+        self.assertEqual(event.new_metabolism, 'slow')
+
+    def test_fast_to_slow_negative_scale(self):
+        self.sort_out_halos()
+        self.topology.automata[0].parameters['oxygen_scale_for_metabolism_change_to_slow'] = 50.0
+
+        self.topology.automata[0].grid[1, 1]['oxygen'] = 75.0
+        self.topology.automata[0].max_oxygen_global = 100.0
+
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+    def test_slow_to_fast(self):
+        self.sort_out_halos()
+        self.topology.automata[3].grid[2, 2]['oxygen'] = 1.0
+        self.topology.automata[3].max_oxygen_global = 100.0
+
+        self.topology.automata[3].update()
+        self.assertEqual(len(self.topology.automata[3].potential_events), 1)
+        event = self.topology.automata[3].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.BacteriumChangesMetabolism))
+        self.assertEqual(event.new_metabolism, 'fast')
+
+    def test_slow_to_fast_negative_scale(self):
+        self.sort_out_halos()
+        self.topology.automata[3].parameters['oxygen_scale_for_metabolism_change_to_fast'] = 50.0
+
+        self.topology.automata[3].grid[2, 2]['oxygen'] = 25.0
+        self.topology.automata[3].max_oxygen_global = 100.0
+
+        self.topology.automata[3].update()
+        self.assertEqual(len(self.topology.automata[3].potential_events), 0)
+
+    def test_process_bacterium_changes_metabolism(self):
+        self.sort_out_halos()
+        self.topology.automata[0].grid[1, 1]['oxygen'] = 1
+        self.topology.automata[0].max_oxygen_global = 100
+
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.BacteriumChangesMetabolism))
+
+        self.topology.automata[0].process_events([event])
+        self.assertEqual(len(self.topology.automata[0].bacteria), 1)
+        self.assertTrue(isinstance(self.topology.automata[0].grid[1, 1]['contents'], TB_Model.Bacterium))
+        self.assertEqual(self.topology.automata[0].grid[1, 1]['contents'].metabolism, 'slow')
 
 if __name__ == '__main__':
     unittest.main()
