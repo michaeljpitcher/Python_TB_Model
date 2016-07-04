@@ -2647,6 +2647,66 @@ class MacrophageMovementTestCase(unittest.TestCase):
 
         self.assertEqual(len(self.topology.automata[0].potential_events), 0)
 
+    def test_process_macrophage_movement(self):
+        # Not random
+        self.topology.automata[0].parameters['prob_resting_macrophage_random_move'] = 0
+        # Any chemokine forces a move there
+        self.topology.automata[0].parameters['minimum_chemokine_for_resting_macrophage_movement'] = 0
+
+        # Set [1,0] as max chemokine cell - make sure it goes here
+        self.topology.automata[0].grid[1, 0]['chemokine'] = 99.9
+        self.topology.automata[0].max_chemokine_global = 99.9
+
+        self.sort_out_halos()
+
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(event, TB_Model.MacrophageMovement)
+
+        self.topology.automata[0].process_events([event])
+        self.assertEqual(self.topology.automata[0].grid[1, 1]['contents'], 0.0)
+        self.assertTrue(isinstance(self.topology.automata[0].grid[1, 0]['contents'], TB_Model.Macrophage))
+
+    def test_process_macrophage_movement_across_boundaries(self):
+        blood_vessels = [[8, 8]]
+        fast_bacteria = []
+        slow_bacteria = []
+        macrophages = [[4, 4]]
+
+        # Not random
+        self.parameters['prob_resting_macrophage_random_move'] = 0
+        # Any chemokine forces a move there
+        self.parameters['minimum_chemokine_for_resting_macrophage_movement'] = 0
+
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.attributes, self.parameters,
+                                                        blood_vessels, fast_bacteria, slow_bacteria, macrophages)
+
+        self.topology.automata[1].grid[4, 0]['chemokine'] = 100
+        self.topology.automata[0].max_chemokine_global = 100
+        self.topology.automata[1].max_chemokine_global = 100
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.MacrophageMovement))
+        self.assertFalse(event.internal)
+
+        new_addresses = []
+        new_addresses.append(self.topology.local_to_local(0, event.addresses_affected[0], 1))
+        new_addresses.append(self.topology.local_to_local(0, event.addresses_affected[1], 1))
+
+        new_event = event.clone(new_addresses)
+
+        self.topology.automata[0].process_events([event])
+        self.assertEqual(len(self.topology.automata[0].macrophages), 0)
+        self.assertEqual(self.topology.automata[0].grid[4, 4]['contents'], 0.0)
+
+        self.topology.automata[1].process_events([new_event])
+        self.assertEqual(len(self.topology.automata[1].macrophages), 1)
+        self.assertTrue(isinstance(self.topology.automata[1].grid[4, 0]['contents'], TB_Model.Macrophage))
+
 
 if __name__ == '__main__':
     unittest.main()
