@@ -1421,6 +1421,8 @@ class ChemotherapyKillsMacrophageTestCase(unittest.TestCase):
         params['infected_macrophage_movement_time'] = 999
         params['chronically_infected_macrophage_age_limit'] = 999
         params['chronically_infected_macrophage_movement_time'] = 999
+        params['chemokine_scale_for_macrophage_deactivation'] = -1
+        params['bacteria_to_turn_chronically_infected'] = 99
 
         params['chemotherapy_scale_for_kill_macrophage'] = 0
 
@@ -1912,6 +1914,9 @@ class TCellKillsMacrophageTestCase(unittest.TestCase):
         params['infected_macrophage_movement_time'] = 999
         params['chronically_infected_macrophage_age_limit'] = 999
         params['chronically_infected_macrophage_movement_time'] = 999
+        params['bacteria_to_turn_chronically_infected'] = 99
+        params['chemokine_scale_for_macrophage_deactivation'] = -1
+        params['chemokine_scale_for_macrophage_activation'] = 101
 
         params['bacteria_threshold_for_t_cells'] = 0
         params['t_cell_recruitment_probability'] = 0
@@ -2168,6 +2173,8 @@ class MacrophageDeathTestCase(unittest.TestCase):
         params['active_macrophage_movement_time'] = 999
         params['infected_macrophage_movement_time'] = 999
         params['chronically_infected_macrophage_movement_time'] = 999
+        params['chemokine_scale_for_macrophage_deactivation'] = -1
+        params['bacteria_to_turn_chronically_infected'] = 99
 
         params['time_step'] = 1
         params['resting_macrophage_age_limit'] = 2
@@ -2370,6 +2377,8 @@ class MacrophageMovementTestCase(unittest.TestCase):
         params['bacteria_threshold_for_t_cells'] = 100
         params['chemokine_scale_for_macrophage_activation'] = 101
         params['chemotherapy_scale_for_kill_macrophage'] = 101
+        params['chemokine_scale_for_macrophage_deactivation'] = -1
+        params['bacteria_to_turn_chronically_infected'] = 99
 
         params['time_step'] = 1
         params['resting_macrophage_age_limit'] = 999
@@ -2737,6 +2746,8 @@ class MacrophageKillsBacteria(unittest.TestCase):
         params['bacteria_replication_slow_lower'] = 998
         params['chemotherapy_scale_for_kill_fast_bacteria'] = 101
         params['chemotherapy_scale_for_kill_slow_bacteria'] = 101
+        params['chemokine_scale_for_macrophage_deactivation'] = -1
+        params['bacteria_to_turn_chronically_infected'] = 99
 
         params['time_step'] = 1
         params['resting_macrophage_age_limit'] = 999
@@ -3052,7 +3063,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
         self.assertTrue(isinstance(self.topology.automata[0].grid[1, 2]['contents'], TB_Model.Macrophage))
         self.assertEqual(self.topology.automata[0].grid[1, 2]['contents'].intracellular_bacteria, 15)
 
-    def test_process_active_macrophage_kill_bacteria_across_boundary(self):
+    def test_process_macrophage_kill_bacteria_across_boundary(self):
 
         blood_vessels = [[8, 8]]
         fast_bacteria = [[4, 5]]
@@ -3060,9 +3071,6 @@ class MacrophageKillsBacteria(unittest.TestCase):
         macrophages = [[4, 4]]
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.attributes, self.parameters,
                                                         blood_vessels, fast_bacteria, slow_bacteria, macrophages)
-
-        self.topology.automata[0].grid[4, 4]['contents'].state = 'active'
-        self.topology.automata[0].parameters['prob_active_macrophage_kill_fast_bacteria'] = 100
 
         # Set [1,2] as max chemokine cell - make sure it goes here
         self.topology.automata[1].grid[4, 0]['chemokine'] = 99.9
@@ -3089,6 +3097,167 @@ class MacrophageKillsBacteria(unittest.TestCase):
         self.topology.automata[1].process_events([new_event])
         self.assertTrue(isinstance(self.topology.automata[1].grid[4, 0]['contents'], TB_Model.Macrophage))
         self.assertEqual(len(self.topology.automata[1].macrophages), 1)
+
+class MacrophageChangesState(unittest.TestCase):
+
+    def setUp(self):
+        params = dict()
+        params['max_depth'] = 3
+        params['initial_oxygen'] = 1.5
+        params['oxygen_diffusion'] = 0.0
+        params['chemotherapy_diffusion'] = 0.0
+        params['caseum_distance'] = 2
+        params['spatial_step'] = 0.2
+        params['chemotherapy_schedule1_start'] = 99
+        params['chemotherapy_schedule2_start'] = 200
+        params['oxygen_from_source'] = 0.0
+        params['chemokine_diffusion'] = 0.0
+        params['chemokine_decay'] = 0.0
+        params['chemokine_from_macrophage'] = 0
+        params['bacteria_threshold_for_t_cells'] = 100
+        params['chemotherapy_scale_for_kill_macrophage'] = 101
+        params['oxygen_uptake_from_bacteria'] = 0
+        params['chemokine_from_bacteria'] = 0
+        params['bacteria_replication_fast_upper'] = 999
+        params['bacteria_replication_fast_lower'] = 998
+        params['bacteria_replication_slow_upper'] = 999
+        params['bacteria_replication_slow_lower'] = 998
+        params['chemotherapy_scale_for_kill_fast_bacteria'] = 101
+        params['chemotherapy_scale_for_kill_slow_bacteria'] = 101
+        params['resting_macrophage_age_limit'] = 999
+        params['active_macrophage_age_limit'] = 999
+        params['infected_macrophage_age_limit'] = 999
+        params['chronically_infected_macrophage_age_limit'] = 999
+        params['resting_macrophage_movement_time'] = 1000
+        params['active_macrophage_movement_time'] = 1000
+        params['infected_macrophage_movement_time'] = 1000
+        params['chronically_infected_macrophage_movement_time'] = 1000
+        params['prob_resting_macrophage_random_move'] = 0
+        params['minimum_chemokine_for_resting_macrophage_movement'] = 0
+        params['bacteria_to_turn_chronically_infected'] = 10
+
+        params['chemokine_scale_for_macrophage_activation'] = 0
+        params['chemokine_scale_for_macrophage_deactivation'] = 100
+        params['time_step'] = 0.5
+
+        atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
+                'chemotherapy', 'chemokine']
+
+        self.parameters = params
+        self.attributes = atts
+
+        blood_vessels = [[8, 8]]
+        fast_bacteria = []
+        slow_bacteria = []
+        macrophages = [[1, 1]]
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
+                                                        slow_bacteria, macrophages)
+
+    def sort_out_halos(self):
+        dz = []
+        for i in self.topology.automata:
+            dz.append(i.get_danger_zone())
+        halos = self.topology.create_halos(dz)
+        for i in range(4):
+            self.topology.automata[i].set_halo(halos[i])
+
+    def test_resting_to_active(self):
+        self.topology.automata[0].grid[1, 1]['chemokine'] = 100.0
+        self.topology.automata[0].max_chemokine_global = 100.0
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.MacrophageChangesState))
+        self.assertEqual(event.new_state, 'active')
+
+    def test_resting_to_active_negative_scale(self):
+        self.topology.automata[0].grid[1, 1]['chemokine'] = 40.0
+        self.topology.automata[0].max_chemokine_global = 100.0
+        self.topology.automata[0].parameters['chemokine_scale_for_macrophage_activation'] = 50
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+    def test_resting_to_infected(self):
+        self.topology.automata[0].grid[1, 1]['chemokine'] = 70.0
+        self.topology.automata[0].max_chemokine_global = 100.0
+        self.topology.automata[0].parameters['chemokine_scale_for_macrophage_activation'] = 50
+        self.topology.automata[0].grid[1, 1]['contents'].intracellular_bacteria = 1
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.MacrophageChangesState))
+        self.assertEqual(event.new_state, 'infected')
+
+    def test_active_to_resting(self):
+
+        self.topology.automata[0].grid[1, 1]['contents'].state = 'active'
+
+        self.topology.automata[0].grid[1, 1]['chemokine'] = 20.0
+        self.topology.automata[0].max_chemokine_global = 100.0
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.MacrophageChangesState))
+        self.assertEqual(event.new_state, 'resting')
+
+    def test_active_to_resting_negative_scale(self):
+        self.topology.automata[0].grid[1, 1]['contents'].state = 'active'
+        self.topology.automata[0].parameters['chemokine_scale_for_macrophage_deactivation'] = 50
+
+        self.topology.automata[0].grid[1, 1]['chemokine'] = 50.1
+        self.topology.automata[0].max_chemokine_global = 100.0
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+    def test_infected_to_chronically(self):
+        self.topology.automata[0].grid[1, 1]['contents'].state = 'infected'
+        self.topology.automata[0].grid[1, 1]['contents'].intracellular_bacteria = 11
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.MacrophageChangesState))
+        self.assertEqual(event.new_state, 'chronically_infected')
+
+    def test_infected_to_chronically_negative_not_enough_bacteria(self):
+        self.topology.automata[0].grid[1, 1]['contents'].state = 'infected'
+        self.topology.automata[0].grid[1, 1]['contents'].intracellular_bacteria = 4
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+    def test_macrophage_changes_state_process(self):
+        self.topology.automata[0].grid[1, 1]['chemokine'] = 100.0
+        self.topology.automata[0].max_chemokine_global = 100.0
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.MacrophageChangesState))
+
+        self.topology.automata[0].process_events([event])
+        self.assertEqual(self.topology.automata[0].grid[1, 1]['contents'].state, 'active')
+
+
 
 
 if __name__ == '__main__':
