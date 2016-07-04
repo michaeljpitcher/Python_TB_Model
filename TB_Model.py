@@ -481,6 +481,8 @@ class EventHandler:
             self.process_macrophage_kills_bacterium(event)
         elif isinstance(event, MacrophageChangesState):
             self.process_macrophage_state_change(event)
+        elif isinstance(event, BacteriumChangesMetabolism):
+            self.process_bacterium_change_metabolism(event)
         else:
             raise Exception("Event ", type(event), "not handled")
 
@@ -631,6 +633,14 @@ class EventHandler:
         macrophage = self.get_attribute(event.address, 'contents')
         macrophage.state = event.new_state
         self.set_attribute_work_grid(event.address, 'contents', macrophage)
+
+    def process_bacterium_change_metabolism(self, event):
+        print "BACTERIUM_METABOLISM_CHANGE: to", event.new_metabolism
+
+        # Pull bacterium
+        bacterium = self.get_attribute(event.address, 'contents')
+        bacterium.metabolism = event.new_metabolism
+        self.set_attribute_work_grid(event.address, 'contents', bacterium)
 
 
 class Automaton(Tile, Neighbourhood, EventHandler):
@@ -1078,11 +1088,13 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
             for bacterium in self.bacteria:
 
+                scale = self.oxygen_scale(bacterium.address)
+
                 if bacterium.metabolism == 'fast' and self.oxygen_scale(bacterium.address) <= self.parameters[
                         'oxygen_scale_for_metabolism_change_to_slow']:
                     new_event = BacteriumChangesMetabolism(bacterium.address, 'slow')
                     self.potential_events.append(new_event)
-                elif bacterium.metabolism == 'slow' and self.oxygen_scale(bacterium.address) <= self.parameters[
+                elif bacterium.metabolism == 'slow' and self.oxygen_scale(bacterium.address) > self.parameters[
                         'oxygen_scale_for_metabolism_change_to_fast']:
                     new_event = BacteriumChangesMetabolism(bacterium.address, 'fast')
                     self.potential_events.append(new_event)
@@ -1284,7 +1296,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
     def oxygen_scale(self, address):
 
-        if self.max_chemotherapy_global == 0.0:
+        if self.max_oxygen_global == 0.0:
             return 0.0
         else:
             return (self.get_attribute(address, 'oxygen') / self.max_oxygen_global) * 100
@@ -1502,8 +1514,9 @@ class MacrophageChangesState(Event):
         self.new_state = new_state
         Event.__init__(self, [address], True)
 
+
 class BacteriumChangesMetabolism(Event):
     def __init__(self, address, new_metabolism):
         self.address = address
-        self.new_state = new_metabolism
+        self.new_metabolism = new_metabolism
         Event.__init__(self, [address], True)
