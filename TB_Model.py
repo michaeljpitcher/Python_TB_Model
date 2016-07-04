@@ -586,23 +586,30 @@ class EventHandler:
         to_address = event.addresses_affected[1]
 
         # Different outcomes depending on macrophage state
-        if event.macrophage_to_move.state == 'resting' or event.macrophage_to_move.state == 'infected' or \
-                event.macrophage_to_move.state == 'chronically_infected':
-            # Macrophage ingests bacteria, doesn't kill
-            event.macrophage_to_move.intracellular_bacteria += 1
+
 
         # Macrophage moving between 2 cells in the same tile
         if event.internal:
-            event.macrophage_to_move.address = to_address
-            self.bacteria.remove(self.get_attribute(to_address, 'contents'))
+
+            macrophage = self.get_attribute(from_address, 'contents')
+            macrophage.address = to_address
+            bacteria = self.get_attribute(to_address, 'contents')
+            self.bacteria.remove(bacteria)
             self.set_attribute_work_grid(from_address, 'contents', 0.0)
-            self.set_attribute_work_grid(to_address, 'contents', event.macrophage_to_move)
+            self.set_attribute_work_grid(to_address, 'contents', macrophage)
+
+            if macrophage.state == 'resting' or macrophage.state == 'infected' or macrophage.state == \
+                    'chronically_infected':
+                # Macrophage ingests bacteria, doesn't kill
+                event.macrophage_to_move.intracellular_bacteria += 1
         elif self.address_is_on_grid(from_address):  # Macrophage is moving to a new tile
+            macrophage = self.get_attribute(from_address, 'contents')
             self.set_attribute_work_grid(from_address, 'contents', 0.0)
-            self.macrophages.remove(self.get_attribute(from_address, 'contents'))
+            self.macrophages.remove(macrophage)
         elif self.address_is_on_grid(to_address):  # Macrophage has arrived from another tile
             event.macrophage_to_move.address = to_address
-            self.bacteria.remove(self.get_attribute(to_address, 'contents'))
+            bacteria = self.get_attribute(to_address, 'contents')
+            self.bacteria.remove(bacteria)
             self.set_attribute_work_grid(to_address, 'contents', event.macrophage_to_move)
             self.macrophages.append(event.macrophage_to_move)
 
@@ -1347,6 +1354,9 @@ class TCell(Agent):
 # ------------------------------
 # EVENTS
 # ------------------------------
+
+# TODO - COMP -maybe don't attach agents if it's internal?
+
 class Event(object):
 
     def __init__(self, addresses_affected, internal):
@@ -1432,7 +1442,6 @@ class TCellKillsMacrophage(Event):
         Event.__init__(self, [t_cell_address, macrophage_address], internal)
 
     def clone(self, new_addresses):
-        # TODO - COMP - check this
         return TCellKillsMacrophage(self.t_cell_to_move, new_addresses[0], new_addresses[1], self.internal)
 
 
