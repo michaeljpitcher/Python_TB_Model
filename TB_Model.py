@@ -488,12 +488,13 @@ class EventHandler:
 
     def process_bacterium_replication(self, event):
         print "BACTERIUM REPLICATION"
-        # Only process if the new bacterium is on the grid
+        # Only process if the new bacterium address is on the grid
         if self.address_is_on_grid(event.new_bacterium_address):
             self.add_bacterium(event.new_bacterium_address, event.new_metabolism)
 
     def process_t_cell_recruitment(self, event):
         print "T CELL RECRUITMENT"
+        # Only process if address is on the grid
         if self.address_is_on_grid(event.t_cell_address):
             self.add_t_cell(event.t_cell_address)
 
@@ -506,44 +507,42 @@ class EventHandler:
         print "CHEMO KILL BACTERIUM"
         bacterium = self.get_attribute(event.address, 'contents')
         self.bacteria.remove(bacterium)
-        self.set_attribute_work_grid(event.address, 'contents', 0.0)
+        #self.set_attribute_work_grid(event.address, 'contents', 0.0)
 
     def process_chemo_kill_macrophage(self, event):
         print "CHEMO KILL MACROPHAGE"
         self.macrophages.remove(event.macrophage_to_kill)
-        self.set_attribute_work_grid(event.macrophage_to_kill.address, 'contents', 0.0)
+        #self.set_attribute_work_grid(event.macrophage_to_kill.address, 'contents', 0.0)
 
     def process_t_cell_death(self, event):
         print "T-CELL DEATH"
         t_cell_to_die = self.get_attribute(event.address, 'contents')
-        self.set_attribute_work_grid(event.address, 'contents', 0.0)
+        #self.set_attribute_work_grid(event.address, 'contents', 0.0)
         self.t_cells.remove(t_cell_to_die)
 
     def process_t_cell_movement(self, event):
         print "T-CELL MOVEMENT"
         from_address = event.addresses_affected[0]
         to_address = event.addresses_affected[1]
-
         # T-cell moving between 2 cells in the same tile
         if event.internal:
             t_cell = self.get_attribute(from_address, 'contents')
             t_cell.address = to_address
-            self.set_attribute_work_grid(from_address, 'contents', 0.0)
-            self.set_attribute_work_grid(to_address, 'contents', t_cell)
+            #self.set_attribute_work_grid(from_address, 'contents', 0.0)
+            #self.set_attribute_work_grid(to_address, 'contents', t_cell)
         elif self.address_is_on_grid(from_address):  # T-cell is moving to a new tile
             t_cell = self.get_attribute(from_address, 'contents')
-            self.set_attribute_work_grid(from_address, 'contents', 0.0)
+            #self.set_attribute_work_grid(from_address, 'contents', 0.0)
             self.t_cells.remove(t_cell)
         elif self.address_is_on_grid(to_address):  # T-cell has arrived from another tile
             event.t_cell_to_move.address = to_address
-            self.set_attribute_work_grid(to_address, 'contents', event.t_cell_to_move)
+            #self.set_attribute_work_grid(to_address, 'contents', event.t_cell_to_move)
             self.t_cells.append(event.t_cell_to_move)
 
     def process_t_cell_kill_macrophage(self, event):
         print "T-CELL KILLS MACROPHAGE"
         from_address = event.addresses_affected[0]
         to_address = event.addresses_affected[1]
-
         if self.address_is_on_grid(to_address):
             # Turn macrophage into caseum
             macrophage = self.get_attribute(to_address, 'contents')
@@ -554,39 +553,39 @@ class EventHandler:
             # Remove t-cell
             t_cell = self.get_attribute(from_address, 'contents')
             self.t_cells.remove(t_cell)
-            self.set_attribute_work_grid(from_address, 'contents', 0.0)
+            #self.set_attribute_work_grid(from_address, 'contents', 0.0)
 
     def process_macrophage_death(self, event):
         print "MACROPHAGE DEATH"
-
-        # Resting or active die, infected/chronically infected trun to caseum
+        # Resting or active die, infected/chronically infected turn to caseum
         macrophage_to_die = self.get_attribute(event.address, 'contents')
-
-        if macrophage_to_die.state == 'resting' or macrophage_to_die.state == 'active':
-            self.set_attribute_work_grid(macrophage_to_die.address, 'contents', 0.0)
-        elif macrophage_to_die.state == 'infected' or macrophage_to_die.state == 'chronically_infected':
+        #if macrophage_to_die.state == 'resting' or macrophage_to_die.state == 'active':
+        #    self.set_attribute_work_grid(macrophage_to_die.address, 'contents', 0.0)
+        #el
+        if macrophage_to_die.state == 'infected' or macrophage_to_die.state == 'chronically_infected':
             self.set_attribute_work_grid(macrophage_to_die.address, 'contents', 'caseum')
-
+        # Remove macrophage
         self.macrophages.remove(macrophage_to_die)
 
     def process_macrophage_movement(self, event):
         print "MACROPHAGE MOVEMENT"
         from_address = event.addresses_affected[0]
         to_address = event.addresses_affected[1]
-
         # Macrophage moving between 2 cells in the same tile
         if event.internal:
             macrophage = self.get_attribute(from_address, 'contents')
             macrophage.address = to_address
-            self.set_attribute_work_grid(from_address, 'contents', 0.0)
-            self.set_attribute_work_grid(to_address, 'contents', macrophage)
+            #self.set_attribute_work_grid(from_address, 'contents', 0.0)
+            #self.set_attribute_work_grid(to_address, 'contents', macrophage)
         elif self.address_is_on_grid(from_address):  # Macrophage is moving to a new tile
+            # Remove macrophage
             macrophage = self.get_attribute(from_address, 'contents')
-            self.set_attribute_work_grid(from_address, 'contents', 0.0)
+            #self.set_attribute_work_grid(from_address, 'contents', 0.0)
             self.macrophages.remove(macrophage)
         elif self.address_is_on_grid(to_address):  # Macrophage has arrived from another tile
+            # Add macrophage
             event.macrophage_to_move.address = to_address
-            self.set_attribute_work_grid(to_address, 'contents', event.macrophage_to_move)
+            #self.set_attribute_work_grid(to_address, 'contents', event.macrophage_to_move)
             self.macrophages.append(event.macrophage_to_move)
 
     def process_macrophage_kills_bacterium(self, event):
@@ -596,29 +595,28 @@ class EventHandler:
 
         # Macrophage moving between 2 cells in the same tile
         if event.internal:
-
+            # Move macrophage
             macrophage = self.get_attribute(from_address, 'contents')
             macrophage.address = to_address
+            # Remove bacterium
             bacterium = self.get_attribute(to_address, 'contents')
             self.bacteria.remove(bacterium)
-            self.set_attribute_work_grid(from_address, 'contents', 0.0)
-            self.set_attribute_work_grid(to_address, 'contents', macrophage)
+            #self.set_attribute_work_grid(from_address, 'contents', 0.0)
+            #self.set_attribute_work_grid(to_address, 'contents', macrophage)
 
             if macrophage.state == 'resting' or macrophage.state == 'infected' or macrophage.state == \
                     'chronically_infected':
                 # Macrophage ingests bacteria, doesn't kill
                 event.macrophage_to_move.intracellular_bacteria += 1
-
         elif self.address_is_on_grid(from_address):  # Macrophage is moving to a new tile
             macrophage = self.get_attribute(from_address, 'contents')
-            self.set_attribute_work_grid(from_address, 'contents', 0.0)
+            #self.set_attribute_work_grid(from_address, 'contents', 0.0)
             self.macrophages.remove(macrophage)
-
         elif self.address_is_on_grid(to_address):  # Macrophage has arrived from another tile
             event.macrophage_to_move.address = to_address
             bacterium = self.get_attribute(to_address, 'contents')
             self.bacteria.remove(bacterium)
-            self.set_attribute_work_grid(to_address, 'contents', event.macrophage_to_move)
+            #self.set_attribute_work_grid(to_address, 'contents', event.macrophage_to_move)
             self.macrophages.append(event.macrophage_to_move)
 
             if event.macrophage_to_move.state == 'resting' or event.macrophage_to_move.state == 'infected' or \
@@ -628,19 +626,17 @@ class EventHandler:
 
     def process_macrophage_state_change(self, event):
         print "MACROPHAGE_STATE_CHANGE: to", event.new_state
-
         # Pulling the macrophage from the grid
         macrophage = self.get_attribute(event.address, 'contents')
         macrophage.state = event.new_state
-        self.set_attribute_work_grid(event.address, 'contents', macrophage)
+        #self.set_attribute_work_grid(event.address, 'contents', macrophage)
 
     def process_bacterium_change_metabolism(self, event):
         print "BACTERIUM_METABOLISM_CHANGE: to", event.new_metabolism
-
-        # Pull bacterium
+        # Pull bacterium from grid
         bacterium = self.get_attribute(event.address, 'contents')
         bacterium.metabolism = event.new_metabolism
-        self.set_attribute_work_grid(event.address, 'contents', bacterium)
+        #self.set_attribute_work_grid(event.address, 'contents', bacterium)
 
 
 class Automaton(Tile, Neighbourhood, EventHandler):
@@ -731,13 +727,11 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         for i in range(self.size):
             address = self.location_to_address(i)
 
-            # CLEAR AGENTS OFF WORK GRID
-            # TODO - COMP - check this (and caseum below). Should work though.
-            self.set_attribute_work_grid(address, 'contents', 0.0)
-
-            # Maintain caseum on the work grid
+            # Persist - of the cell has caseum, persist it, else clear it (agents will be added later)
             if self.get_attribute(address, 'contents') == 'caseum':
                 self.set_attribute_work_grid(address, 'contents', 'caseum')
+            else:
+                self.set_attribute_work_grid(address, 'contents', 0.0)
 
             # OXYGEN
             oxygen_level = self.oxygen(address)
