@@ -483,6 +483,8 @@ class EventHandler:
             self.process_macrophage_state_change(event)
         elif isinstance(event, BacteriumChangesMetabolism):
             self.process_bacterium_change_metabolism(event)
+        elif isinstance(event, MacrophageBursting):
+            self.process_macrophage_bursting(event)
         else:
             raise Exception("Event ", type(event), "not handled")
 
@@ -637,6 +639,14 @@ class EventHandler:
         bacterium = self.get_attribute(event.address, 'contents')
         bacterium.metabolism = event.new_metabolism
         #self.set_attribute_work_grid(event.address, 'contents', bacterium)
+
+    def process_macrophage_bursting(self, event):
+        print "MACROPHAGE BURTSING"
+        macrophage_to_burst = self.get_attribute(event.macrophage_address, 'contents')
+        self.set_attribute_work_grid(macrophage_to_burst.address, 'contents', 'caseum')
+        self.macrophages.remove(macrophage_to_burst)
+
+        # TODO - bacteria stuff
 
 
 class Automaton(Tile, Neighbourhood, EventHandler):
@@ -1074,8 +1084,11 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     new_event = MacrophageChangesState(macrophage.address, "chronically_infected")
                     self.potential_events.append(new_event)
             elif macrophage.state == 'chronically_infected':
-                # TODO - Chronically bursts
-                pass
+                if macrophage.intracellular_bacteria == self.parameters['bacteria_to_burst_macrophage']:
+                    internal = self.address_is_on_grid(macrophage.address)
+                    new_event = MacrophageBursting(macrophage.address, internal)
+                    self.potential_events.append(new_event)
+                    # TODO - bacteria addresses
 
         # BACTERIUM STATE CHANGES
         if self.time > 2 / self.parameters['time_step']:
@@ -1514,3 +1527,8 @@ class BacteriumChangesMetabolism(Event):
         self.address = address
         self.new_metabolism = new_metabolism
         Event.__init__(self, [address], True)
+
+class MacrophageBursting(Event):
+    def __init__(self, macrophage_address, internal):
+        self.macrophage_address = macrophage_address
+        Event.__init__(self, [macrophage_address], internal)
