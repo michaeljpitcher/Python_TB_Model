@@ -1423,6 +1423,7 @@ class ChemotherapyKillsMacrophageTestCase(unittest.TestCase):
         params['chronically_infected_macrophage_movement_time'] = 999
         params['chemokine_scale_for_macrophage_deactivation'] = -1
         params['bacteria_to_turn_chronically_infected'] = 99
+        params['bacteria_to_burst_macrophage'] = 99
 
         params['chemotherapy_scale_for_kill_macrophage'] = 0
 
@@ -1917,6 +1918,7 @@ class TCellKillsMacrophageTestCase(unittest.TestCase):
         params['bacteria_to_turn_chronically_infected'] = 99
         params['chemokine_scale_for_macrophage_deactivation'] = -1
         params['chemokine_scale_for_macrophage_activation'] = 101
+        params['bacteria_to_burst_macrophage'] = 99
 
         params['bacteria_threshold_for_t_cells'] = 0
         params['t_cell_recruitment_probability'] = 0
@@ -2175,6 +2177,7 @@ class MacrophageDeathTestCase(unittest.TestCase):
         params['chronically_infected_macrophage_movement_time'] = 999
         params['chemokine_scale_for_macrophage_deactivation'] = -1
         params['bacteria_to_turn_chronically_infected'] = 99
+        params['bacteria_to_burst_macrophage'] = 99
 
         params['time_step'] = 1
         params['resting_macrophage_age_limit'] = 2
@@ -2379,6 +2382,7 @@ class MacrophageMovementTestCase(unittest.TestCase):
         params['chemotherapy_scale_for_kill_macrophage'] = 101
         params['chemokine_scale_for_macrophage_deactivation'] = -1
         params['bacteria_to_turn_chronically_infected'] = 99
+        params['bacteria_to_burst_macrophage'] = 99
 
         params['time_step'] = 1
         params['resting_macrophage_age_limit'] = 999
@@ -2748,6 +2752,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
         params['chemotherapy_scale_for_kill_slow_bacteria'] = 101
         params['chemokine_scale_for_macrophage_deactivation'] = -1
         params['bacteria_to_turn_chronically_infected'] = 99
+        params['bacteria_to_burst_macrophage'] = 99
 
         params['time_step'] = 1
         params['resting_macrophage_age_limit'] = 999
@@ -3377,6 +3382,113 @@ class BacteriaChangesMetabolismTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].bacteria), 1)
         self.assertTrue(isinstance(self.topology.automata[0].grid[1, 1]['contents'], TB_Model.Bacterium))
         self.assertEqual(self.topology.automata[0].grid[1, 1]['contents'].metabolism, 'slow')
+
+
+class MacrophageBurstingTestCase(unittest.TestCase):
+    def setUp(self):
+        params = dict()
+        params['max_depth'] = 3
+        params['initial_oxygen'] = 1.5
+        params['oxygen_diffusion'] = 0.0
+        params['chemotherapy_diffusion'] = 0.0
+        params['caseum_distance'] = 2
+        params['spatial_step'] = 0.2
+        params['chemotherapy_schedule1_start'] = 99
+        params['chemotherapy_schedule2_start'] = 200
+        params['oxygen_from_source'] = 0.0
+        params['chemokine_diffusion'] = 0.0
+        params['chemokine_decay'] = 0.0
+        params['chemokine_from_macrophage'] = 0
+        params['bacteria_threshold_for_t_cells'] = 100
+        params['chemotherapy_scale_for_kill_macrophage'] = 101
+        params['oxygen_uptake_from_bacteria'] = 0
+        params['chemokine_from_bacteria'] = 0
+        params['bacteria_replication_fast_upper'] = 999
+        params['bacteria_replication_fast_lower'] = 998
+        params['bacteria_replication_slow_upper'] = 999
+        params['bacteria_replication_slow_lower'] = 998
+        params['chemotherapy_scale_for_kill_fast_bacteria'] = 101
+        params['chemotherapy_scale_for_kill_slow_bacteria'] = 101
+        params['resting_macrophage_age_limit'] = 999
+        params['active_macrophage_age_limit'] = 999
+        params['infected_macrophage_age_limit'] = 999
+        params['chronically_infected_macrophage_age_limit'] = 999
+        params['resting_macrophage_movement_time'] = 1000
+        params['active_macrophage_movement_time'] = 1000
+        params['infected_macrophage_movement_time'] = 1000
+        params['chronically_infected_macrophage_movement_time'] = 1000
+        params['prob_resting_macrophage_random_move'] = 0
+        params['minimum_chemokine_for_resting_macrophage_movement'] = 0
+        params['bacteria_to_turn_chronically_infected'] = 10
+        params['chemokine_scale_for_macrophage_activation'] = 0
+        params['chemokine_scale_for_macrophage_deactivation'] = 100
+        params['time_step'] = 4
+        params['oxygen_scale_for_metabolism_change_to_slow'] = 100
+        params['oxygen_scale_for_metabolism_change_to_fast'] = 0
+
+        params['bacteria_to_burst_macrophage'] = 20
+
+        atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
+                'chemotherapy', 'chemokine']
+
+        self.parameters = params
+        self.attributes = atts
+
+        blood_vessels = [[6, 2]]
+        fast_bacteria = []
+        slow_bacteria = []
+        macrophages = [[1, 1]]
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
+                                                        slow_bacteria, macrophages)
+
+    def sort_out_halos(self):
+        dz = []
+        for i in self.topology.automata:
+            dz.append(i.get_danger_zone())
+        halos = self.topology.create_halos(dz)
+        for i in range(4):
+            self.topology.automata[i].set_halo(halos[i])
+
+    def test_macrophage_bursting(self):
+
+        self.topology.automata[0].grid[1, 1]['contents'].state = 'chronically_infected'
+        self.topology.automata[0].grid[1, 1]['contents'].intracellular_bacteria = 20
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.MacrophageBursting))
+        address = event.addresses_affected[0]
+        self.assertSequenceEqual(address, [1, 1])
+
+    def test_macrophage_bursting_negative_number_bacteria(self):
+
+        self.topology.automata[0].grid[1, 1]['contents'].state = 'chronically_infected'
+        self.topology.automata[0].grid[1, 1]['contents'].intracellular_bacteria = 19
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+    def test_macrophage_bursting_process(self):
+
+        self.topology.automata[0].grid[1, 1]['contents'].state = 'chronically_infected'
+        self.topology.automata[0].grid[1, 1]['contents'].intracellular_bacteria = 20
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.MacrophageBursting))
+
+        self.topology.automata[0].process_events([event])
+
+        self.assertEqual(len(self.topology.automata[0].macrophages), 0)
+        self.assertEqual(self.topology.automata[0].grid[1, 1]['contents'], 'caseum')
 
 if __name__ == '__main__':
     unittest.main()
