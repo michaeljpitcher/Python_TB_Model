@@ -27,7 +27,7 @@ class Topology:
                                                                                 parameters['max_depth'])
 
         # Halo of depth 1 - needed for calculating diffusion rates
-        # TODO - COMP -is there a better way of doing this?
+        # TODO - COMP - is there a better way of doing this?
         depth1_addresses = self.get_external_addresses_required(self.automata[0], 1)
 
         # Set the halo address and halo of depth 1 address
@@ -646,7 +646,7 @@ class EventHandler:
         self.set_attribute_work_grid(macrophage_to_burst.address, 'contents', 'caseum')
         self.macrophages.remove(macrophage_to_burst)
 
-        # TODO - bacteria stuff
+        # TODO - COMP - bacteria stuff
 
 
 class Automaton(Tile, Neighbourhood, EventHandler):
@@ -1088,7 +1088,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     internal = self.address_is_on_grid(macrophage.address)
                     new_event = MacrophageBursting(macrophage.address, internal)
                     self.potential_events.append(new_event)
-                    # TODO - bacteria addresses
+                    # TODO - COMP - bacteria addresses
 
         # BACTERIUM STATE CHANGES
         if self.time > 2 / self.parameters['time_step']:
@@ -1393,8 +1393,6 @@ class TCell(Agent):
 # ------------------------------
 # EVENTS
 # ------------------------------
-
-# TODO - COMP -maybe don't attach agents if it's internal?
 
 class Event(object):
 
