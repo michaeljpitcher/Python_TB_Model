@@ -1242,18 +1242,18 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             self.set_attribute_grid(address, 'oxygen_diffusion_rate', oxygen_diffusion)
             self.set_attribute_grid(address, 'chemotherapy_diffusion_rate', chemotherapy_diffusion)
 
-        # Set diffusion rates on halo
+        # Set diffusion rates on halo depth 1
         for halo_address in self.halo_depth1:
             if self.get(halo_address) is not None:
 
-                # On grid
+                # Get initial rates
                 oxygen_diffusion = self.parameters['oxygen_diffusion']
                 chemotherapy_diffusion = self.parameters['chemotherapy_diffusion']
-
+                # Get neighbours
                 neighbours = []
                 for i in range(1, int(self.parameters['caseum_distance_to_reduce_diffusion']) + 1):
                     neighbours += self.neighbours_moore(halo_address, i)
-
+                # Check if caseum in neighbourhood exceeds threshold
                 caseum_count = 0
                 for neighbour_address in neighbours:
                     cell = self.get(neighbour_address)
@@ -1267,7 +1267,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                             # Exit the loop
                             break
 
-                # Need to set the values on the current grid
+                # Need to set the values on the halo
                 index = self.halo_addresses.index(halo_address)
                 self.halo_cells[index]['oxygen_diffusion_rate'] = oxygen_diffusion
                 self.halo_cells[index]['chemotherapy_diffusion_rate'] = chemotherapy_diffusion
@@ -1361,7 +1361,6 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             # Only process if not boundary
             if neighbour is not None:
                 neighbour_diffusion = self.parameters['chemokine_diffusion']
-
                 expression += ((cell_diffusion + neighbour_diffusion) / 2 * (
                     neighbour['chemokine'] - cell['chemokine'])) / (
                                   self.parameters['spatial_step'] * self.parameters['spatial_step'])
@@ -1381,7 +1380,6 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         new_chemokine = cell['chemokine'] + self.parameters['time_step'] * expression
 
         self.max_chemokine_local = max(self.max_chemokine_local, new_chemokine)
-
         return new_chemokine
 
     def set_max_oxygen_global(self, max_oxygen):
@@ -1397,7 +1395,6 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         self.number_of_bacteria_global = number
 
     def oxygen_scale(self, address):
-
         if self.max_oxygen_global == 0.0:
             return 0.0
         else:
@@ -1439,15 +1436,28 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             self.set_attribute_work_grid(t.address, 'contents', t)
 
     def find_max_chemokine_neighbour(self, neighbours):
-
+        """
+        Given neighbour addresses, find the neighbour which has the highest level of chemokine
+        :param neighbours:
+        :return:
+        """
         max_chemokine_scale = 0
-        chosen_index = 0
+        highest_indices = []
         for index in range(len(neighbours)):
             if self.get(neighbours[index]) is not None:
                 chemokine_scale = self.chemokine_scale(neighbours[index])
-                if chemokine_scale >= max_chemokine_scale:
+                if chemokine_scale > max_chemokine_scale:
                     max_chemokine_scale = chemokine_scale
-                    chosen_index = index
+                    highest_indices = [index]
+                elif chemokine_scale == max_chemokine_scale:
+                    highest_indices.append(index)
+
+        # Tie-breaking. If just one pick it, else pick any one index at random
+        if len(highest_indices) == 1:
+            chosen_index = highest_indices[0]
+        else:
+            choice = np.random.randint(0, len(highest_indices))
+            chosen_index = highest_indices[choice]
 
         return chosen_index, max_chemokine_scale
 

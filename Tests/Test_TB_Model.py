@@ -199,9 +199,46 @@ class AutomatonTestCase(unittest.TestCase):
         # TODO - more tests
         params = dict()
         params['max_depth'] = 3
-        atts = ['a', 'b', 'c']
+        params['caseum_distance_to_reduce_diffusion'] = 1
+        atts = ['a', 'contents', 'chemokine']
         self.automaton = TB_Model.Automaton([5, 5], 1, atts, params, [], [], [], [])
 
+    def test_find_max_chemokine_neighbour(self):
+        self.automaton.grid[1, 1]['chemokine'] = 99
+        self.automaton.set_max_chemokine_global(99)
+        neighbours = self.automaton.neighbours_moore([2, 2], 1)
+        self.assertEqual(self.automaton.find_max_chemokine_neighbour(neighbours)[0], neighbours.index([1, 1]))
+        self.assertEqual(self.automaton.find_max_chemokine_neighbour(neighbours)[1], 100)
+
+    def test_find_max_chemokine_neighbour_tied(self):
+        # [1,1] and [3,3] are equal
+        self.automaton.grid[1, 1]['chemokine'] = 99
+        self.automaton.grid[3, 3]['chemokine'] = 99
+        self.automaton.set_max_chemokine_global(99)
+        neighbours = self.automaton.neighbours_moore([2, 2], 1)
+        # Force random to be [3,3]
+        np.random.seed(1)
+        self.assertEqual(self.automaton.find_max_chemokine_neighbour(neighbours)[0], neighbours.index([3, 3]))
+        self.assertEqual(self.automaton.find_max_chemokine_neighbour(neighbours)[1], 100)
+        # Force random to be [1,1]
+        np.random.seed(100)
+        self.assertEqual(self.automaton.find_max_chemokine_neighbour(neighbours)[0], neighbours.index([1, 1]))
+        self.assertEqual(self.automaton.find_max_chemokine_neighbour(neighbours)[1], 100)
+
+    def test_persist_agents(self):
+        b = TB_Model.Bacterium([0, 0], 'fast')
+        m = TB_Model.Macrophage([0, 1], 'resting')
+        t = TB_Model.TCell([0, 2])
+
+        self.automaton.bacteria.append(b)
+        self.automaton.macrophages.append(m)
+        self.automaton.t_cells.append(t)
+
+        self.automaton.persist_agents()
+
+        self.assertEqual(self.automaton.work_grid[0, 0]['contents'], b)
+        self.assertEqual(self.automaton.work_grid[0, 1]['contents'], m)
+        self.assertEqual(self.automaton.work_grid[0, 2]['contents'], t)
 
 class TopologyTestCase(unittest.TestCase):
 
