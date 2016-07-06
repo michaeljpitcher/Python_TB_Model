@@ -141,14 +141,14 @@ class TileTestCase(unittest.TestCase):
 
         self.tile.set_attribute_grid([2, 2], 'a', 99.0)
         self.assertEqual(self.tile.grid[2, 2]['a'], 99.0)
-        # TODO - expect exception
-        # self.tile.set_attribute_grid([2, 2], 'not set', 99.0)
+        # Check an exception is raised if the attribute doesn't exist
+        self.assertRaises(Exception, self.tile.set_attribute_grid, [2, 2], 'not set', 99.0)
 
     def test_set_att_work(self):
         self.tile.set_attribute_work_grid([2, 2], 'a', 99.0)
         self.assertEqual(self.tile.work_grid[2, 2]['a'], 99.0)
-        # TODO - expect exception
-        # self.tile.set_attribute_grid([2, 2], 'not set', 99.0)
+        # Check an exception is raised if the attribute doesn't exist
+        self.assertRaises(Exception, self.tile.set_attribute_grid, [2, 2], 'not set', 99.0)
 
 
 class NeighbourhoodTestCase(unittest.TestCase):
