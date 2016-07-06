@@ -45,7 +45,9 @@ class Topology:
         for i in range(0, automaton.grid.size):
             # Pull the addresses of cells in neighbourhood of this cell
             address = automaton.location_to_address(i)
-            neighbours = automaton.neighbours_moore(address, depth)
+            neighbours = []
+            for j in range(1, depth+1):
+                neighbours += automaton.neighbours_moore(address, j)
             # For every neighbour cell
             for neighbour in neighbours:
                 # Check neighbour not on grid and hasn't been processes already
@@ -321,7 +323,7 @@ class Tile:
             index = self.halo_addresses.index(address)
             return self.halo_cells[index]
         else:
-            raise Exception("Failure at get method")
+            raise Exception("Failure at get method", address, self.halo_addresses)
 
     def get_attribute(self, address, attribute):
         """
@@ -374,12 +376,22 @@ class Tile:
 class Neighbourhood:
 
     def __init__(self, dimensions, max_depth):
-
         self.dimensions = dimensions
-        self.neighbour_table = self.construct_neighbour_table(max_depth)
+        self.neighbour_table_moore, self.neighbour_table_von_neumann = self.construct_neighbour_table(max_depth)
 
     def construct_neighbour_table(self, max_depth):
-        table = dict()
+        """
+        Creates the required tables listing the addresses for varying depths for Moore and Von Neumann neighbourhoods.
+        This is done once at the start so that we don't keep dynamically generating addresses each time.
+        :param max_depth:
+        :return:
+        """
+        moore_table = dict()
+        von_neumann_table = dict()
+
+        # Set up the required entries for Von Neumann
+        for d in range(1, max_depth + 1):
+            von_neumann_table[d] = []
 
         for d in range(max_depth):
 
@@ -387,9 +399,23 @@ class Neighbourhood:
             range_ = range(-depth, depth + 1)
             row = list(itertools.product(range_, repeat=self.dimensions))
             row.remove((0,) * self.dimensions)
-            table[depth] = row
+            reduced_row_moore = []
+            von_neumann_table[depth] = []
 
-        return table
+            for neighbour in row:
+                # Calculate Manhattan distance and add to appropraite von Neumann table row
+                manhattan_distance = int(sum([math.fabs(x) for x in neighbour]))
+                if manhattan_distance <= max_depth and neighbour not in von_neumann_table[manhattan_distance]:
+                    von_neumann_table[manhattan_distance].append(neighbour)
+
+                for x in neighbour:
+                    if int(math.fabs(x)) == depth:
+                        reduced_row_moore.append(neighbour)
+                        break
+
+            moore_table[depth] = reduced_row_moore
+
+        return moore_table, von_neumann_table
 
     def calculate_neighbours_locations(self, address, table):
         """
@@ -407,7 +433,7 @@ class Neighbourhood:
             output.append(neighbour)
         return output
 
-    def neighbours_moore(self, address, depth=1, inclusive=True):
+    def neighbours_moore(self, address, depth=1):
         """
         Address of neighbours in the Moore neighbourhood of given depth
         :param address:
@@ -415,20 +441,10 @@ class Neighbourhood:
         :param inclusive: Include lower depths?
         :return:
         """
-        table = self.neighbour_table[depth]
-        # If not inclusive, remove any neighbours in smaller depths
-        # TODO - COMP - is this a slow way of doing things?
-        if not inclusive:
-            reduced_table = []
-            for neighbour in table:
-                for x in neighbour:
-                    if int(math.fabs(x)) == depth:
-                        reduced_table.append(neighbour)
-                        break
-            table = reduced_table
+        table = self.neighbour_table_moore[depth]
         return self.calculate_neighbours_locations(address, table)
 
-    def neighbours_von_neumann(self, address, depth=1, inclusive=True):
+    def neighbours_von_neumann(self, address, depth=1):
         """
         Gives the neighbours in the Von Neumann neighbourhood of address of given depth
         :param address:
@@ -436,19 +452,8 @@ class Neighbourhood:
         :param inclusive: Includes lower depths?
         :return:
         """
-
-        # Build truth table of all possible values based on depth of the neighbourhood and number of dimensions
-        table = self.neighbour_table[depth]
-        # Reduce the values based on their Manhattan distance
-        # TODO - COMP - is this a slow way of doing things?
-        reduced_table = []
-        for k in table:
-            # Check the Manhattan distance is up to the depth (inclusive) or equal to depth (exclusive)
-            if (inclusive and int(sum([math.fabs(x) for x in k])) <= depth) or \
-                    ((not inclusive) and int(sum([math.fabs(x) for x in k])) == depth):
-                reduced_table.append(k)
-
-        return self.calculate_neighbours_locations(address, reduced_table)
+        table = self.neighbour_table_von_neumann[depth]
+        return self.calculate_neighbours_locations(address, table)
 
 
 class EventHandler:
@@ -787,9 +792,9 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
                 for depth in range(1, 4):
                     if bacterium.neighbourhood == 'mo':
-                        neighbours = self.neighbours_moore(bacterium.address, depth, False)
+                        neighbours = self.neighbours_moore(bacterium.address, depth)
                     else:
-                        neighbours = self.neighbours_von_neumann(bacterium.address, depth, False)
+                        neighbours = self.neighbours_von_neumann(bacterium.address, depth)
 
                     for neighbour_address in neighbours:
                         neighbour = self.get(neighbour_address)
@@ -1130,7 +1135,10 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             chemotherapy_diffusion = self.parameters['chemotherapy_diffusion']
 
             # Check if there is specified amount of caseum within specified distance of cell
-            neighbours = self.neighbours_moore(address, int(self.parameters['caseum_distance']))
+            neighbours = []
+            for i in range(1, int(self.parameters['caseum_distance']) + 1):
+                neighbours += self.neighbours_moore(address, i)
+
             caseum_count = 0
             for neighbour_address in neighbours:
                 cell = self.get(neighbour_address)
@@ -1156,7 +1164,10 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 oxygen_diffusion = self.parameters['oxygen_diffusion']
                 chemotherapy_diffusion = self.parameters['chemotherapy_diffusion']
 
-                neighbours = self.neighbours_moore(halo_address, int(self.parameters['caseum_distance']))
+                neighbours = []
+                for i in range(1, int(self.parameters['caseum_distance']) + 1):
+                    neighbours += self.neighbours_moore(halo_address, i)
+
                 caseum_count = 0
                 for neighbour_address in neighbours:
                     cell = self.get(neighbour_address)

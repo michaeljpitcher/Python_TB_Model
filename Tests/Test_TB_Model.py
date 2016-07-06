@@ -156,25 +156,32 @@ class NeighbourhoodTestCase(unittest.TestCase):
     def setUp(self):
         self.neighbourhood = TB_Model.Neighbourhood(2, 3)
 
-    def test_neighbour_table(self):
-        table = self.neighbourhood.neighbour_table[1]
+    def test_neighbour_table_moore(self):
+        table = self.neighbourhood.neighbour_table_moore[1]
         self.assertItemsEqual(table, [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)])
 
-    def test_calculate_neighbour_location(self):
-        table = self.neighbourhood.neighbour_table[1]
+        table = self.neighbourhood.neighbour_table_moore[2]
+        self.assertItemsEqual(table, [(-2, -2), (-2, -1), (-2, 0), (-2, 1), (-2, 2), (-1, -2), (-1, 2), (0, -2), (0, 2),
+                                      (1, -2), (1, 2), (2, -2), (2, -1), (2, 0), (2, 1), (2, 2)])
+
+        table = self.neighbourhood.neighbour_table_moore[3]
+        self.assertItemsEqual(table,
+                              [(-3, -3), (-3, -2), (-3, -1), (-3, 0), (-3, 1), (-3, 2), (-3, 3), (-2, -3), (-2, 3),
+                               (-1, -3), (-1, 3), (0, -3), (0, 3), (1, -3), (1, 3), (2, -3), (2, 3), (3, -3), (3, -2),
+                               (3, -1), (3, 0), (3, 1), (3, 2), (3, 3)])
+
+    def test_calculate_neighbour_location_moore(self):
+        table = self.neighbourhood.neighbour_table_moore[1]
         locations = self.neighbourhood.calculate_neighbours_locations([2, 2], table)
         self.assertItemsEqual(locations, [[1, 1], [1, 2], [1, 3], [2, 1], [2, 3], [3, 1], [3, 2], [3, 3]])
 
+    def test_calculate_neighbour_location_von_neumann(self):
+        table = self.neighbourhood.neighbour_table_von_neumann[1]
+        locations = self.neighbourhood.calculate_neighbours_locations([2, 2], table)
+        self.assertItemsEqual(locations, [[2, 3], [1, 2], [2, 1], [3, 2]])
+
     def test_neighbours_moore(self):
-        nm_1 = self.neighbourhood.neighbours_moore([2, 2], 1, True)
-        self.assertItemsEqual(nm_1, [[1, 1], [1, 2], [1, 3], [2, 1], [2, 3], [3, 1], [3, 2], [3, 3]])
-        nm_2_inc = self.neighbourhood.neighbours_moore([2, 2], 2, True)
-        self.assertItemsEqual(nm_2_inc, [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4],
-                                         [1, 0], [1, 1], [1, 2], [1, 3], [1, 4],
-                                         [2, 0], [2, 1], [2, 3], [2, 4],
-                                         [3, 0], [3, 1], [3, 2], [3, 3], [3, 4],
-                                         [4, 0], [4, 1], [4, 2], [4, 3], [4, 4]])
-        nm_2_exc = self.neighbourhood.neighbours_moore([2, 2], 2, False)
+        nm_2_exc = self.neighbourhood.neighbours_moore([2, 2], 2)
         self.assertItemsEqual(nm_2_exc, [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4],
                                          [1, 0], [1, 4],
                                          [2, 0], [2, 4],
@@ -182,13 +189,7 @@ class NeighbourhoodTestCase(unittest.TestCase):
                                          [4, 0], [4, 1], [4, 2], [4, 3], [4, 4]])
 
     def test_neighbours_von_neumann(self):
-        nvn_1 = self.neighbourhood.neighbours_von_neumann([2, 2], 1, True)
-        self.assertItemsEqual(nvn_1, [[1, 2], [2, 1], [2, 3], [3, 2]])
-        nvn_2_inc = self.neighbourhood.neighbours_von_neumann([2, 2], 2, True)
-        self.assertItemsEqual(nvn_2_inc,
-                              [[0, 2], [1, 1], [1, 2], [1, 3], [2, 0], [2, 1], [2, 3], [2, 4], [3, 1], [3, 2], [3, 3],
-                               [4, 2]])
-        nvn_2_exc = self.neighbourhood.neighbours_von_neumann([2, 2], 2, False)
+        nvn_2_exc = self.neighbourhood.neighbours_von_neumann([2, 2], 2)
         self.assertItemsEqual(nvn_2_exc, [[0, 2], [1, 1], [1, 3], [2, 0], [2, 4], [3, 1], [3, 3], [4, 2]])
 
 
@@ -694,7 +695,7 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
                     cell['contents'] = 'caseum'
                 else:
                     cell['contents'] = 0.0
-                cell['oxyegn'] = 0.0
+                cell['oxygen'] = 0.0
                 halo.append(cell)
         self.topology.automata[0].set_halo(halo)
 
