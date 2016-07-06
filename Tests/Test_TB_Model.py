@@ -195,10 +195,11 @@ class NeighbourhoodTestCase(unittest.TestCase):
 class AutomatonTestCase(unittest.TestCase):
 
     def setUp(self):
+        # TODO - more tests
         params = dict()
         params['max_depth'] = 3
-        atts = ['a','b','c']
-        self.automaton = TB_Model.Automaton([5,5], 1, atts, params)
+        atts = ['a', 'b', 'c']
+        self.automaton = TB_Model.Automaton([5, 5], 1, atts, params, [], [], [], [])
 
 
 class TopologyTestCase(unittest.TestCase):
@@ -217,7 +218,7 @@ class TopologyTestCase(unittest.TestCase):
         self.topology = TB_Model.Topology([2, 2], [10, 10], atts, params, bv, fb, sb, m)
 
     def test_init(self):
-        self.assertEqual(len(self.topology.automata),4)
+        self.assertEqual(len(self.topology.automata), 4)
         self.assertEqual(self.topology.automata[0].shape[0], 5)
         self.assertEqual(self.topology.automata[0].shape[1], 5)
         self.assertEqual(self.topology.automata[1].shape[0], 5)
@@ -292,23 +293,24 @@ class TwoDimensionalTopologyTestCase(unittest.TestCase):
         params['max_depth'] = 3
         params['initial_oxygen'] = 1.0
         atts = ['a', 'b', 'c', 'blood_vessel', 'contents', 'oxygen']
-        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, [[3,3]], [[1,1]], [[9,9]], [[7,1]])
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, [[3, 3]], [[1, 1]], [[9, 9]],
+                                                        [[7, 1]])
 
     def test_init(self):
-        self.assertSequenceEqual(self.topology.origins,[[0,0], [0,5], [5,0], [5,5]])
+        self.assertSequenceEqual(self.topology.origins, [[0, 0], [0, 5], [5, 0], [5, 5]])
 
         tile0_dz_addresses = [[0, 2], [0, 3], [0, 4], [1, 2], [1, 3], [1, 4], [2, 0], [2, 1], [2, 2], [2, 3], [2, 4],
                               [3, 0], [3, 1], [3, 2], [3, 3], [3, 4], [4, 0], [4, 1], [4, 2], [4, 3], [4, 4]]
 
         self.assertItemsEqual(tile0_dz_addresses, self.topology.automata[0].danger_zone_addresses)
         tile1_dz_addresses = [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2], [2, 0], [2, 1], [2, 2], [2, 3], [2, 4],
-                          [3, 0], [3, 1], [3, 2], [3, 3], [3, 4], [4, 0], [4, 1], [4, 2], [4, 3], [4, 4]]
+                              [3, 0], [3, 1], [3, 2], [3, 3], [3, 4], [4, 0], [4, 1], [4, 2], [4, 3], [4, 4]]
         self.assertItemsEqual(tile1_dz_addresses, self.topology.automata[1].danger_zone_addresses)
         tile2_dz_addresses = [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [1, 0], [1, 1], [1, 2], [1, 3], [1, 4], [2, 0],
-                          [2, 1], [2, 2], [2, 3], [2, 4], [3, 2], [3, 3], [3, 4], [4, 2], [4, 3], [4, 4]]
+                              [2, 1], [2, 2], [2, 3], [2, 4], [3, 2], [3, 3], [3, 4], [4, 2], [4, 3], [4, 4]]
         self.assertItemsEqual(tile2_dz_addresses, self.topology.automata[2].danger_zone_addresses)
         tile3_dz_addresses = [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [1, 0], [1, 1], [1, 2], [1, 3], [1, 4], [2, 0],
-                          [2, 1], [2, 2], [2, 3], [2, 4], [3, 0], [3, 1], [3, 2], [4, 0], [4, 1], [4, 2]]
+                              [2, 1], [2, 2], [2, 3], [2, 4], [3, 0], [3, 1], [3, 2], [4, 0], [4, 1], [4, 2]]
         self.assertItemsEqual(tile3_dz_addresses, self.topology.automata[3].danger_zone_addresses)
 
     def test_normalise_address(self):
@@ -362,7 +364,8 @@ class TwoDimensionalTopologyTestCase(unittest.TestCase):
         self.parameters = dict()
         self.parameters['max_depth'] = 1
         self.parameters['initial_oxygen'] = 1.0
-        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [6, 6], self.attributes, self.parameters,[[3,3]])
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [6, 6], self.attributes, self.parameters, [[3, 3]], [],
+                                                        [], [])
 
         self.assertSequenceEqual(self.topology.local_to_local(0, [0, 4], 1), [0, 1])
         self.assertSequenceEqual(self.topology.local_to_local(0, [3, 2], 2), [0, 2])
@@ -380,7 +383,8 @@ class TwoDimensionalTopologyTestCase(unittest.TestCase):
         self.parameters = dict()
         self.parameters['max_depth'] = 1
         self.parameters['initial_oxygen'] = 1.0
-        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [6, 6], self.attributes, self.parameters, [[3,3]])
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [6, 6], self.attributes, self.parameters, [[3, 3]], [],
+                                                        [], [])
 
         tile_id = 0
         x = 0
@@ -478,7 +482,8 @@ class TwoDimensionalTopologyTestCase(unittest.TestCase):
         self.parameters = dict()
         self.parameters['max_depth'] = 1
         self.parameters['initial_oxygen'] = 1.0
-        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [6, 6], self.attributes, self.parameters, [[3,3]])
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [6, 6], self.attributes, self.parameters, [[3, 3]], [],
+                                                        [], [])
 
         tile_id = 0
         x = 0
@@ -645,7 +650,6 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         self.topology.automata[0].grid[0, 0]['contents'] = 'caseum'
         self.topology.automata[0].grid[0, 1]['contents'] = 'caseum'
 
-
         # Run the pre process loop
         self.topology.automata[0].diffusion_pre_process()
 
@@ -770,7 +774,7 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         self.assertEqual(self.topology.automata[0].chemokine([1, 0]), 0.0)
         self.assertEqual(self.topology.automata[0].chemokine([1, 2]), 0.0)
 
-        self.topology.automata[0].set_attribute_grid([1,1], 'chemokine', 0.0005)
+        self.topology.automata[0].set_attribute_grid([1, 1], 'chemokine', 0.0005)
 
         self.topology.automata[0].diffusion_pre_process()
         self.assertEqual(self.topology.automata[0].chemokine([1, 1]), 0.0009973265)
@@ -783,9 +787,12 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         self.topology.automata[0].diffusion_pre_process()
         for x in range(5):
             for y in range(5):
-                self.topology.automata[0].set_attribute_work_grid([x, y], 'oxygen', self.topology.automata[0].oxygen([x,y]))
-                self.topology.automata[0].set_attribute_work_grid([x, y], 'chemotherapy', self.topology.automata[0].chemotherapy([x, y]))
-                self.topology.automata[0].set_attribute_work_grid([x, y], 'chemokine', self.topology.automata[0].chemokine([x, y]))
+                self.topology.automata[0].set_attribute_work_grid([x, y], 'oxygen',
+                                                                  self.topology.automata[0].oxygen([x, y]))
+                self.topology.automata[0].set_attribute_work_grid([x, y], 'chemotherapy',
+                                                                  self.topology.automata[0].chemotherapy([x, y]))
+                self.topology.automata[0].set_attribute_work_grid([x, y], 'chemokine',
+                                                                  self.topology.automata[0].chemokine([x, y]))
 
         self.topology.automata[0].swap_grids()
 
@@ -877,8 +884,8 @@ class BacteriaReplicationTestCase(unittest.TestCase):
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.BacteriumReplication))
         self.assertEqual(len(event.addresses_affected), 1)
-        self.assertTrue(event.addresses_affected[0] == [0,1] or event.addresses_affected[0] == [1,0] or
-                        event.addresses_affected[0] == [1,1])
+        self.assertTrue(event.addresses_affected[0] == [0, 1] or event.addresses_affected[0] == [1, 0] or
+                        event.addresses_affected[0] == [1, 1])
 
     def test_bacteria_replication_event_process(self):
         self.sort_out_halos()
@@ -890,13 +897,13 @@ class BacteriaReplicationTestCase(unittest.TestCase):
         self.topology.automata[0].process_events([event])
 
         self.assertEqual(len(self.topology.automata[0].bacteria), 2)
-        self.assertTrue(isinstance(self.topology.automata[0].get_attribute(event.addresses_affected[0], 'contents')
-                                   , TB_Model.Bacterium))
+        self.assertTrue(isinstance(self.topology.automata[0].get_attribute(event.addresses_affected[0], 'contents'),
+                                   TB_Model.Bacterium))
 
     def test_bacteria_replication_across_boundary(self):
 
         self.topology.automata[0].bacteria = []
-        self.topology.automata[0].grid[0,0]['contents'] = 0.0
+        self.topology.automata[0].grid[0, 0]['contents'] = 0.0
         self.topology.automata[0].work_grid[0, 0]['contents'] = 0.0
 
         #    C C C
@@ -937,7 +944,7 @@ class BacteriaReplicationTestCase(unittest.TestCase):
         for x in range(5):
             for y in range(5):
                 if x == 3 and y == 4:
-                    self.assertTrue(isinstance(self.topology.automata[0].grid[x,y]['contents'], TB_Model.Bacterium))
+                    self.assertTrue(isinstance(self.topology.automata[0].grid[x, y]['contents'], TB_Model.Bacterium))
 
                 if x == 3 and y == 0:
                     self.assertTrue(isinstance(self.topology.automata[1].grid[x, y]['contents'], TB_Model.Bacterium))
@@ -1014,10 +1021,10 @@ class TCellRecruitmentTestCase(unittest.TestCase):
         for x in range(5):
             for y in range(5):
                 if x == event.addresses_affected[0][0] and y == event.addresses_affected[0][1]:
-                    self.assertTrue(isinstance(self.topology.automata[0].get_attribute([x,y], 'contents'),
-                                   TB_Model.TCell))
+                    self.assertTrue(
+                        isinstance(self.topology.automata[0].get_attribute([x, y], 'contents'), TB_Model.TCell))
                 else:
-                    self.assertEqual(self.topology.automata[0].get_attribute([x,y], 'contents'), 0.0)
+                    self.assertEqual(self.topology.automata[0].get_attribute([x, y], 'contents'), 0.0)
 
     def test_t_cell_recruited_across_boundary(self):
 
@@ -1047,9 +1054,8 @@ class TCellRecruitmentTestCase(unittest.TestCase):
         atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
                 'chemotherapy', 'chemokine']
 
-
         # Only 1 space next to the blood vessel is free (and it's on a different tile)
-        blood_vessels = [[0,4]]
+        blood_vessels = [[0, 4]]
         fast_bacteria = []
         slow_bacteria = []
         macrophages = []
@@ -1064,12 +1070,12 @@ class TCellRecruitmentTestCase(unittest.TestCase):
         self.topology.automata[1].grid[1, 0]['contents'] = 'caseum'
 
         self.topology.automata[0].update()
-        self.assertTrue(self.topology.automata[0].potential_events[0].addresses_affected[0] == [0,5])
+        self.assertTrue(self.topology.automata[0].potential_events[0].addresses_affected[0] == [0, 5])
 
         event = self.topology.automata[0].potential_events[0]
 
         new_address = self.topology.local_to_local(0, event.addresses_affected[0], 1)
-        self.assertTrue(new_address == [0,0])
+        self.assertTrue(new_address == [0, 0])
 
         new_event = event.clone([new_address])
 
@@ -1134,7 +1140,7 @@ class MacrophageRecruitmentTestCase(unittest.TestCase):
         slow_bacteria = []
         macrophages = []
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
-                                                    slow_bacteria, macrophages)
+                                                        slow_bacteria, macrophages)
 
     def sort_out_halos(self):
         dz = []
@@ -1212,7 +1218,7 @@ class MacrophageRecruitmentTestCase(unittest.TestCase):
         self.assertTrue(self.topology.automata[0].potential_events[0].addresses_affected[0] == [0, 5])
 
         event = self.topology.automata[0].potential_events[0]
-        self.assertTrue(isinstance(event,TB_Model.RecruitMacrophage))
+        self.assertTrue(isinstance(event, TB_Model.RecruitMacrophage))
 
         new_address = self.topology.local_to_local(0, event.addresses_affected[0], 1)
         self.assertTrue(new_address == [0, 0])
@@ -1310,7 +1316,7 @@ class ChemotherapyKillsBacteriaTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.ChemoKillBacterium))
-        self.assertTrue(event.addresses_affected[0] == [1,1])
+        self.assertTrue(event.addresses_affected[0] == [1, 1])
 
         self.topology.automata[1].update()
         self.assertEqual(len(self.topology.automata[1].potential_events), 1)
@@ -1331,7 +1337,6 @@ class ChemotherapyKillsBacteriaTestCase(unittest.TestCase):
         self.topology.automata[0].max_chemotherapy_local = 1
         self.topology.automata[1].max_chemotherapy_local = 1
         self.topology.automata[3].max_chemotherapy_local = 2
-
 
         # So max chemo is 2, and 1,1 / 2,2 have 50%.
 
@@ -1388,7 +1393,7 @@ class ChemotherapyKillsBacteriaTestCase(unittest.TestCase):
         # Now process
         self.topology.automata[0].process_events([event_0])
         self.assertEqual(len(self.topology.automata[0].bacteria), 0)
-        self.assertEqual(self.topology.automata[0].grid[1,1]['contents'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[1, 1]['contents'], 0.0)
 
         self.topology.automata[1].process_events([event_1])
         self.assertEqual(len(self.topology.automata[1].bacteria), 0)
@@ -1472,7 +1477,7 @@ class ChemotherapyKillsMacrophageTestCase(unittest.TestCase):
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.ChemoKillMacrophage))
         address = event.addresses_affected[0]
-        self.assertTrue(address == [1,1])
+        self.assertTrue(address == [1, 1])
 
     def test_chemokillmacrophage_chronic_infected(self):
 
@@ -1519,7 +1524,7 @@ class ChemotherapyKillsMacrophageTestCase(unittest.TestCase):
         # Now process
         self.topology.automata[0].process_events([event])
         self.assertEqual(len(self.topology.automata[0].macrophages), 0)
-        self.assertEqual(self.topology.automata[0].grid[1,1]['contents'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[1, 1]['contents'], 0.0)
 
     def test_chemokillmacrophage_negative_resting(self):
 
@@ -1648,7 +1653,7 @@ class TCellDeathTestCase(unittest.TestCase):
         # PROCESS
         self.topology.automata[0].process_events([event])
         self.assertEqual(len(self.topology.automata[0].t_cells), 0)
-        self.assertEqual(self.topology.automata[0].grid[1,1]['contents'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[1, 1]['contents'], 0.0)
 
     def test_tcell_death_negative_bacteria_threshold(self):
         # Don't think this makes sense, but based on Ruth's code (i.e. why does number of bacteria stop/cause
@@ -1843,9 +1848,8 @@ class TCellMovementTestCase(unittest.TestCase):
         self.assertSequenceEqual(event.addresses_affected[1], [4, 5])
 
         # Now process
-        new_addresses = []
-        new_addresses.append(self.topology.local_to_local(0, event.addresses_affected[0], 1))
-        new_addresses.append(self.topology.local_to_local(0, event.addresses_affected[1], 1))
+        new_addresses = [self.topology.local_to_local(0, event.addresses_affected[0], 1),
+                         self.topology.local_to_local(0, event.addresses_affected[1], 1)]
 
         self.assertSequenceEqual(new_addresses[0], [4, -1])
         self.assertSequenceEqual(new_addresses[1], [4, 0])
@@ -1855,10 +1859,10 @@ class TCellMovementTestCase(unittest.TestCase):
         self.assertSequenceEqual(new_event.addresses_affected[1], [4, 0])
 
         self.topology.automata[0].process_events([event])
-        self.assertEqual(self.topology.automata[0].grid[4,4]['contents'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[4, 4]['contents'], 0.0)
 
         self.topology.automata[1].process_events([new_event])
-        self.assertTrue(isinstance(self.topology.automata[1].grid[4,0]['contents'], TB_Model.TCell))
+        self.assertTrue(isinstance(self.topology.automata[1].grid[4, 0]['contents'], TB_Model.TCell))
 
     def test_t_cell_movement_negative_number_bacteria(self):
 
@@ -2011,7 +2015,6 @@ class TCellKillsMacrophageTestCase(unittest.TestCase):
         self.assertEqual(self.topology.automata[0].grid[1, 1]['contents'], 0.0)
         self.assertEqual(self.topology.automata[0].grid[1, 2]['contents'], 'caseum')
 
-
     def test_tcell_kill_macrophage_negative_resting(self):
 
         np.random.seed(100)
@@ -2030,7 +2033,6 @@ class TCellKillsMacrophageTestCase(unittest.TestCase):
         self.sort_out_halos()
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 0)
-
 
     def test_tcell_kill_macrophage_negative_active(self):
         # Add a t-cell to [1,1]
@@ -2069,7 +2071,6 @@ class TCellKillsMacrophageTestCase(unittest.TestCase):
         self.sort_out_halos()
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 0)
-
 
     def test_tcell_kills_macrophage_across_boundary_process(self):
         params = dict()
@@ -2152,6 +2153,7 @@ class TCellKillsMacrophageTestCase(unittest.TestCase):
         self.assertEqual(self.topology.automata[1].grid[4, 0]['contents'], 'caseum')
         self.assertEqual(len(self.topology.automata[1].macrophages), 0)
 
+
 class MacrophageDeathTestCase(unittest.TestCase):
 
     def setUp(self):
@@ -2211,7 +2213,7 @@ class MacrophageDeathTestCase(unittest.TestCase):
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.MacrophageDeath))
         address = event.addresses_affected[0]
-        self.assertSequenceEqual(address, [1,1])
+        self.assertSequenceEqual(address, [1, 1])
 
     def test_macrophage_death_active(self):
 
@@ -2361,6 +2363,7 @@ class MacrophageDeathTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].macrophages), 0)
         self.assertEqual(self.topology.automata[0].grid[1, 1]['contents'], 'caseum')
 
+
 class MacrophageMovementTestCase(unittest.TestCase):
 
     def setUp(self):
@@ -2424,7 +2427,7 @@ class MacrophageMovementTestCase(unittest.TestCase):
         np.random.seed(100)
 
         # Set [1,2] as max chemokine cell - make sure it doesn't go here though (cause it's a random move)
-        self.topology.automata[0].grid[1,2]['chemokine'] = 99
+        self.topology.automata[0].grid[1, 2]['chemokine'] = 99
         self.topology.automata[0].max_chemokine_global = 99
 
         self.topology.automata[0].update()
@@ -2709,9 +2712,8 @@ class MacrophageMovementTestCase(unittest.TestCase):
         self.assertTrue(isinstance(event, TB_Model.MacrophageMovement))
         self.assertFalse(event.internal)
 
-        new_addresses = []
-        new_addresses.append(self.topology.local_to_local(0, event.addresses_affected[0], 1))
-        new_addresses.append(self.topology.local_to_local(0, event.addresses_affected[1], 1))
+        new_addresses = [self.topology.local_to_local(0, event.addresses_affected[0], 1),
+                         self.topology.local_to_local(0, event.addresses_affected[1], 1)]
 
         new_event = event.clone(new_addresses)
 
@@ -2722,6 +2724,7 @@ class MacrophageMovementTestCase(unittest.TestCase):
         self.topology.automata[1].process_events([new_event])
         self.assertEqual(len(self.topology.automata[1].macrophages), 1)
         self.assertTrue(isinstance(self.topology.automata[1].grid[4, 0]['contents'], TB_Model.Macrophage))
+
 
 class MacrophageKillsBacteria(unittest.TestCase):
 
@@ -2829,7 +2832,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
 
     def test_active_macrophage_kill_fast_bacteria(self):
 
-        self.topology.automata[0].grid[1,1]['contents'].state = 'active'
+        self.topology.automata[0].grid[1, 1]['contents'].state = 'active'
         self.topology.automata[0].parameters['prob_active_macrophage_kill_fast_bacteria'] = 100
 
         # Set [1,2] as max chemokine cell - make sure it goes here
@@ -2991,7 +2994,6 @@ class MacrophageKillsBacteria(unittest.TestCase):
         self.topology.automata[0].grid[1, 1]['contents'].state = 'active'
         self.topology.automata[0].parameters['prob_active_macrophage_kill_fast_bacteria'] = 100
 
-
         # Set [1,2] as max chemokine cell - make sure it goes here
         self.topology.automata[0].grid[1, 2]['chemokine'] = 99.9
         self.topology.automata[0].max_chemokine_global = 99.9
@@ -3089,9 +3091,8 @@ class MacrophageKillsBacteria(unittest.TestCase):
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(event, TB_Model.MacrophageKillsBacterium)
 
-        new_addresses = []
-        new_addresses.append(self.topology.local_to_local(0, event.addresses_affected[0], 1))
-        new_addresses.append(self.topology.local_to_local(0, event.addresses_affected[1], 1))
+        new_addresses = [self.topology.local_to_local(0, event.addresses_affected[0], 1),
+                         self.topology.local_to_local(0, event.addresses_affected[1], 1)]
 
         new_event = event.clone(new_addresses)
 
@@ -3102,6 +3103,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
         self.topology.automata[1].process_events([new_event])
         self.assertTrue(isinstance(self.topology.automata[1].grid[4, 0]['contents'], TB_Model.Macrophage))
         self.assertEqual(len(self.topology.automata[1].macrophages), 1)
+
 
 class MacrophageChangesState(unittest.TestCase):
 
@@ -3261,6 +3263,7 @@ class MacrophageChangesState(unittest.TestCase):
 
         self.topology.automata[0].process_events([event])
         self.assertEqual(self.topology.automata[0].grid[1, 1]['contents'].state, 'active')
+
 
 class BacteriaChangesMetabolismTestCase(unittest.TestCase):
     def setUp(self):

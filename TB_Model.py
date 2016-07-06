@@ -5,8 +5,8 @@ import itertools
 
 class Topology:
 
-    def __init__(self, tile_arrangement, total_shape, attributes, parameters, blood_vessel_local=[],
-                 fast_bacteria_local=[], slow_bacteria_local=[], macrophages_local = []):
+    def __init__(self, tile_arrangement, total_shape, attributes, parameters, blood_vessel_local,
+                 fast_bacteria_local, slow_bacteria_local, macrophages_local):
 
         self.number_of_tiles = reduce(lambda x, y: x * y, tile_arrangement)
         self.total_shape = np.array(total_shape)
@@ -28,7 +28,7 @@ class Topology:
 
         # Halo of depth 1 - needed for calculating diffusion rates
         # TODO - COMP -is there a better way of doing this?
-        depth1_addresses = self.get_external_addresses_required(self.automata[0],1)
+        depth1_addresses = self.get_external_addresses_required(self.automata[0], 1)
 
         # Set the halo address and halo of depth 1 address
         for automaton in self.automata:
@@ -60,11 +60,11 @@ class TwoDimensionalTopology(Topology):
     2d Grid Topology (amend normalise address if Toroid needed)
     """
 
-    def __init__(self, tile_arrangement, total_shape, attributes, parameters, blood_vessel_global=[],
-                 fast_bacteria_global=[], slow_bacteria_global=[], macrophages_global = []):
+    def __init__(self, tile_arrangement, total_shape, attributes, parameters, blood_vessel_global,
+                 fast_bacteria_global, slow_bacteria_global, macrophages_global):
         # Check it's two dimensions
         assert len(total_shape) == 2
-        self.number_of_tiles = reduce(lambda x, y: x * y, tile_arrangement)
+        self.number_of_tiles = reduce(lambda a, q: a * q, tile_arrangement)
         self.total_shape = np.array(total_shape)
         self.tile_shape = self.total_shape / tile_arrangement
         self.tile_arrangement = tile_arrangement
@@ -641,7 +641,7 @@ class EventHandler:
         #self.set_attribute_work_grid(event.address, 'contents', bacterium)
 
     def process_macrophage_bursting(self, event):
-        print "MACROPHAGE BURTSING"
+        print "MACROPHAGE BURSTING"
         macrophage_to_burst = self.get_attribute(event.macrophage_address, 'contents')
         self.set_attribute_work_grid(macrophage_to_burst.address, 'contents', 'caseum')
         self.macrophages.remove(macrophage_to_burst)
@@ -771,13 +771,13 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
             division = False
             if bacterium.metabolism == 'fast':
-                max = self.parameters['bacteria_replication_fast_upper']
-                min = self.parameters['bacteria_replication_fast_lower']
+                maximum = self.parameters['bacteria_replication_fast_upper']
+                minimum = self.parameters['bacteria_replication_fast_lower']
             else:  # Slow
-                max = self.parameters['bacteria_replication_slow_upper']
-                min = self.parameters['bacteria_replication_fast_lower']
+                maximum = self.parameters['bacteria_replication_slow_upper']
+                minimum = self.parameters['bacteria_replication_fast_lower']
 
-            replication_time = np.random.randint(min, max)
+            replication_time = np.random.randint(minimum, maximum)
 
             if self.time % replication_time == 0:
                 division = True
@@ -785,7 +785,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             if division:
                 free_neighbours = []
 
-                for depth in range(1,4):
+                for depth in range(1, 4):
                     if bacterium.neighbourhood == 'mo':
                         neighbours = self.neighbours_moore(bacterium.address, depth, False)
                     else:
@@ -803,7 +803,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 if len(free_neighbours) == 0:
                     bacterium.resting = True
                     bacterium.age = 0.0
-                else: # Free space found
+                else:  # Free space found
                     neighbour_address = free_neighbours[np.random.randint(len(free_neighbours))]
 
                     if self.address_is_on_grid(neighbour_address):
@@ -895,9 +895,9 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 if t_cell.age >= age_threshold:
                     new_event = TCellDeath(t_cell.address)
                     self.potential_events.append(new_event)
-                else: #  T-CELL MOVE
+                else:  # T-CELL MOVE
                     random_move = False
-                    prob_random_move = np.random.randint(1,101)
+                    prob_random_move = np.random.randint(1, 101)
                     if prob_random_move <= self.parameters['t_cell_random_move_probability']:
                         random_move = True
 
@@ -948,7 +948,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     neighbours = self.neighbours_moore(macrophage.address, 1)
                     chosen_index, max_chemokine_scale = self.find_max_chemokine_neighbour(neighbours)
 
-                    prob_random_move = np.random.randint(1,101)
+                    prob_random_move = np.random.randint(1, 101)
                     random_move = False
                     if prob_random_move <= self.parameters['prob_resting_macrophage_random_move'] \
                             or max_chemokine_scale <= \
@@ -990,7 +990,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
                     if isinstance(neighbour['contents'], Bacterium):
 
-                        prob_macrophage_kill =  np.random.randint(1,101)
+                        prob_macrophage_kill = np.random.randint(1, 101)
                         if (neighbour['contents'].metabolism == 'fast' and prob_macrophage_kill <= self.parameters[
                                 'prob_active_macrophage_kill_fast_bacteria']) or (
                                 neighbour['contents'].metabolism == 'slow' and prob_macrophage_kill <= self.parameters[
@@ -1095,8 +1095,6 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
             for bacterium in self.bacteria:
 
-                scale = self.oxygen_scale(bacterium.address)
-
                 if bacterium.metabolism == 'fast' and self.oxygen_scale(bacterium.address) <= self.parameters[
                         'oxygen_scale_for_metabolism_change_to_slow']:
                     new_event = BacteriumChangesMetabolism(bacterium.address, 'slow')
@@ -1188,7 +1186,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         expression = 0
 
         # Get immediate von neumann neighbours
-        neighbour_addresses = self.neighbours_von_neumann(address,1)
+        neighbour_addresses = self.neighbours_von_neumann(address, 1)
         for neighbour_address in neighbour_addresses:
             neighbour = self.get(neighbour_address)
             # Only process if not boundary
@@ -1359,6 +1357,8 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 # ------------------------------
 # AGENTS
 # ------------------------------
+
+
 class Agent:
 
     def __init__(self, address):
@@ -1422,7 +1422,7 @@ class RecruitTCell(Event):
 
     def __init__(self, address, internal):
         self.t_cell_address = address
-        Event.__init__(self,[address], internal)
+        Event.__init__(self, [address], internal)
 
     def clone(self, new_addresses):
         return RecruitTCell(new_addresses[0], self.internal)
@@ -1527,6 +1527,7 @@ class BacteriumChangesMetabolism(Event):
         self.address = address
         self.new_metabolism = new_metabolism
         Event.__init__(self, [address], True)
+
 
 class MacrophageBursting(Event):
     def __init__(self, macrophage_address, internal):
