@@ -721,6 +721,11 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         Tile.__init__(self, shape, attributes)
         Neighbourhood.__init__(self, len(shape), parameters['max_depth'])
         EventHandler.__init__(self)
+
+        # Max depth must be +1 or more greater than the caseum distance as we need to work out diffusion rates one
+        # cell deep into the halo
+        assert parameters['caseum_distance_to_reduce_diffusion'] + 1 <= parameters['max_depth']
+
         self.tile_id = tile_id
         self.parameters = parameters
         self.time = 0
@@ -1186,35 +1191,47 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         np.random.shuffle(self.potential_events)
 
     def process_events(self, events):
-
+        """
+        Given a list of acceptable addresses, pass to the Event Handler to update the grid
+        :param events:
+        :return:
+        """
         for event in events:
             self.handle_event(event)
 
+        # Ensure all agents are put onto the work grid
         self.persist_agents()
-
+        # Swap work grid with main grid
         self.swap_grids()
 
     def diffusion_pre_process(self):
+        """
+        Pre-processing for diffusion. Looks through all cells and calculates the diffusion rates - diffusion rate
+        of oxygen and chemotherapy drops if there is too much caseum in the vicinity
+        :return:
+        """
 
+        # Loop through all cells
         for location in range(self.size):
             address = self.location_to_address(location)
 
-            # On grid
+            # Get initial diffusion rates
             oxygen_diffusion = self.parameters['oxygen_diffusion']
             chemotherapy_diffusion = self.parameters['chemotherapy_diffusion']
 
-            # Check if there is specified amount of caseum within specified distance of cell
+            # Get all neighbours up to the specified distance
             neighbours = []
-            for i in range(1, int(self.parameters['caseum_distance']) + 1):
+            for i in range(1, int(self.parameters['caseum_distance_to_reduce_diffusion']) + 1):
                 neighbours += self.neighbours_moore(address, i)
 
+            # Check if there is specified amount of caseum within specified distance of cell
             caseum_count = 0
             for neighbour_address in neighbours:
                 cell = self.get(neighbour_address)
                 if cell is not None and cell['contents'] == 'caseum':
                     caseum_count += 1
                     # Once the caseum threshold is reached
-                    if caseum_count == self.parameters['caseum_threshold']:
+                    if caseum_count == self.parameters['caseum_threshold_to_reduce_diffusion']:
                         # Decrease the diffusion level at the cell
                         oxygen_diffusion /= self.parameters['oxygen_diffusion_caseum_reduction']
                         chemotherapy_diffusion /= self.parameters['chemotherapy_diffusion_caseum_reduction']
@@ -1234,7 +1251,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 chemotherapy_diffusion = self.parameters['chemotherapy_diffusion']
 
                 neighbours = []
-                for i in range(1, int(self.parameters['caseum_distance']) + 1):
+                for i in range(1, int(self.parameters['caseum_distance_to_reduce_diffusion']) + 1):
                     neighbours += self.neighbours_moore(halo_address, i)
 
                 caseum_count = 0
@@ -1243,7 +1260,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     if cell is not None and cell['contents'] == 'caseum':
                         caseum_count += 1
                         # Once the caseum threshold is reached
-                        if caseum_count == self.parameters['caseum_threshold']:
+                        if caseum_count == self.parameters['caseum_threshold_to_reduce_diffusion']:
                             # Decrease the diffusion level at the cell
                             oxygen_diffusion /= self.parameters['oxygen_diffusion_caseum_reduction']
                             chemotherapy_diffusion /= self.parameters['chemotherapy_diffusion_caseum_reduction']
