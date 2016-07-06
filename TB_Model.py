@@ -2,6 +2,29 @@ import numpy as np
 import math
 import itertools
 
+'''
+Tuberculosis Automaton Model
+Michael J. Pitcher
+School of Computer Science, University of St. Andrews
+
+Creates a parallelised cellular automaton / agent hybrid model, where the grid is split into multiple smaller grids
+to improve performance. A series of automata run updates on the tiles and agents which are on the grids, and these
+create a series of potential events. Once conflicting events are resolved (handled elsewhere) the acceptable events
+are passed back to automata which update the tiles, and the process repeats as needed.
+
+Some terminology:
+
+Cell - the individual blocks of the tile (here represented as a dictionary of attributes)
+Tile - the smaller grids which constitute the larger overall grid
+Size - Number of cells in a tile
+Shape - Arrangement of cells in a tile
+Address - an (x,y,z,etc.) collection of co-ordinates for a cell
+Location - an integer value for a cell (e.g. in a 2D grid of shape [5,5], location 1 == address [0,1],
+           location 8 == address [1,3]
+Halo - the cells required by a tile for updating which are not a part of the tile (belong to other tiles)
+Danger Zone - the cells in a tile which will be required by other tiles (i.e. are part of other tiles' halos)
+'''
+
 
 class Topology:
 
@@ -220,7 +243,6 @@ class TwoDimensionalTopology(Topology):
 class Tile:
 
     def __init__(self, shape, attributes):
-
         self.shape = shape
         self.attributes = attributes
         self.size = reduce(lambda x, y: x * y, shape)
@@ -394,27 +416,25 @@ class Neighbourhood:
             von_neumann_table[d] = []
 
         for d in range(max_depth):
-
             depth = d+1
+            # Get truth table values
             range_ = range(-depth, depth + 1)
             row = list(itertools.product(range_, repeat=self.dimensions))
+            # Remove the (0,0) entry
             row.remove((0,) * self.dimensions)
             reduced_row_moore = []
             von_neumann_table[depth] = []
-
             for neighbour in row:
                 # Calculate Manhattan distance and add to appropraite von Neumann table row
                 manhattan_distance = int(sum([math.fabs(x) for x in neighbour]))
                 if manhattan_distance <= max_depth and neighbour not in von_neumann_table[manhattan_distance]:
                     von_neumann_table[manhattan_distance].append(neighbour)
-
+                # Check if one of coordinates = depth, if so then use for moore at this depth
                 for x in neighbour:
                     if int(math.fabs(x)) == depth:
                         reduced_row_moore.append(neighbour)
                         break
-
             moore_table[depth] = reduced_row_moore
-
         return moore_table, von_neumann_table
 
     def calculate_neighbours_locations(self, address, table):
@@ -462,6 +482,11 @@ class EventHandler:
         pass
 
     def handle_event(self, event):
+        """
+        Given an event, call the appropriate function to make changes to the grid
+        :param event:
+        :return:
+        """
         if isinstance(event, BacteriumReplication):
             self.process_bacterium_replication(event)
         elif isinstance(event, RecruitTCell):
@@ -494,40 +519,75 @@ class EventHandler:
             raise Exception("Event ", type(event), "not handled")
 
     def process_bacterium_replication(self, event):
+        """
+        Add a new bacteria to the grid
+        :param event:
+        :return:
+        """
         print "BACTERIUM REPLICATION"
         # Only process if the new bacterium address is on the grid
         if self.address_is_on_grid(event.new_bacterium_address):
             self.add_bacterium(event.new_bacterium_address, event.new_metabolism)
 
     def process_t_cell_recruitment(self, event):
+        """
+        Recruit a new t-cell from blood vessel
+        :param event:
+        :return:
+        """
         print "T CELL RECRUITMENT"
         # Only process if address is on the grid
         if self.address_is_on_grid(event.t_cell_address):
             self.add_t_cell(event.t_cell_address)
 
     def process_macrophage_recruitment(self, event):
+        """
+        Recruit a new macrophage from blood_vessel
+        :param event:
+        :return:
+        """
         print "MACROPHAGE RECRUITMENT"
         if self.address_is_on_grid(event.macrophage_address):
             self.add_macrophage(event.macrophage_address, "resting")
 
     def process_chemo_kill_bacterium(self, event):
+        """
+        Chemotherapy kills a bacterium
+        :param event:
+        :return:
+        """
         print "CHEMO KILL BACTERIUM"
         bacterium = self.get_attribute(event.address, 'contents')
         self.bacteria.remove(bacterium)
         #self.set_attribute_work_grid(event.address, 'contents', 0.0)
 
     def process_chemo_kill_macrophage(self, event):
+        """
+        Chemotherapy kills an infected macrophage
+        :param event:
+        :return:
+        """
         print "CHEMO KILL MACROPHAGE"
         self.macrophages.remove(event.macrophage_to_kill)
         #self.set_attribute_work_grid(event.macrophage_to_kill.address, 'contents', 0.0)
 
     def process_t_cell_death(self, event):
+        """
+        A t-cell dies (through age)
+        :param event:
+        :return:
+        """
         print "T-CELL DEATH"
         t_cell_to_die = self.get_attribute(event.address, 'contents')
         #self.set_attribute_work_grid(event.address, 'contents', 0.0)
         self.t_cells.remove(t_cell_to_die)
 
     def process_t_cell_movement(self, event):
+        """
+        A t-cell moves to a new cell
+        :param event:
+        :return:
+        """
         print "T-CELL MOVEMENT"
         from_address = event.addresses_affected[0]
         to_address = event.addresses_affected[1]
@@ -700,23 +760,26 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             self.blood_vessels.append(address)
 
     def initialise_bacteria(self, fast_bacteria, slow_bacteria):
-
         for address in fast_bacteria:
             self.add_bacterium(address, "fast")
         for address in slow_bacteria:
             self.add_bacterium(address, "slow")
 
     def initialise_macrophages(self, addresses):
-
         for address in addresses:
             self.add_macrophage(address, "resting")
 
     def initialise_oxygen_levels(self):
-
         for address in self.blood_vessels:
             self.set_attribute_grid(address, 'oxygen', self.parameters['initial_oxygen'])
 
     def update(self):
+        """
+        Performs the continuous update (diffusion of oxygen, chemokine, chemotherapy) and applies to the work grid,
+        and creates a list of potential events to be executed.
+        Events are based on the state of the current GRID (i.e. are not affected by the diffusion changes)
+        :return:
+        """
 
         self.time += 1
 
@@ -726,7 +789,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
         # Pre-processing (calculating diffusion rates)
         self.diffusion_pre_process()
-
+        # In chemo window?
         if (((self.parameters['chemotherapy_schedule1_start'] / self.parameters['time_step']) <=
                 self.time <
                 (self.parameters['chemotherapy_schedule1_end'] / self.parameters['time_step'])) or
@@ -734,15 +797,16 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             chemo = True
         else:
             chemo = False
-
+        # Reset local maximum values
         self.max_oxygen_local = 0.0
         self.max_chemotherapy_local = 0.0
         self.max_chemokine_local = 0.0
 
+        # Loop through all cells
         for i in range(self.size):
             address = self.location_to_address(i)
 
-            # Persist - of the cell has caseum, persist it, else clear it (agents will be added later)
+            # Persist - if the cell has caseum, persist it, else clear it (agents will be added later)
             if self.get_attribute(address, 'contents') == 'caseum':
                 self.set_attribute_work_grid(address, 'contents', 'caseum')
             else:
@@ -757,7 +821,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 chemotherapy_level = self.chemotherapy(address)
                 self.set_attribute_work_grid(address, 'chemotherapy', chemotherapy_level)
             else:
-                # TODO - MED - check validity of this (why does chemotherapy suddenly disappear)
+                # TODO - MED - check validity of this (how can chemotherapy suddenly disappear)
                 self.set_attribute_work_grid(address, 'chemotherapy', 0.0)
 
             # CHEMOKINE
@@ -768,9 +832,14 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         # DISCRETE (Agents)
         # ----------------------------
 
+        # Performs the necessary pre-condition checks for each event type and updates the list of potential events to
+        # take place this time-step
+
+        # Reset list
         self.potential_events = []
 
         # BACTERIA REPLICATION
+        # If bacteria is of suitable age, attempts to replicate (create a duplicate in neighbouring cell)
         for bacterium in self.bacteria:
             bacterium.age += self.parameters['time_step']
 
