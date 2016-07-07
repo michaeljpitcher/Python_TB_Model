@@ -568,7 +568,8 @@ class EventHandler:
         :return:
         """
         print "CHEMO KILL MACROPHAGE"
-        self.macrophages.remove(event.macrophage_to_kill)
+        macrophage = self.get_attribute(event.addresses_affected[0], 'contents')
+        self.macrophages.remove(macrophage)
         #self.set_attribute_work_grid(event.macrophage_to_kill.address, 'contents', 0.0)
 
     def process_t_cell_death(self, event):
@@ -957,7 +958,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             chemo_scale = self.chemotherapy_scale(m.address)
             if ((m.state == 'infected' or m.state == 'chronically_infected') and chemo_scale >
                     self.parameters['chemotherapy_scale_for_kill_macrophage']):
-                new_event = ChemoKillMacrophage(m)
+                new_event = ChemoKillMacrophage(m.address)
                 self.potential_events.append(new_event)
 
         # T-CELL DEATH, MOVEMENT & MACROPHAGE KILLING
@@ -1552,10 +1553,10 @@ class ChemoKillBacterium(Event):
 
 class ChemoKillMacrophage(Event):
 
-    def __init__(self, macrophage_to_kill):
-        self.macrophage_to_kill = macrophage_to_kill
+    def __init__(self, address):
+        self.macrophage_to_kill_address = address
         # Chemo killing is always internal
-        Event.__init__(self, [macrophage_to_kill.address], True)
+        Event.__init__(self, [address], True)
 
 
 class TCellDeath(Event):
