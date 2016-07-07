@@ -2,6 +2,7 @@ import TB_Model
 import ConfigParser
 import itertools
 import numpy as np
+import time
 
 
 def run_single(topology, time_limit):
@@ -276,7 +277,7 @@ def main():
     time_limit = config.getint("RunParametersSection", "time_limit")
     method = config.get("RunParametersSection", "method")
 
-    # TODO - LOAD INITIALISATION
+    # LOAD INITIALISATION
     blood_vessels = []
     fast_bacteria = []
     slow_bacteria = []
@@ -287,6 +288,9 @@ def main():
     topology = TB_Model.TwoDimensionalTopology(tile_arrangement, total_shape, attributes, parameters, blood_vessels,
                                                fast_bacteria, slow_bacteria, macrophages)
 
+    start_time = time.time()
+
+
     if method == 'single':
         run_single(topology, time_limit)
     elif method == 'many_serial':
@@ -295,6 +299,11 @@ def main():
         run_many_parallel(topology, time_limit)
     else:
         raise Exception("Invalid method")
+
+
+    elapsed_time = time.time() - start_time
+
+    print "TIME TAKEN:", elapsed_time, "seconds"
 
 
 if __name__ == '__main__':

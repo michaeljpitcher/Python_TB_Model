@@ -1141,7 +1141,6 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                         self.potential_events.append(new_event)
 
         # MACROPHAGE STATE CHANGES
-        # TODO - MED - not time-dependent (awaiting clarification if this is ok)
         for macrophage in self.macrophages:
 
             if macrophage.state == 'resting':
