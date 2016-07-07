@@ -15,8 +15,8 @@ def run_many_serial(topology, time_limit):
 
     # HALOS
     dz_addresses = []
-    for tile_id in range(number_tiles):
-        dz_addresses.append(topology.automata[tile_id].danger_zone_addresses)
+    for tile_id_of_event in range(number_tiles):
+        dz_addresses.append(topology.automata[tile_id_of_event].danger_zone_addresses)
 
     values = []
     halo_addresses = topology.external_addresses_required
@@ -39,8 +39,8 @@ def run_many_serial(topology, time_limit):
         number_bacteria = 0
 
         # 1. Get DZ values from engines
-        for tile_id in range(number_tiles):
-            automaton = topology.automata[tile_id]
+        for tile_id_of_event in range(number_tiles):
+            automaton = topology.automata[tile_id_of_event]
 
             # ---------------- BACK -----------------------------
             values.append(automaton.get_danger_zone())
@@ -89,55 +89,72 @@ def run_many_serial(topology, time_limit):
 
         # 6. VETO CONFLICTING EVENTS
         for i in range(total_num_events):
-            tile_id = automata_with_events_left[np.random.randint(0, len(automata_with_events_left))]
+            # Pick a tile at random to pull events from
+            # TODO - COMP - check validity of this approach
+            tile_id_of_event = automata_with_events_left[np.random.randint(0, len(automata_with_events_left))]
 
-            event = received_events[tile_id].pop()
+            event = received_events[tile_id_of_event].pop()
 
             # Wholly internal
             if event.internal:
                 flag = True
-                for address in event.addresses_affected:
-                    if address in addresses_processed[tile_id]:
+                for address in event.dependant_addresses:
+                    if address in addresses_processed[tile_id_of_event]:
                         flag = False
                         break
                 if flag:
-                    events_to_return[tile_id].append(event)
-                    addresses_processed[tile_id] += event.addresses_affected
+                    # Loop through the impacted addresses. If an impacted address has already been processed, then
+                    # it will not be affected
+                    for impacted_address in event.impacted_addresses_potential:
+                        if impacted_address not in addresses_processed[tile_id_of_event]:
+                            event.impacted_addresses_allowed.append(impacted_address)
+                            addresses_processed[tile_id_of_event].append(impacted_address)
+                    events_to_return[tile_id_of_event].append(event)
             else:  # Crosses a boundary
                 flag = True
-                tiles_affected = []
-                for address in event.addresses_affected:
-                    global_address = topology.local_to_global(tile_id, address)
+                for address in event.dependant_addresses:
+                    global_address = topology.local_to_global(tile_id_of_event, address)
                     local_tile_id, local_address = topology.global_to_local(global_address)
-                    tiles_affected.append(local_tile_id)
                     if local_address in addresses_processed[local_tile_id]:
                         flag = False
                         break
+                # Event is acceptable
                 if flag:
-                    for index in range(len(tiles_affected)):
-
-                        tile_affected = tiles_affected[index]
-
-                        if tile_affected == tile_id:
-                            events_to_return[tile_id].append(event)
-                            addresses_processed[tile_id] += event.addresses_affected
+                    # Determine which of the impacted addresses can be processed
+                    tiles_impacted = []
+                    for impacted_address in event.impacted_addresses_potential:
+                        global_address = topology.local_to_global(tile_id_of_event, impacted_address)
+                        local_tile_id, local_address = topology.global_to_local(global_address)
+                        if local_address not in addresses_processed[local_tile_id]:
+                            event.impacted_addresses_allowed.append(impacted_address)
+                            addresses_processed[local_tile_id].append(local_address)
+                            tiles_impacted.append(local_tile_id)
+                    # Having determine which addresses can be impacted and what tiles are affected, sort out events
+                    for impacted_tile_id in tiles_impacted:
+                        # If it's the original tile, just return the event and record addresses
+                        if impacted_tile_id == tile_id_of_event:
+                            events_to_return[tile_id_of_event].append(event)
+                            addresses_processed[tile_id_of_event] += event.impacted_addresses
+                        # If this event impacts a new tile, need to clone the event and add addresses relative to
+                        # the new tile
                         else:
                             new_addresses = []
-                            for address in event.addresses_affected:
-                                new_addresses.append(topology.local_to_local(tile_id, address, tile_affected))
+                            for address in event.impacted_addresses_allowed:
+                                new_addresses.append(
+                                    topology.local_to_local(tile_id_of_event, address, impacted_tile_id))
                             new_event = event.clone(new_addresses)
-                            events_to_return[tile_affected].append(new_event)
-                            addresses_processed[tile_affected] += new_addresses
+                            new_event.impacted_addresses_allowed = new_addresses
+                            events_to_return[impacted_tile_id].append(new_event)
 
-            if len(received_events[tile_id]) == 0:
-                automata_with_events_left.remove(tile_id)
+            if len(received_events[tile_id_of_event]) == 0:
+                automata_with_events_left.remove(tile_id_of_event)
 
         # SEND EVENTS TO TILES TO PERFORM
-        for tile_id in range(len(topology.automata)):
-            automaton = topology.automata[tile_id]
+        for tile_id_of_event in range(len(topology.automata)):
+            automaton = topology.automata[tile_id_of_event]
             # ------------------- OUT ----------------------------
             # 7 & 8. Send events, perform events
-            automaton.process_events(events_to_return[tile_id])
+            automaton.process_events(events_to_return[tile_id_of_event])
             # ------------------- OUT ----------------------------
             # print automaton.grid
 

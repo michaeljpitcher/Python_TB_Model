@@ -926,9 +926,9 @@ class BacteriaReplicationTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.BacteriumReplication))
-        self.assertEqual(len(event.addresses_affected), 1)
-        self.assertTrue(event.addresses_affected[0] == [0, 1] or event.addresses_affected[0] == [1, 0] or
-                        event.addresses_affected[0] == [1, 1])
+        self.assertEqual(len(event.dependant_addresses), 1)
+        self.assertTrue(event.dependant_addresses[0] == [0, 1] or event.dependant_addresses[0] == [1, 0] or
+                        event.dependant_addresses[0] == [1, 1])
 
     def test_bacteria_replication_event_process(self):
         self.sort_out_halos()
@@ -940,7 +940,7 @@ class BacteriaReplicationTestCase(unittest.TestCase):
         self.topology.automata[0].process_events([event])
 
         self.assertEqual(len(self.topology.automata[0].bacteria), 2)
-        self.assertTrue(isinstance(self.topology.automata[0].get_attribute(event.addresses_affected[0], 'contents'),
+        self.assertTrue(isinstance(self.topology.automata[0].get_attribute(event.dependant_addresses[0], 'contents'),
                                    TB_Model.Bacterium))
 
     def test_bacteria_replication_across_boundary(self):
@@ -971,9 +971,9 @@ class BacteriaReplicationTestCase(unittest.TestCase):
 
         self.assertEqual(len(self.topology.automata[1].potential_events), 1)
         event = self.topology.automata[1].potential_events[0]
-        self.assertTrue(event.addresses_affected[0] == [3, -1])
+        self.assertTrue(event.dependant_addresses[0] == [3, -1])
 
-        new_address = self.topology.local_to_local(1, event.addresses_affected[0], 0)
+        new_address = self.topology.local_to_local(1, event.dependant_addresses[0], 0)
         self.assertTrue(new_address == [3, 4])
 
         new_event = event.clone([new_address])
@@ -1051,7 +1051,7 @@ class TCellRecruitmentTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         self.assertTrue(isinstance(self.topology.automata[0].potential_events[0], TB_Model.RecruitTCell))
 
-        address = self.topology.automata[0].potential_events[0].addresses_affected[0]
+        address = self.topology.automata[0].potential_events[0].dependant_addresses[0]
         distance = math.fabs(address[0] - 3) + math.fabs(address[1] - 3)
         self.assertEqual(distance, 1)
 
@@ -1063,7 +1063,7 @@ class TCellRecruitmentTestCase(unittest.TestCase):
 
         for x in range(5):
             for y in range(5):
-                if x == event.addresses_affected[0][0] and y == event.addresses_affected[0][1]:
+                if x == event.dependant_addresses[0][0] and y == event.dependant_addresses[0][1]:
                     self.assertTrue(
                         isinstance(self.topology.automata[0].get_attribute([x, y], 'contents'), TB_Model.TCell))
                 else:
@@ -1113,11 +1113,11 @@ class TCellRecruitmentTestCase(unittest.TestCase):
         self.topology.automata[1].grid[1, 0]['contents'] = 'caseum'
 
         self.topology.automata[0].update()
-        self.assertTrue(self.topology.automata[0].potential_events[0].addresses_affected[0] == [0, 5])
+        self.assertTrue(self.topology.automata[0].potential_events[0].dependant_addresses[0] == [0, 5])
 
         event = self.topology.automata[0].potential_events[0]
 
-        new_address = self.topology.local_to_local(0, event.addresses_affected[0], 1)
+        new_address = self.topology.local_to_local(0, event.dependant_addresses[0], 1)
         self.assertTrue(new_address == [0, 0])
 
         new_event = event.clone([new_address])
@@ -1204,7 +1204,7 @@ class MacrophageRecruitmentTestCase(unittest.TestCase):
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.RecruitMacrophage))
 
-        address = event.addresses_affected[0]
+        address = event.dependant_addresses[0]
         distance = math.fabs(address[0] - 3) + math.fabs(address[1] - 3)
         self.assertEqual(distance, 1)
 
@@ -1215,7 +1215,7 @@ class MacrophageRecruitmentTestCase(unittest.TestCase):
         self.topology.automata[0].process_events(events)
 
         self.assertEqual(len(self.topology.automata[0].macrophages), 1)
-        self.assertTrue(isinstance(self.topology.automata[0].get_attribute(events[0].addresses_affected[0], 'contents'),
+        self.assertTrue(isinstance(self.topology.automata[0].get_attribute(events[0].dependant_addresses[0], 'contents'),
                                    TB_Model.Macrophage))
 
     def test_macrophage_recruited_across_boundary(self):
@@ -1258,12 +1258,12 @@ class MacrophageRecruitmentTestCase(unittest.TestCase):
         self.topology.automata[1].grid[1, 0]['contents'] = 'caseum'
 
         self.topology.automata[0].update()
-        self.assertTrue(self.topology.automata[0].potential_events[0].addresses_affected[0] == [0, 5])
+        self.assertTrue(self.topology.automata[0].potential_events[0].dependant_addresses[0] == [0, 5])
 
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.RecruitMacrophage))
 
-        new_address = self.topology.local_to_local(0, event.addresses_affected[0], 1)
+        new_address = self.topology.local_to_local(0, event.dependant_addresses[0], 1)
         self.assertTrue(new_address == [0, 0])
 
         new_event = event.clone([new_address])
@@ -1359,14 +1359,14 @@ class ChemotherapyKillsBacteriaTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.ChemoKillBacterium))
-        self.assertTrue(event.addresses_affected[0] == [1, 1])
+        self.assertTrue(event.dependant_addresses[0] == [1, 1])
 
         self.topology.automata[1].update()
         self.assertEqual(len(self.topology.automata[1].potential_events), 1)
         self.assertTrue(isinstance(self.topology.automata[1].potential_events[0], TB_Model.ChemoKillBacterium))
         event = self.topology.automata[1].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.ChemoKillBacterium))
-        self.assertTrue(event.addresses_affected[0] == [2, 2])
+        self.assertTrue(event.dependant_addresses[0] == [2, 2])
 
     def test_chemokillbacteria_negative_both(self):
 
@@ -1407,7 +1407,7 @@ class ChemotherapyKillsBacteriaTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.ChemoKillBacterium))
-        self.assertTrue(event.addresses_affected[0] == [1, 1])
+        self.assertTrue(event.dependant_addresses[0] == [1, 1])
 
         self.topology.automata[1].update()
         self.assertEqual(len(self.topology.automata[1].potential_events), 0)
@@ -1519,7 +1519,7 @@ class ChemotherapyKillsMacrophageTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.ChemoKillMacrophage))
-        address = event.addresses_affected[0]
+        address = event.dependant_addresses[0]
         self.assertTrue(address == [1, 1])
 
     def test_chemokillmacrophage_chronic_infected(self):
@@ -1541,7 +1541,7 @@ class ChemotherapyKillsMacrophageTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.ChemoKillMacrophage))
-        address = event.addresses_affected[0]
+        address = event.dependant_addresses[0]
         self.assertTrue(address == [1, 1])
 
     def test_process_chemokillmacrophage(self):
@@ -1677,7 +1677,7 @@ class TCellDeathTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.TCellDeath))
-        address = event.addresses_affected[0]
+        address = event.dependant_addresses[0]
         self.assertTrue(address == [1, 1])
 
     def test_process_tcell_death(self):
@@ -1810,8 +1810,8 @@ class TCellMovementTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.TCellMovement))
-        self.assertTrue(event.addresses_affected[0] == [1, 1])
-        self.assertSequenceEqual(event.addresses_affected[1], [0, 1])
+        self.assertTrue(event.dependant_addresses[0] == [1, 1])
+        self.assertSequenceEqual(event.dependant_addresses[1], [0, 1])
 
         # Just in case
         np.random.seed(None)
@@ -1838,8 +1838,8 @@ class TCellMovementTestCase(unittest.TestCase):
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.TCellMovement))
 
-        self.assertTrue(event.addresses_affected[0] == [1, 1])
-        self.assertSequenceEqual(event.addresses_affected[1], [0, 0])
+        self.assertTrue(event.dependant_addresses[0] == [1, 1])
+        self.assertSequenceEqual(event.dependant_addresses[1], [0, 0])
 
     def test_t_cell_movement_process(self):
         t_cell = TB_Model.TCell([1, 1])
@@ -1855,8 +1855,8 @@ class TCellMovementTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.TCellMovement))
-        self.assertTrue(event.addresses_affected[0] == [1, 1])
-        self.assertSequenceEqual(event.addresses_affected[1], [0, 1])
+        self.assertTrue(event.dependant_addresses[0] == [1, 1])
+        self.assertSequenceEqual(event.dependant_addresses[1], [0, 1])
 
         # Now process
         self.topology.automata[0].process_events([event])
@@ -1887,19 +1887,19 @@ class TCellMovementTestCase(unittest.TestCase):
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.TCellMovement))
 
-        self.assertSequenceEqual(event.addresses_affected[0], [4, 4])
-        self.assertSequenceEqual(event.addresses_affected[1], [4, 5])
+        self.assertSequenceEqual(event.dependant_addresses[0], [4, 4])
+        self.assertSequenceEqual(event.dependant_addresses[1], [4, 5])
 
         # Now process
-        new_addresses = [self.topology.local_to_local(0, event.addresses_affected[0], 1),
-                         self.topology.local_to_local(0, event.addresses_affected[1], 1)]
+        new_addresses = [self.topology.local_to_local(0, event.dependant_addresses[0], 1),
+                         self.topology.local_to_local(0, event.dependant_addresses[1], 1)]
 
         self.assertSequenceEqual(new_addresses[0], [4, -1])
         self.assertSequenceEqual(new_addresses[1], [4, 0])
 
         new_event = event.clone(new_addresses)
-        self.assertSequenceEqual(new_event.addresses_affected[0], [4, -1])
-        self.assertSequenceEqual(new_event.addresses_affected[1], [4, 0])
+        self.assertSequenceEqual(new_event.dependant_addresses[0], [4, -1])
+        self.assertSequenceEqual(new_event.dependant_addresses[1], [4, 0])
 
         self.topology.automata[0].process_events([event])
         self.assertEqual(self.topology.automata[0].grid[4, 4]['contents'], 0.0)
@@ -2010,7 +2010,7 @@ class TCellKillsMacrophageTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.TCellKillsMacrophage))
-        addresses = event.addresses_affected
+        addresses = event.dependant_addresses
         self.assertSequenceEqual(addresses[0], [1, 1])
         self.assertSequenceEqual(addresses[1], [1, 2])
 
@@ -2031,7 +2031,7 @@ class TCellKillsMacrophageTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.TCellKillsMacrophage))
-        addresses = event.addresses_affected
+        addresses = event.dependant_addresses
         self.assertSequenceEqual(addresses[0], [1, 1])
         self.assertSequenceEqual(addresses[1], [1, 2])
 
@@ -2174,7 +2174,7 @@ class TCellKillsMacrophageTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.TCellKillsMacrophage))
-        addresses = event.addresses_affected
+        addresses = event.dependant_addresses
         self.assertSequenceEqual(addresses[0], [4, 4])
         self.assertSequenceEqual(addresses[1], [4, 5])
 
@@ -2185,8 +2185,8 @@ class TCellKillsMacrophageTestCase(unittest.TestCase):
         self.assertSequenceEqual(new_addresses[1], [4, 0])
 
         new_event = event.clone(new_addresses)
-        self.assertSequenceEqual(new_event.addresses_affected[0], [4, -1])
-        self.assertSequenceEqual(new_event.addresses_affected[1], [4, 0])
+        self.assertSequenceEqual(new_event.dependant_addresses[0], [4, -1])
+        self.assertSequenceEqual(new_event.dependant_addresses[1], [4, 0])
 
         self.topology.automata[0].process_events([event])
         self.assertEqual(self.topology.automata[0].grid[4, 4]['contents'], 0.0)
@@ -2255,7 +2255,7 @@ class MacrophageDeathTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.MacrophageDeath))
-        address = event.addresses_affected[0]
+        address = event.dependant_addresses[0]
         self.assertSequenceEqual(address, [1, 1])
 
     def test_macrophage_death_active(self):
@@ -2269,7 +2269,7 @@ class MacrophageDeathTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.MacrophageDeath))
-        address = event.addresses_affected[0]
+        address = event.dependant_addresses[0]
         self.assertSequenceEqual(address, [1, 1])
 
     def test_macrophage_death_infected(self):
@@ -2281,7 +2281,7 @@ class MacrophageDeathTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.MacrophageDeath))
-        address = event.addresses_affected[0]
+        address = event.dependant_addresses[0]
         self.assertSequenceEqual(address, [1, 1])
 
     def test_macrophage_death_chronically_infected(self):
@@ -2293,7 +2293,7 @@ class MacrophageDeathTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.MacrophageDeath))
-        address = event.addresses_affected[0]
+        address = event.dependant_addresses[0]
         self.assertSequenceEqual(address, [1, 1])
 
     def test_macrophage_resting_death_negative_age(self):
@@ -2477,7 +2477,7 @@ class MacrophageMovementTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(event, TB_Model.MacrophageMovement)
-        addresses = event.addresses_affected
+        addresses = event.dependant_addresses
         self.assertSequenceEqual(addresses[0], [1, 1])
         self.assertSequenceEqual(addresses[1], [1, 0])
 
@@ -2499,7 +2499,7 @@ class MacrophageMovementTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(event, TB_Model.MacrophageMovement)
-        addresses = event.addresses_affected
+        addresses = event.dependant_addresses
         self.assertSequenceEqual(addresses[0], [1, 1])
         self.assertSequenceEqual(addresses[1], [1, 0])
 
@@ -2519,7 +2519,7 @@ class MacrophageMovementTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(event, TB_Model.MacrophageMovement)
-        addresses = event.addresses_affected
+        addresses = event.dependant_addresses
         self.assertSequenceEqual(addresses[0], [1, 1])
         self.assertSequenceEqual(addresses[1], [1, 0])
 
@@ -2555,7 +2555,7 @@ class MacrophageMovementTestCase(unittest.TestCase):
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.MacrophageMovement))
         self.assertFalse(event.internal)
-        addresses = event.addresses_affected
+        addresses = event.dependant_addresses
         self.assertSequenceEqual(addresses[0], [4, 4])
         self.assertSequenceEqual(addresses[1], [4, 5])
 
@@ -2571,7 +2571,7 @@ class MacrophageMovementTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.MacrophageMovement))
-        addresses = event.addresses_affected
+        addresses = event.dependant_addresses
         self.assertSequenceEqual(addresses[0], [1, 1])
         self.assertSequenceEqual(addresses[1], [2, 1])
 
@@ -2595,7 +2595,7 @@ class MacrophageMovementTestCase(unittest.TestCase):
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.MacrophageMovement))
         self.assertFalse(event.internal)
-        addresses = event.addresses_affected
+        addresses = event.dependant_addresses
         self.assertSequenceEqual(addresses[0], [4, 4])
         self.assertSequenceEqual(addresses[1], [4, 5])
 
@@ -2621,7 +2621,7 @@ class MacrophageMovementTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.MacrophageMovement))
-        addresses = event.addresses_affected
+        addresses = event.dependant_addresses
         self.assertSequenceEqual(addresses[0], [1, 1])
         self.assertSequenceEqual(addresses[1], [2, 1])
 
@@ -2645,7 +2645,7 @@ class MacrophageMovementTestCase(unittest.TestCase):
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.MacrophageMovement))
         self.assertFalse(event.internal)
-        addresses = event.addresses_affected
+        addresses = event.dependant_addresses
         self.assertSequenceEqual(addresses[0], [4, 4])
         self.assertSequenceEqual(addresses[1], [4, 5])
 
@@ -2671,7 +2671,7 @@ class MacrophageMovementTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.MacrophageMovement))
-        addresses = event.addresses_affected
+        addresses = event.dependant_addresses
         self.assertSequenceEqual(addresses[0], [1, 1])
         self.assertSequenceEqual(addresses[1], [2, 1])
 
@@ -2695,7 +2695,7 @@ class MacrophageMovementTestCase(unittest.TestCase):
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.MacrophageMovement))
         self.assertFalse(event.internal)
-        addresses = event.addresses_affected
+        addresses = event.dependant_addresses
         self.assertSequenceEqual(addresses[0], [4, 4])
         self.assertSequenceEqual(addresses[1], [4, 5])
 
@@ -2755,8 +2755,8 @@ class MacrophageMovementTestCase(unittest.TestCase):
         self.assertTrue(isinstance(event, TB_Model.MacrophageMovement))
         self.assertFalse(event.internal)
 
-        new_addresses = [self.topology.local_to_local(0, event.addresses_affected[0], 1),
-                         self.topology.local_to_local(0, event.addresses_affected[1], 1)]
+        new_addresses = [self.topology.local_to_local(0, event.dependant_addresses[0], 1),
+                         self.topology.local_to_local(0, event.dependant_addresses[1], 1)]
 
         new_event = event.clone(new_addresses)
 
@@ -2844,7 +2844,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(event, TB_Model.MacrophageKillsBacterium)
-        addresses = event.addresses_affected
+        addresses = event.dependant_addresses
         self.assertSequenceEqual(addresses[0], [1, 1])
         self.assertSequenceEqual(addresses[1], [1, 2])
         self.assertTrue(event.internal)
@@ -2869,7 +2869,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.MacrophageKillsBacterium))
         self.assertFalse(event.internal)
-        addresses = event.addresses_affected
+        addresses = event.dependant_addresses
         self.assertSequenceEqual(addresses[0], [4, 4])
         self.assertSequenceEqual(addresses[1], [4, 5])
 
@@ -2888,7 +2888,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(event, TB_Model.MacrophageKillsBacterium)
-        addresses = event.addresses_affected
+        addresses = event.dependant_addresses
         self.assertSequenceEqual(addresses[0], [1, 1])
         self.assertSequenceEqual(addresses[1], [1, 2])
         self.assertTrue(event.internal)
@@ -2909,7 +2909,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(event, TB_Model.MacrophageKillsBacterium)
-        addresses = event.addresses_affected
+        addresses = event.dependant_addresses
         self.assertSequenceEqual(addresses[0], [1, 1])
         self.assertSequenceEqual(addresses[1], [1, 2])
         self.assertTrue(event.internal)
@@ -2966,7 +2966,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(event, TB_Model.MacrophageKillsBacterium)
-        addresses = event.addresses_affected
+        addresses = event.dependant_addresses
         self.assertSequenceEqual(addresses[0], [4, 4])
         self.assertSequenceEqual(addresses[1], [4, 5])
         self.assertFalse(event.internal)
@@ -2984,7 +2984,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(event, TB_Model.MacrophageKillsBacterium)
-        addresses = event.addresses_affected
+        addresses = event.dependant_addresses
         self.assertSequenceEqual(addresses[0], [1, 1])
         self.assertSequenceEqual(addresses[1], [1, 2])
         self.assertTrue(event.internal)
@@ -3002,7 +3002,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(event, TB_Model.MacrophageKillsBacterium)
-        addresses = event.addresses_affected
+        addresses = event.dependant_addresses
         self.assertSequenceEqual(addresses[0], [1, 1])
         self.assertSequenceEqual(addresses[1], [1, 2])
         self.assertTrue(event.internal)
@@ -3134,8 +3134,8 @@ class MacrophageKillsBacteria(unittest.TestCase):
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(event, TB_Model.MacrophageKillsBacterium)
 
-        new_addresses = [self.topology.local_to_local(0, event.addresses_affected[0], 1),
-                         self.topology.local_to_local(0, event.addresses_affected[1], 1)]
+        new_addresses = [self.topology.local_to_local(0, event.dependant_addresses[0], 1),
+                         self.topology.local_to_local(0, event.dependant_addresses[1], 1)]
 
         new_event = event.clone(new_addresses)
 
@@ -3506,7 +3506,7 @@ class MacrophageBurstingTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.MacrophageBursting))
-        address = event.addresses_affected[0]
+        address = event.dependant_addresses[0]
         self.assertSequenceEqual(address, [1, 1])
 
     def test_macrophage_bursting_negative_number_bacteria(self):

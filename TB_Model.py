@@ -568,7 +568,7 @@ class EventHandler:
         :return:
         """
         print "CHEMO KILL MACROPHAGE"
-        macrophage = self.get_attribute(event.addresses_affected[0], 'contents')
+        macrophage = self.get_attribute(event.dependant_addresses[0], 'contents')
         self.macrophages.remove(macrophage)
         #self.set_attribute_work_grid(event.macrophage_to_kill.address, 'contents', 0.0)
 
@@ -590,8 +590,8 @@ class EventHandler:
         :return:
         """
         print "T-CELL MOVEMENT"
-        from_address = event.addresses_affected[0]
-        to_address = event.addresses_affected[1]
+        from_address = event.dependant_addresses[0]
+        to_address = event.dependant_addresses[1]
         # T-cell moving between 2 cells in the same tile
         if event.internal:
             t_cell = self.get_attribute(from_address, 'contents')
@@ -609,8 +609,8 @@ class EventHandler:
 
     def process_t_cell_kill_macrophage(self, event):
         print "T-CELL KILLS MACROPHAGE"
-        from_address = event.addresses_affected[0]
-        to_address = event.addresses_affected[1]
+        from_address = event.dependant_addresses[0]
+        to_address = event.dependant_addresses[1]
         if self.address_is_on_grid(to_address):
             # Turn macrophage into caseum
             macrophage = self.get_attribute(to_address, 'contents')
@@ -637,8 +637,8 @@ class EventHandler:
 
     def process_macrophage_movement(self, event):
         print "MACROPHAGE MOVEMENT"
-        from_address = event.addresses_affected[0]
-        to_address = event.addresses_affected[1]
+        from_address = event.dependant_addresses[0]
+        to_address = event.dependant_addresses[1]
         # Macrophage moving between 2 cells in the same tile
         if event.internal:
             macrophage = self.get_attribute(from_address, 'contents')
@@ -658,8 +658,8 @@ class EventHandler:
 
     def process_macrophage_kills_bacterium(self, event):
         print "MACROPHAGE_KILLS_BACTERIUM"
-        from_address = event.addresses_affected[0]
-        to_address = event.addresses_affected[1]
+        from_address = event.dependant_addresses[0]
+        to_address = event.dependant_addresses[1]
 
         # Macrophage moving between 2 cells in the same tile
         if event.internal:
@@ -890,7 +890,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                         internal = True
                     else:
                         internal = False
-                    new_event = BacteriumReplication(neighbour_address, bacterium, internal)
+                    new_event = BacteriumReplication(neighbour_address, bacterium.metabolism, internal)
                     self.potential_events.append(new_event)
 
         # T-CELL RECRUITMENT
@@ -1165,7 +1165,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             elif macrophage.state == 'chronically_infected':
                 if macrophage.intracellular_bacteria == self.parameters['bacteria_to_burst_macrophage']:
                     internal = self.address_is_on_grid(macrophage.address)
-                    new_event = MacrophageBursting(macrophage.address, internal)
+                    new_event = MacrophageBursting(macrophage.address, [], internal)
                     self.potential_events.append(new_event)
                     # TODO - COMP - bacteria addresses
 
@@ -1502,9 +1502,10 @@ class TCell(Agent):
 # ------------------------------
 
 class Event(object):
-
-    def __init__(self, addresses_affected, internal):
-        self.addresses_affected = addresses_affected
+    def __init__(self, dependant_addresses, impacted_addresses, internal):
+        self.dependant_addresses = dependant_addresses
+        self.impacted_addresses_potential = impacted_addresses
+        self.impacted_addresses_allowed = []
         self.internal = internal
 
     def clone(self, new_addresses):
@@ -1512,129 +1513,119 @@ class Event(object):
 
 
 class BacteriumReplication(Event):
-
-    def __init__(self, address, bacterium, internal):
-        Event.__init__(self, [address], internal)
+    def __init__(self, address, metabolism, internal):
+        Event.__init__(self, [address], [address], internal)
         self.new_bacterium_address = address
-        self.new_metabolism = bacterium.metabolism
-        self.original_bacterium = bacterium
+        self.new_metabolism = metabolism
 
     def clone(self, new_addresses):
-        return BacteriumReplication(new_addresses[0], self.original_bacterium, self.new_metabolism)
+        return BacteriumReplication(new_addresses[0], self.new_metabolism, self.new_metabolism)
 
 
 class RecruitTCell(Event):
-
     def __init__(self, address, internal):
         self.t_cell_address = address
-        Event.__init__(self, [address], internal)
+        Event.__init__(self, [address], [address], internal)
 
     def clone(self, new_addresses):
         return RecruitTCell(new_addresses[0], self.internal)
 
 
 class RecruitMacrophage(Event):
-
     def __init__(self, address, internal):
         self.macrophage_address = address
-        Event.__init__(self, [address], internal)
+        Event.__init__(self, [address], [address], internal)
 
     def clone(self, new_addresses):
         return RecruitMacrophage(new_addresses[0], self.internal)
 
 
 class ChemoKillBacterium(Event):
-
     def __init__(self, address):
         self.address = address
         # Chemo killing is always internal
-        Event.__init__(self, [address], True)
+        Event.__init__(self, [address], [address], True)
 
 
 class ChemoKillMacrophage(Event):
-
     def __init__(self, address):
         self.macrophage_to_kill_address = address
         # Chemo killing is always internal
-        Event.__init__(self, [address], True)
+        Event.__init__(self, [address], [address], True)
 
 
 class TCellDeath(Event):
-
     def __init__(self, address):
         self.address = address
         # T-cell death is always internal
-        Event.__init__(self, [address], True)
+        Event.__init__(self, [address], [address], True)
 
 
 class TCellMovement(Event):
-
     def __init__(self, t_cell_to_move, from_address, to_address, internal):
         self.t_cell_to_move = t_cell_to_move
         self.to_address = to_address
-        Event.__init__(self, [from_address, to_address], internal)
+
+        Event.__init__(self, [from_address, to_address], [from_address, to_address], internal)
 
     def clone(self, new_addresses):
         return TCellMovement(self.t_cell_to_move, new_addresses[0], new_addresses[1], self.internal)
 
 
 class TCellKillsMacrophage(Event):
-
     def __init__(self, t_cell, t_cell_address, macrophage_address, internal):
         self.t_cell_to_move = t_cell
         self.macrophage_address = macrophage_address
-        Event.__init__(self, [t_cell_address, macrophage_address], internal)
+        Event.__init__(self, [t_cell_address, macrophage_address], [t_cell_address, macrophage_address], internal)
 
     def clone(self, new_addresses):
         return TCellKillsMacrophage(self.t_cell_to_move, new_addresses[0], new_addresses[1], self.internal)
 
 
 class MacrophageDeath(Event):
-
     def __init__(self, address):
         self.address = address
         # Macrophage death is always internal
-        Event.__init__(self, [address], True)
+        Event.__init__(self, [address], [address], True)
 
 
 class MacrophageMovement(Event):
-
     def __init__(self, macrophage_to_move, from_address, to_address, internal):
         self.macrophage_to_move = macrophage_to_move
         self.new_address = to_address
-        Event.__init__(self, [from_address, to_address], internal)
+        Event.__init__(self, [from_address, to_address], [from_address, to_address], internal)
 
     def clone(self, new_addresses):
         return MacrophageMovement(self.macrophage_to_move, new_addresses[0], new_addresses[1], self.internal)
 
 
 class MacrophageKillsBacterium(Event):
-
     def __init__(self, macrophage_to_move, macrophage_address, bacterium_address, internal):
         self.macrophage_to_move = macrophage_to_move
         self.bacterium_address = bacterium_address
-        Event.__init__(self, [macrophage_address, bacterium_address], internal)
+        Event.__init__(self, [macrophage_address, bacterium_address], [macrophage_address, bacterium_address], internal)
 
     def clone(self, new_addresses):
         return MacrophageKillsBacterium(self.macrophage_to_move, new_addresses[0], new_addresses[1], self.internal)
 
 
 class MacrophageChangesState(Event):
-
     def __init__(self, address, new_state):
         self.address = address
         self.new_state = new_state
-        Event.__init__(self, [address], True)
+        Event.__init__(self, [address], [address], True)
 
 
 class BacteriumChangesMetabolism(Event):
     def __init__(self, address, new_metabolism):
         self.address = address
         self.new_metabolism = new_metabolism
-        Event.__init__(self, [address], True)
+        Event.__init__(self, [address], [address], True)
 
 
 class MacrophageBursting(Event):
-    def __init__(self, macrophage_address, internal):
+    def __init__(self, macrophage_address, bacteria_addresses, internal):
         self.macrophage_address = macrophage_address
-        Event.__init__(self, [macrophage_address], internal)
+        impacted_addresses = [macrophage_address]
+        impacted_addresses += bacteria_addresses
+        Event.__init__(self, [macrophage_address], impacted_addresses, internal)
