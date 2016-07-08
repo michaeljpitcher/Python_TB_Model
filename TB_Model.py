@@ -713,6 +713,9 @@ class EventHandler:
         self.macrophages.remove(macrophage_to_burst)
 
         # TODO - COMP - bacteria stuff
+        for i in event.bacteria_addresses:
+            if i in event.impacted_addresses_allowed and self.address_is_on_grid(i):
+                    self.add_bacterium(i, 'slow')
 
 
 class Automaton(Tile, Neighbourhood, EventHandler):
@@ -1114,10 +1117,9 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
             elif macrophage.state == 'chronically_infected':
                 # TODO - COMP/MED - can't do 0 as get division errors
-                random_macrophage_age = np.random.randint(1,
-                                                          self.parameters['chronically_infected_macrophage_age_limit'])
 
-                if macrophage.age % random_macrophage_age == 0:
+                random_macrophage_age = np.random.randint(1, self.parameters['chronically_infected_macrophage_age_limit'])
+
                     new_event = MacrophageDeath(macrophage.address)
                     self.potential_events.append(new_event)
                     # Progress to the next macrophage
@@ -1141,33 +1143,55 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                                                              internal)
                         self.potential_events.append(new_event)
 
-        # MACROPHAGE STATE CHANGES
+        # MACROPHAGE STATE CHANGES / BURSTING
         for macrophage in self.macrophages:
 
+            # MACROPHAGE STATE CHANGES
             if macrophage.state == 'resting':
+                # Resting to active
                 if self.chemokine_scale(macrophage.address) > \
                         self.parameters['chemokine_scale_for_macrophage_activation'] and \
                         macrophage.intracellular_bacteria == 0:
                     new_event = MacrophageChangesState(macrophage.address, "active")
                     self.potential_events.append(new_event)
+                # Resting to infected
                 elif macrophage.intracellular_bacteria == 1:
                     new_event = MacrophageChangesState(macrophage.address, "infected")
                     self.potential_events.append(new_event)
             elif macrophage.state == 'active':
+                # Active to resting
                 if self.chemokine_scale(macrophage.address) < \
                         self.parameters['chemokine_scale_for_macrophage_deactivation']:
                     new_event = MacrophageChangesState(macrophage.address, "resting")
                     self.potential_events.append(new_event)
             elif macrophage.state == 'infected':
+                # Infected to Chronically Infected
                 if macrophage.intracellular_bacteria > self.parameters['bacteria_to_turn_chronically_infected']:
                     new_event = MacrophageChangesState(macrophage.address, "chronically_infected")
                     self.potential_events.append(new_event)
             elif macrophage.state == 'chronically_infected':
+                # MACROPHAGE BURSTING
                 if macrophage.intracellular_bacteria == self.parameters['bacteria_to_burst_macrophage']:
                     internal = self.address_is_on_grid(macrophage.address)
-                    new_event = MacrophageBursting(macrophage.address, [], internal)
+                    bacteria_addresses = []
+                    for depth in range(1,4):
+                        neighbours = self.neighbours_moore(macrophage.address, depth)
+                        # Shuffle the neighbours so we don't give priority
+                        np.random.shuffle(neighbours)
+                        for n in neighbours:
+                            # TODO - COMP - do this (contents and BV) too often.
+                            # Could maybe make blood vessel part of contents
+                            if self.get(n) is not None and self.get_attribute(n,'contents') == 0.0 and \
+                                            self.get_attribute(n, 'blood_vessel') == 0.0:
+                                bacteria_addresses.append(n)
+                                if not self.address_is_on_grid(n):
+                                    internal = False
+                            if len(bacteria_addresses) == self.parameters['bacteria_to_burst_macrophage']:
+                                break
+                        if len(bacteria_addresses) == self.parameters['bacteria_to_burst_macrophage']:
+                            break
+                    new_event = MacrophageBursting(macrophage.address, bacteria_addresses, internal)
                     self.potential_events.append(new_event)
-                    # TODO - COMP - bacteria addresses
 
         # BACTERIUM STATE CHANGES
         if self.time > 2 / self.parameters['time_step']:
@@ -1626,6 +1650,7 @@ class BacteriumChangesMetabolism(Event):
 class MacrophageBursting(Event):
     def __init__(self, macrophage_address, bacteria_addresses, internal):
         self.macrophage_address = macrophage_address
+        self.bacteria_addresses = bacteria_addresses
         impacted_addresses = [macrophage_address]
         impacted_addresses += bacteria_addresses
         Event.__init__(self, [macrophage_address], impacted_addresses, internal)

@@ -3434,6 +3434,7 @@ class MacrophageBurstingTestCase(unittest.TestCase):
     def setUp(self):
         params = dict()
         params['max_depth'] = 3
+        params['caseum_threshold_to_reduce_diffusion'] = 999
         params['initial_oxygen'] = 1.5
         params['oxygen_diffusion'] = 0.0
         params['chemotherapy_diffusion'] = 0.0
@@ -3483,9 +3484,10 @@ class MacrophageBurstingTestCase(unittest.TestCase):
         blood_vessels = [[6, 2]]
         fast_bacteria = []
         slow_bacteria = []
-        macrophages = [[1, 1]]
+        macrophages = [[2, 2]]
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
                                                         slow_bacteria, macrophages)
+        np.random.seed(100)
 
     def sort_out_halos(self):
         dz = []
@@ -3497,8 +3499,8 @@ class MacrophageBurstingTestCase(unittest.TestCase):
 
     def test_macrophage_bursting(self):
 
-        self.topology.automata[0].grid[1, 1]['contents'].state = 'chronically_infected'
-        self.topology.automata[0].grid[1, 1]['contents'].intracellular_bacteria = 20
+        self.topology.automata[0].grid[2, 2]['contents'].state = 'chronically_infected'
+        self.topology.automata[0].grid[2, 2]['contents'].intracellular_bacteria = 20
 
         self.sort_out_halos()
         self.topology.automata[0].update()
@@ -3507,12 +3509,75 @@ class MacrophageBurstingTestCase(unittest.TestCase):
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.MacrophageBursting))
         address = event.dependant_addresses[0]
-        self.assertSequenceEqual(address, [1, 1])
+        self.assertSequenceEqual(address, [2, 2])
+        self.assertEqual(len(event.bacteria_addresses), 20)
+
+    def test_macrophage_bursting_bacteria_addresses(self):
+        self.topology.automata[0].grid[2, 2]['contents'].state = 'chronically_infected'
+        self.topology.automata[0].grid[2, 2]['contents'].intracellular_bacteria = 20
+
+        # A 2x2 neighbourhood has 24 cells, so put caseum in 4 cells - rest will be filled by bacteria
+        self.topology.automata[0].grid[0, 0]['contents'] = 'caseum'
+        self.topology.automata[0].grid[0, 4]['contents'] = 'caseum'
+        self.topology.automata[0].grid[4, 0]['contents'] = 'caseum'
+        self.topology.automata[0].grid[4, 4]['contents'] = 'caseum'
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.MacrophageBursting))
+        address = event.dependant_addresses[0]
+        self.assertSequenceEqual(address, [2, 2])
+        self.assertEqual(len(event.bacteria_addresses), 20)
+
+        # Check that bacteria have been put into all cells in a 2x2 neighbourhood except the corners (which have caseum)
+        self.assertItemsEqual(event.bacteria_addresses,
+                              [[0, 1], [0, 2], [0, 3], [1, 0], [1, 1], [1, 2], [1, 3], [1, 4], [2, 0], [2, 1], [2, 3],
+                               [2, 4], [3, 0], [3, 1], [3, 2], [3, 3], [3, 4], [4, 1], [4, 2], [4, 3]])
+
+    def test_macrophage_bursting_bacteria_addresses_not_enough_room(self):
+        blood_vessels = [[8, 8]]
+        fast_bacteria = []
+        slow_bacteria = []
+        macrophages = [[3, 3]]
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.attributes, self.parameters,
+                                                        blood_vessels, fast_bacteria, slow_bacteria, macrophages)
+
+        self.topology.automata[0].grid[3, 3]['contents'].state = 'chronically_infected'
+        self.topology.automata[0].grid[3, 3]['contents'].intracellular_bacteria = 20
+
+        # Fill the grid with so much caseum that there's not enough room for 20 bacteria in a 3x3 neighbourhood
+        # Caseum in automaton 0
+        for x in range(0,5):
+            for y in range(0,5):
+                if not(x == 3 and y == 3):
+                    self.topology.automata[0].grid[x,y]['contents'] = 'caseum'
+        # Caseum in automaton 1
+        for x in range(0, 5):
+            for y in range(0, 2):
+                self.topology.automata[1].grid[x, y]['contents'] = 'caseum'
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.MacrophageBursting))
+        address = event.dependant_addresses[0]
+        self.assertSequenceEqual(address, [3, 3])
+
+        # Check that bacteria have been put into all available cells
+        self.assertEqual(len(event.bacteria_addresses), 14)
+        self.assertItemsEqual(event.bacteria_addresses,
+                              [[5, 0], [5, 1], [5, 2], [5, 3], [5, 4], [5, 5], [5, 6], [6, 0], [6, 1], [6, 2], [6, 3],
+                               [6, 4], [6, 5], [6, 6]])
 
     def test_macrophage_bursting_negative_number_bacteria(self):
 
-        self.topology.automata[0].grid[1, 1]['contents'].state = 'chronically_infected'
-        self.topology.automata[0].grid[1, 1]['contents'].intracellular_bacteria = 19
+        self.topology.automata[0].grid[2, 2]['contents'].state = 'chronically_infected'
+        self.topology.automata[0].grid[2, 2]['contents'].intracellular_bacteria = 19
 
         self.sort_out_halos()
         self.topology.automata[0].update()
@@ -3521,8 +3586,14 @@ class MacrophageBurstingTestCase(unittest.TestCase):
 
     def test_macrophage_bursting_process(self):
 
-        self.topology.automata[0].grid[1, 1]['contents'].state = 'chronically_infected'
-        self.topology.automata[0].grid[1, 1]['contents'].intracellular_bacteria = 20
+        self.topology.automata[0].grid[2, 2]['contents'].state = 'chronically_infected'
+        self.topology.automata[0].grid[2, 2]['contents'].intracellular_bacteria = 20
+
+        # A 2x2 neighbourhood has 24 cells, so put caseum in 4 cells - rest will be filled by bacteria
+        self.topology.automata[0].grid[0, 0]['contents'] = 'caseum'
+        self.topology.automata[0].grid[0, 4]['contents'] = 'caseum'
+        self.topology.automata[0].grid[4, 0]['contents'] = 'caseum'
+        self.topology.automata[0].grid[4, 4]['contents'] = 'caseum'
 
         self.sort_out_halos()
         self.topology.automata[0].update()
@@ -3530,11 +3601,27 @@ class MacrophageBurstingTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.MacrophageBursting))
+        address = event.dependant_addresses[0]
+        self.assertSequenceEqual(address, [2, 2])
+        self.assertEqual(len(event.bacteria_addresses), 20)
+
+        # Check that bacteria have been put into all cells in a 2x2 neighbourhood except the corners (which have caseum)
+        expected_bacteria_addresses = [[0, 1], [0, 2], [0, 3], [1, 0], [1, 1], [1, 2], [1, 3], [1, 4], [2, 0], [2, 1],
+                                       [2, 3], [2, 4], [3, 0], [3, 1], [3, 2], [3, 3], [3, 4], [4, 1], [4, 2], [4, 3]]
+        self.assertItemsEqual(event.bacteria_addresses, expected_bacteria_addresses)
+
+        event.impacted_addresses_allowed = event.impacted_addresses_potential
 
         self.topology.automata[0].process_events([event])
 
         self.assertEqual(len(self.topology.automata[0].macrophages), 0)
-        self.assertEqual(self.topology.automata[0].grid[1, 1]['contents'], 'caseum')
+        self.assertEqual(self.topology.automata[0].grid[2, 2]['contents'], 'caseum')
+
+        for i in expected_bacteria_addresses:
+            cell_contents = self.topology.automata[0].grid[i[0], i[1]]['contents']
+            self.assertTrue(isinstance(cell_contents, TB_Model.Bacterium))
+            self.assertEqual(cell_contents.metabolism, 'slow')
+
 
 if __name__ == '__main__':
     unittest.main()
