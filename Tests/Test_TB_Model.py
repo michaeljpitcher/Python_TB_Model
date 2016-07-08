@@ -926,9 +926,10 @@ class BacteriaReplicationTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.BacteriumReplication))
-        self.assertEqual(len(event.dependant_addresses), 1)
-        self.assertTrue(event.dependant_addresses[0] == [0, 1] or event.dependant_addresses[0] == [1, 0] or
-                        event.dependant_addresses[0] == [1, 1])
+        self.assertEqual(len(event.dependant_addresses), 2)
+        self.assertSequenceEqual(event.dependant_addresses[0], [0, 0])
+        self.assertTrue(event.dependant_addresses[1] == [0, 1] or event.dependant_addresses[1] == [1, 0] or
+                        event.dependant_addresses[1] == [1, 1])
 
     def test_bacteria_replication_event_process(self):
         self.sort_out_halos()
@@ -942,6 +943,9 @@ class BacteriaReplicationTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].bacteria), 2)
         self.assertTrue(isinstance(self.topology.automata[0].get_attribute(event.dependant_addresses[0], 'contents'),
                                    TB_Model.Bacterium))
+
+        self.assertEqual(self.topology.automata[0].grid[0, 0]['contents'].division_neighbourhood, 'vn')
+        self.assertEqual(self.topology.automata[0].grid[0, 0]['contents'].age, 0.0)
 
     def test_bacteria_replication_across_boundary(self):
 
@@ -971,12 +975,14 @@ class BacteriaReplicationTestCase(unittest.TestCase):
 
         self.assertEqual(len(self.topology.automata[1].potential_events), 1)
         event = self.topology.automata[1].potential_events[0]
-        self.assertTrue(event.dependant_addresses[0] == [3, -1])
+        self.assertTrue(event.dependant_addresses[0] == [3, 0])
+        self.assertTrue(event.dependant_addresses[1] == [3, -1])
 
-        new_address = self.topology.local_to_local(1, event.dependant_addresses[0], 0)
-        self.assertTrue(new_address == [3, 4])
+        new_addresses = [self.topology.local_to_local(1, event.dependant_addresses[0], 0), self.topology.local_to_local(1, event.dependant_addresses[1],0)]
+        self.assertTrue(new_addresses[0] == [3, 5])
+        self.assertTrue(new_addresses[1] == [3, 4])
 
-        new_event = event.clone([new_address])
+        new_event = event.clone(new_addresses)
 
         self.topology.automata[0].process_events([new_event])
         self.topology.automata[1].process_events([event])
@@ -984,13 +990,8 @@ class BacteriaReplicationTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].bacteria), 1)
         self.assertEqual(len(self.topology.automata[1].bacteria), 1)
 
-        for x in range(5):
-            for y in range(5):
-                if x == 3 and y == 4:
-                    self.assertTrue(isinstance(self.topology.automata[0].grid[x, y]['contents'], TB_Model.Bacterium))
-
-                if x == 3 and y == 0:
-                    self.assertTrue(isinstance(self.topology.automata[1].grid[x, y]['contents'], TB_Model.Bacterium))
+        self.assertTrue(isinstance(self.topology.automata[0].grid[3, 4]['contents'], TB_Model.Bacterium))
+        self.assertTrue(isinstance(self.topology.automata[1].grid[3, 0]['contents'], TB_Model.Bacterium))
 
 
 class TCellRecruitmentTestCase(unittest.TestCase):

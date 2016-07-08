@@ -529,6 +529,15 @@ class EventHandler:
         if self.address_is_on_grid(event.new_bacterium_address):
             self.add_bacterium(event.new_bacterium_address, event.new_metabolism)
 
+        if self.address_is_on_grid(event.original_bacterium_address):
+            bacterium = self.get_attribute(event.original_bacterium_address, 'contents')
+            bacterium.age = 0.0
+            # Swap the division neighbourhood
+            if bacterium.division_neighbourhood == 'mo':
+                bacterium.division_neighbourhood = 'vn'
+            else:
+                bacterium.division_neighbourhood = 'mo'
+
     def process_t_cell_recruitment(self, event):
         """
         Recruit a new t-cell from blood vessel
@@ -869,7 +878,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 free_neighbours = []
 
                 for depth in range(1, 4):
-                    if bacterium.neighbourhood == 'mo':
+                    if bacterium.division_neighbourhood == 'mo':
                         neighbours = self.neighbours_moore(bacterium.address, depth)
                     else:
                         neighbours = self.neighbours_von_neumann(bacterium.address, depth)
@@ -893,7 +902,8 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                         internal = True
                     else:
                         internal = False
-                    new_event = BacteriumReplication(neighbour_address, bacterium.metabolism, internal)
+                    new_event = BacteriumReplication(bacterium.address, neighbour_address, bacterium.metabolism,
+                                                         internal)
                     self.potential_events.append(new_event)
 
         # T-CELL RECRUITMENT
@@ -1503,7 +1513,7 @@ class Bacterium(Agent):
 
     def __init__(self, address, metabolism):
         self.metabolism = metabolism
-        self.neighbourhood = 'mo'
+        self.division_neighbourhood = 'mo'
         self.resting = False
         Agent.__init__(self, address)
 
@@ -1539,13 +1549,17 @@ class Event(object):
 
 
 class BacteriumReplication(Event):
-    def __init__(self, address, metabolism, internal):
-        Event.__init__(self, [address], [address], internal)
-        self.new_bacterium_address = address
+    def __init__(self, original_bacterium_address, new_bacterium_address, metabolism, internal):
+        Event.__init__(self, [original_bacterium_address, new_bacterium_address],
+                       [original_bacterium_address, new_bacterium_address], internal)
+        self.new_bacterium_address = new_bacterium_address
         self.new_metabolism = metabolism
+        self.original_bacterium_address = original_bacterium_address
 
     def clone(self, new_addresses):
-        return BacteriumReplication(new_addresses[0], self.new_metabolism, self.new_metabolism)
+
+        return BacteriumReplication(new_addresses[0], new_addresses[1], self.new_metabolism,
+                                    self.internal)
 
 
 class RecruitTCell(Event):
