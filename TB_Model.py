@@ -511,8 +511,8 @@ class EventHandler:
             self.process_macrophage_kills_bacterium(event)
         elif isinstance(event, MacrophageChangesState):
             self.process_macrophage_state_change(event)
-        elif isinstance(event, BacteriumChangesMetabolism):
-            self.process_bacterium_change_metabolism(event)
+        elif isinstance(event, BacteriumStateChange):
+            self.process_bacterium_state_change(event)
         elif isinstance(event, MacrophageBursting):
             self.process_macrophage_bursting(event)
         else:
@@ -708,11 +708,15 @@ class EventHandler:
         macrophage.state = event.new_state
         #self.set_attribute_work_grid(event.address, 'contents', macrophage)
 
-    def process_bacterium_change_metabolism(self, event):
-        print "BACTERIUM_METABOLISM_CHANGE: to", event.new_metabolism
+    def process_bacterium_state_change(self, event):
+        print "BACTERIUM_STATE_CHANGE:", event.type_of_change, " to", event.new_value
         # Pull bacterium from grid
         bacterium = self.get_attribute(event.address, 'contents')
-        bacterium.metabolism = event.new_metabolism
+
+        if event.type_of_change == 'metabolism':
+            bacterium.metabolism = event.new_value
+        elif event.type_of_change == 'resting':
+            bacterium.resting = event.new_value
         #self.set_attribute_work_grid(event.address, 'contents', bacterium)
 
     def process_macrophage_bursting(self, event):
@@ -861,6 +865,10 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         for bacterium in self.bacteria:
             bacterium.age += self.parameters['time_step']
 
+            # Skip if the bacterium is resting
+            if bacterium.resting:
+                continue
+
             division = False
             if bacterium.metabolism == 'fast':
                 maximum = self.parameters['bacteria_replication_fast_upper']
@@ -893,8 +901,8 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                         break
 
                 if len(free_neighbours) == 0:
-                    bacterium.resting = True
-                    bacterium.age = 0.0
+                    new_event = BacteriumStateChange(bacterium.address, 'resting', True)
+                    self.potential_events.append(new_event)
                 else:  # Free space found
                     neighbour_address = free_neighbours[np.random.randint(len(free_neighbours))]
 
@@ -1206,18 +1214,33 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     self.potential_events.append(new_event)
 
         # BACTERIUM STATE CHANGES
-        if self.time > 2 / self.parameters['time_step']:
+        for bacterium in self.bacteria:
 
-            for bacterium in self.bacteria:
+            # Metabolism change only happens later in process
+            if self.time > 2 / self.parameters['time_step']:
 
                 if bacterium.metabolism == 'fast' and self.oxygen_scale(bacterium.address) <= self.parameters[
                         'oxygen_scale_for_metabolism_change_to_slow']:
-                    new_event = BacteriumChangesMetabolism(bacterium.address, 'slow')
+                    new_event = BacteriumStateChange(bacterium.address, 'metabolism', 'slow')
                     self.potential_events.append(new_event)
                 elif bacterium.metabolism == 'slow' and self.oxygen_scale(bacterium.address) > self.parameters[
                         'oxygen_scale_for_metabolism_change_to_fast']:
-                    new_event = BacteriumChangesMetabolism(bacterium.address, 'fast')
+                    new_event = BacteriumStateChange(bacterium.address, 'metabolism', 'fast')
                     self.potential_events.append(new_event)
+
+            if bacterium.resting:
+                space_found = False
+                for depth in range(1,4):
+                    neighbours = self.neighbours_moore(bacterium.address, depth)
+                    for n in neighbours:
+                        if self.get(n) is not None and self.get_attribute(n, 'blood_vessel') == 0.0 and \
+                                self.get_attribute(n, 'contents') == 0.0:
+                            new_event = BacteriumStateChange(bacterium.address, 'resting', False)
+                            self.potential_events.append(new_event)
+                            space_found = True
+                            break
+                    if space_found:
+                        break
 
         # Reorder events
         self.reorder_events()
@@ -1656,10 +1679,11 @@ class MacrophageChangesState(Event):
         Event.__init__(self, [address], [address], True)
 
 
-class BacteriumChangesMetabolism(Event):
-    def __init__(self, address, new_metabolism):
+class BacteriumStateChange(Event):
+    def __init__(self, address, type_of_change, new_value):
         self.address = address
-        self.new_metabolism = new_metabolism
+        self.type_of_change = type_of_change
+        self.new_value = new_value
         Event.__init__(self, [address], [address], True)
 
 
