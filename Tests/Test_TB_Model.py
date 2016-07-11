@@ -3309,7 +3309,7 @@ class MacrophageChangesState(unittest.TestCase):
         self.assertEqual(self.topology.automata[0].grid[1, 1]['contents'].state, 'active')
 
 
-class BacteriaChangesMetabolismTestCase(unittest.TestCase):
+class BacteriaStateChangeTestCase(unittest.TestCase):
     def setUp(self):
         params = dict()
         params['max_depth'] = 3
@@ -3347,6 +3347,7 @@ class BacteriaChangesMetabolismTestCase(unittest.TestCase):
         params['bacteria_to_turn_chronically_infected'] = 10
         params['chemokine_scale_for_macrophage_activation'] = 0
         params['chemokine_scale_for_macrophage_deactivation'] = 100
+        params['caseum_threshold_to_reduce_diffusion'] = 100
 
         params['time_step'] = 4
         params['oxygen_scale_for_metabolism_change_to_slow'] = 100
@@ -3381,8 +3382,9 @@ class BacteriaChangesMetabolismTestCase(unittest.TestCase):
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
-        self.assertTrue(isinstance(event, TB_Model.BacteriumChangesMetabolism))
-        self.assertEqual(event.new_metabolism, 'slow')
+        self.assertTrue(isinstance(event, TB_Model.BacteriumStateChange))
+        self.assertEqual(event.type_of_change, 'metabolism')
+        self.assertEqual(event.new_value, 'slow')
 
     def test_fast_to_slow_negative_scale(self):
         self.sort_out_halos()
@@ -3402,8 +3404,9 @@ class BacteriaChangesMetabolismTestCase(unittest.TestCase):
         self.topology.automata[3].update()
         self.assertEqual(len(self.topology.automata[3].potential_events), 1)
         event = self.topology.automata[3].potential_events[0]
-        self.assertTrue(isinstance(event, TB_Model.BacteriumChangesMetabolism))
-        self.assertEqual(event.new_metabolism, 'fast')
+        self.assertTrue(isinstance(event, TB_Model.BacteriumStateChange))
+        self.assertEqual(event.type_of_change, 'metabolism')
+        self.assertEqual(event.new_value, 'fast')
 
     def test_slow_to_fast_negative_scale(self):
         self.sort_out_halos()
@@ -3423,12 +3426,118 @@ class BacteriaChangesMetabolismTestCase(unittest.TestCase):
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
-        self.assertTrue(isinstance(event, TB_Model.BacteriumChangesMetabolism))
+        self.assertTrue(isinstance(event, TB_Model.BacteriumStateChange))
 
         self.topology.automata[0].process_events([event])
         self.assertEqual(len(self.topology.automata[0].bacteria), 1)
         self.assertTrue(isinstance(self.topology.automata[0].grid[1, 1]['contents'], TB_Model.Bacterium))
         self.assertEqual(self.topology.automata[0].grid[1, 1]['contents'].metabolism, 'slow')
+
+    def test_non_resting_to_resting(self):
+
+        self.topology.automata[0].parameters['bacteria_replication_fast_upper'] = 2
+        self.topology.automata[0].parameters['bacteria_replication_fast_lower'] = 1
+        self.topology.automata[0].parameters['time_step'] = 1
+
+        # Fill automata 0 with caseum, so forces the bacteria in [1,1] to rest
+        for x in range(5):
+            for y in range(5):
+                if x != 1 or y != 1:
+                    self.topology.automata[0].grid[x,y]['contents'] = 'caseum'
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.BacteriumStateChange))
+        self.assertEqual(event.type_of_change, 'resting')
+        self.assertEqual(event.new_value, True)
+
+    def test_resting_to_non_resting(self):
+
+        self.topology.automata[0].parameters['oxygen_scale_for_metabolism_change_to_slow'] = -1.0
+
+        self.topology.automata[0].grid[1,1]['contents'].resting = True
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.BacteriumStateChange))
+        self.assertEqual(event.type_of_change, 'resting')
+        self.assertEqual(event.new_value, False)
+
+    def test_non_resting_to_resting_negative_room(self):
+        self.topology.automata[0].parameters['bacteria_replication_fast_upper'] = 2
+        self.topology.automata[0].parameters['bacteria_replication_fast_lower'] = 1
+        self.topology.automata[0].parameters['time_step'] = 1
+
+        # Fill automata 0 with caseum, so forces the bacteria in [1,1] to rest
+        for x in range(5):
+            for y in range(5):
+                if x != 1 or y != 1:
+                    self.topology.automata[0].grid[x, y]['contents'] = 'caseum'
+
+        self.topology.automata[0].grid[0, 0]['contents'] = 0.0
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        self.assertTrue(isinstance(self.topology.automata[0].potential_events[0], TB_Model.BacteriumReplication))
+
+    def test_resting_to_non_resting_negative_no_room(self):
+
+        self.topology.automata[0].parameters['oxygen_scale_for_metabolism_change_to_slow'] = -1.0
+
+        self.topology.automata[0].grid[1, 1]['contents'].resting = True
+        # Fill automata 0 with caseum, so forces the bacteria in [1,1] to rest
+        for x in range(5):
+            for y in range(5):
+                if x != 1 or y != 1:
+                    self.topology.automata[0].grid[x, y]['contents'] = 'caseum'
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+    def test_non_resting_to_resting_process(self):
+
+        self.topology.automata[0].parameters['bacteria_replication_fast_upper'] = 2
+        self.topology.automata[0].parameters['bacteria_replication_fast_lower'] = 1
+        self.topology.automata[0].parameters['time_step'] = 1
+
+        # Fill automata 0 with caseum, so forces the bacteria in [1,1] to rest
+        for x in range(5):
+            for y in range(5):
+                if x != 1 or y != 1:
+                    self.topology.automata[0].grid[x, y]['contents'] = 'caseum'
+
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.BacteriumStateChange))
+
+        self.topology.automata[0].process_events([event])
+
+        self.assertTrue(self.topology.automata[0].grid[1,1]['contents'].resting)
+
+    def test_resting_to_non_resting_process(self):
+
+        self.topology.automata[0].parameters['oxygen_scale_for_metabolism_change_to_slow'] = -1.0
+
+        self.topology.automata[0].grid[1, 1]['contents'].resting = True
+        self.sort_out_halos()
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        event = self.topology.automata[0].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.BacteriumStateChange))
+
+        self.topology.automata[0].process_events([event])
+
+        self.assertFalse(self.topology.automata[0].grid[1, 1]['contents'].resting)
 
 
 class MacrophageBurstingTestCase(unittest.TestCase):
