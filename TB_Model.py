@@ -794,6 +794,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
     def initialise_oxygen_levels(self):
         for address in self.blood_vessels:
             self.set_attribute_grid(address, 'oxygen', self.parameters['initial_oxygen'])
+            self.max_oxygen_local = max(self.max_oxygen_local, self.parameters['initial_oxygen'])
 
     def update(self):
         """
