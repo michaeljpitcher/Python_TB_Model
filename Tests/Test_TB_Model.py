@@ -827,7 +827,15 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         self.assertAlmostEqual(self.topology.automata[0].chemokine([1, 2]), 0.000000625)
 
     def test_local_and_global_levels(self):
+
+        self.assertAlmostEqual(self.topology.automata[0].max_oxygen_local, 1.5)
+
         self.topology.automata[0].diffusion_pre_process()
+
+        self.topology.automata[0].max_oxygen_local = 0.0
+        self.topology.automata[0].max_chemotherapy_local = 0.0
+        self.topology.automata[0].max_chemokine_local = 0.0
+
         for x in range(5):
             for y in range(5):
                 self.topology.automata[0].set_attribute_work_grid([x, y], 'oxygen',
@@ -838,6 +846,8 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
                                                                   self.topology.automata[0].chemokine([x, y]))
 
         self.topology.automata[0].swap_grids()
+
+        print self.topology.automata[0].grid
 
         self.assertAlmostEqual(self.topology.automata[0].max_oxygen_local, 1.3536)
         self.assertAlmostEqual(self.topology.automata[0].max_chemotherapy_local, 0.0015)
