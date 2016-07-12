@@ -3453,7 +3453,7 @@ class BacteriaStateChangeTestCase(unittest.TestCase):
         for x in range(5):
             for y in range(5):
                 if x != 1 or y != 1:
-                    self.topology.automata[0].grid[x,y]['contents'] = 'caseum'
+                    self.topology.automata[0].grid[x, y]['contents'] = 'caseum'
 
         self.sort_out_halos()
         self.topology.automata[0].update()
@@ -3468,7 +3468,7 @@ class BacteriaStateChangeTestCase(unittest.TestCase):
 
         self.topology.automata[0].parameters['oxygen_scale_for_metabolism_change_to_slow'] = -1.0
 
-        self.topology.automata[0].grid[1,1]['contents'].resting = True
+        self.topology.automata[0].grid[1, 1]['contents'].resting = True
         self.sort_out_halos()
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
@@ -3532,7 +3532,7 @@ class BacteriaStateChangeTestCase(unittest.TestCase):
 
         self.topology.automata[0].process_events([event])
 
-        self.assertTrue(self.topology.automata[0].grid[1,1]['contents'].resting)
+        self.assertTrue(self.topology.automata[0].grid[1, 1]['contents'].resting)
 
     def test_resting_to_non_resting_process(self):
 
@@ -3670,10 +3670,10 @@ class MacrophageBurstingTestCase(unittest.TestCase):
 
         # Fill the grid with so much caseum that there's not enough room for 20 bacteria in a 3x3 neighbourhood
         # Caseum in automaton 0
-        for x in range(0,5):
-            for y in range(0,5):
+        for x in range(0, 5):
+            for y in range(0, 5):
                 if not(x == 3 and y == 3):
-                    self.topology.automata[0].grid[x,y]['contents'] = 'caseum'
+                    self.topology.automata[0].grid[x, y]['contents'] = 'caseum'
         # Caseum in automaton 1
         for x in range(0, 5):
             for y in range(0, 2):
