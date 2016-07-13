@@ -341,11 +341,13 @@ class Tile:
         if self.address_is_on_grid(address):
             address = tuple(address)
             return self.grid[address]
-        elif address in self.halo_addresses:
-            index = self.halo_addresses.index(address)
-            return self.halo_cells[index]
         else:
-            raise Exception("Failure at get method", address, self.halo_addresses)
+            try:
+                index = self.halo_addresses.index(address)
+                return self.halo_cells[index]
+            except ValueError:
+                raise Exception, "Address {0} is not on grid or in halo".format(address)
+
 
     def get_attribute(self, address, attribute):
         """
@@ -820,12 +822,142 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             chemo = True
         else:
             chemo = False
+
         # Reset local maximum values
         self.max_oxygen_local = 0.0
         self.max_chemotherapy_local = 0.0
         self.max_chemokine_local = 0.0
 
         # Loop through all cells
+        self.diffusion(chemo)
+
+        # ----------------------------
+        # DISCRETE (Agents)
+        # ----------------------------
+
+        # Performs the necessary pre-condition checks for each event type and updates the list of potential events to
+        # take place this time-step
+
+        # Reset list
+        self.potential_events = []
+
+        # BACTERIA REPLICATION
+        # If bacteria is of suitable age, attempts to replicate (create a duplicate in neighbouring cell)
+        self.bacteria_replication()
+
+        # T-CELL RECRUITMENT
+        self.t_cell_recruitment()
+
+        # MACROPHAGE RECRUITMENT
+        self.macrophage_recruitment()
+
+        # CHEMOTHERAPY KILLING BACTERIA
+        self.chemotherapy_killing_bacteria()
+
+        # CHEMOTHERAPY KILLING MACROPHAGES
+        self.chemotherapy_killing_macrophages()
+
+        # T-CELL DEATH, MOVEMENT & MACROPHAGE KILLING
+        self.t_cell_processes()
+
+        # MACROPHAGES - death, movement, bacteria ingestion
+        self.macrophage_processes()
+
+        # MACROPHAGE STATE CHANGES / BURSTING
+        self.macrophage_state_changes()
+
+        # BACTERIUM STATE CHANGES
+        self.bacteria_state_changes()
+
+        # Reorder events
+        self.reorder_events()
+
+    def reorder_events(self):
+        # TODO - COMP - other methods - currently just random
+        np.random.shuffle(self.potential_events)
+
+    def process_events(self, events):
+        """
+        Given a list of acceptable addresses, pass to the Event Handler to update the grid
+        :param events:
+        :return:
+        """
+        for event in events:
+            self.handle_event(event)
+
+        # Ensure all agents are put onto the work grid
+        self.persist_agents()
+        # Swap work grid with main grid
+        self.swap_grids()
+
+    def diffusion_pre_process(self):
+        """
+        Pre-processing for diffusion. Looks through all cells and calculates the diffusion rates - diffusion rate
+        of oxygen and chemotherapy drops if there is too much caseum in the vicinity
+        :return:
+        """
+        # Loop through all cells
+        for location in range(self.size):
+            address = self.location_to_address(location)
+
+            # Get initial diffusion rates
+            oxygen_diffusion = self.parameters['oxygen_diffusion']
+            chemotherapy_diffusion = self.parameters['chemotherapy_diffusion']
+
+            # Get all neighbours up to the specified distance
+            neighbours = []
+            for i in range(1, int(self.parameters['caseum_distance_to_reduce_diffusion']) + 1):
+                neighbours += self.neighbours_moore(address, i)
+
+            # Check if there is specified amount of caseum within specified distance of cell
+            caseum_count = 0
+            for neighbour_address in neighbours:
+                cell = self.get(neighbour_address)
+                if cell is not None and cell['contents'] == 'caseum':
+                    caseum_count += 1
+                    # Once the caseum threshold is reached
+                    if caseum_count == self.parameters['caseum_threshold_to_reduce_diffusion']:
+                        # Decrease the diffusion level at the cell
+                        oxygen_diffusion /= self.parameters['oxygen_diffusion_caseum_reduction']
+                        chemotherapy_diffusion /= self.parameters['chemotherapy_diffusion_caseum_reduction']
+                        # Exit the loop
+                        break
+
+            # Need to set the values on the current grid
+            self.set_attribute_grid(address, 'oxygen_diffusion_rate', oxygen_diffusion)
+            self.set_attribute_grid(address, 'chemotherapy_diffusion_rate', chemotherapy_diffusion)
+
+        # Set diffusion rates on halo depth 1
+        for halo_address in self.halo_depth1:
+            if self.get(halo_address) is not None:
+
+                # Get initial rates
+                oxygen_diffusion = self.parameters['oxygen_diffusion']
+                chemotherapy_diffusion = self.parameters['chemotherapy_diffusion']
+                # Get neighbours
+                neighbours = []
+                for i in range(1, int(self.parameters['caseum_distance_to_reduce_diffusion']) + 1):
+                    neighbours += self.neighbours_moore(halo_address, i)
+                # Check if caseum in neighbourhood exceeds threshold
+                caseum_count = 0
+                for neighbour_address in neighbours:
+                    cell = self.get(neighbour_address)
+                    if cell is not None and cell['contents'] == 'caseum':
+                        caseum_count += 1
+                        # Once the caseum threshold is reached
+                        if caseum_count == self.parameters['caseum_threshold_to_reduce_diffusion']:
+                            # Decrease the diffusion level at the cell
+                            oxygen_diffusion /= self.parameters['oxygen_diffusion_caseum_reduction']
+                            chemotherapy_diffusion /= self.parameters['chemotherapy_diffusion_caseum_reduction']
+                            # Exit the loop
+                            break
+
+                # Need to set the values on the halo
+                index = self.halo_addresses.index(halo_address)
+                self.halo_cells[index]['oxygen_diffusion_rate'] = oxygen_diffusion
+                self.halo_cells[index]['chemotherapy_diffusion_rate'] = chemotherapy_diffusion
+
+    def diffusion(self, chemo):
         for i in range(self.size):
             address = self.location_to_address(i)
 
@@ -851,18 +983,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             chemokine_level = self.chemokine(address)
             self.set_attribute_work_grid(address, 'chemokine', chemokine_level)
 
-        # ----------------------------
-        # DISCRETE (Agents)
-        # ----------------------------
-
-        # Performs the necessary pre-condition checks for each event type and updates the list of potential events to
-        # take place this time-step
-
-        # Reset list
-        self.potential_events = []
-
-        # BACTERIA REPLICATION
-        # If bacteria is of suitable age, attempts to replicate (create a duplicate in neighbouring cell)
+    def bacteria_replication(self):
         for bacterium in self.bacteria:
             bacterium.age += self.parameters['time_step']
 
@@ -895,7 +1016,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     for neighbour_address in neighbours:
                         neighbour = self.get(neighbour_address)
                         if neighbour is not None and neighbour['contents'] == 0.0 and \
-                                neighbour_address not in self.blood_vessels:
+                                        neighbour_address not in self.blood_vessels:
                             free_neighbours.append(neighbour_address)
 
                     if len(free_neighbours) > 0:
@@ -912,10 +1033,10 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     else:
                         internal = False
                     new_event = BacteriumReplication(bacterium.address, neighbour_address, bacterium.metabolism,
-                                                         internal)
+                                                     internal)
                     self.potential_events.append(new_event)
 
-        # T-CELL RECRUITMENT
+    def t_cell_recruitment(self):
         if self.number_of_bacteria_global >= self.parameters['bacteria_threshold_for_t_cells']:
             # Each blood vessel
             for bv_address in self.blood_vessels:
@@ -926,9 +1047,10 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     free_neighbours = []
                     for n in neighbours:
                         if self.get(n) is not None and \
-                                self.get_attribute(n, 'blood_vessel') == 0.0 and \
-                                self.get_attribute(n, 'contents') == 0.0 and \
-                                self.chemokine_scale(n) > self.parameters['chemokine_scale_for_t_cell_recruitment']:
+                                        self.get_attribute(n, 'blood_vessel') == 0.0 and \
+                                        self.get_attribute(n, 'contents') == 0.0 and \
+                                        self.chemokine_scale(n) > self.parameters[
+                                    'chemokine_scale_for_t_cell_recruitment']:
                             free_neighbours.append(n)
                     # Check there is free space
                     if len(free_neighbours) > 0:
@@ -941,7 +1063,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                         new_event = RecruitTCell(neighbour_address, internal)
                         self.potential_events.append(new_event)
 
-        # MACROPHAGE RECRUITMENT
+    def macrophage_recruitment(self):
         for bv_address in self.blood_vessels:
             r = np.random.randint(1, 100)
             if r <= self.parameters['macrophage_recruitment_probability']:
@@ -949,9 +1071,10 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 free_neighbours = []
                 for n in neighbours:
                     if self.get(n) is not None and \
-                                self.get_attribute(n, 'blood_vessel') == 0.0 and \
-                                self.get_attribute(n, 'contents') == 0.0 and \
-                                self.chemokine_scale(n) > self.parameters['chemokine_scale_for_macrophage_recruitment']:
+                                    self.get_attribute(n, 'blood_vessel') == 0.0 and \
+                                    self.get_attribute(n, 'contents') == 0.0 and \
+                                    self.chemokine_scale(n) > self.parameters[
+                                'chemokine_scale_for_macrophage_recruitment']:
                         free_neighbours.append(n)
 
                 if len(free_neighbours) > 0:
@@ -964,29 +1087,29 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     new_event = RecruitMacrophage(neighbour_address, internal)
                     self.potential_events.append(new_event)
 
-        # CHEMOTHERAPY KILLING BACTERIA
+    def chemotherapy_killing_bacteria(self):
         for bacterium in self.bacteria:
             chemo_scale = self.chemotherapy_scale(bacterium.address)
             if (bacterium.metabolism == 'fast' and chemo_scale >
                 self.parameters['chemotherapy_scale_for_kill_fast_bacteria']) \
-                or \
-                (bacterium.metabolism == 'slow' and chemo_scale >
-                    self.parameters['chemotherapy_scale_for_kill_slow_bacteria']):
+                    or \
+                    (bacterium.metabolism == 'slow' and chemo_scale >
+                        self.parameters['chemotherapy_scale_for_kill_slow_bacteria']):
                 new_event = ChemoKillBacterium(bacterium.address)
                 self.potential_events.append(new_event)
 
-        # CHEMOTHERAPY KILLING MACROPHAGES
+    def chemotherapy_killing_macrophages(self):
         for m in self.macrophages:
             chemo_scale = self.chemotherapy_scale(m.address)
             if ((m.state == 'infected' or m.state == 'chronically_infected') and chemo_scale >
-                    self.parameters['chemotherapy_scale_for_kill_macrophage']):
+                self.parameters['chemotherapy_scale_for_kill_macrophage']):
                 new_event = ChemoKillMacrophage(m.address)
                 self.potential_events.append(new_event)
 
-        # T-CELL DEATH, MOVEMENT & MACROPHAGE KILLING
+    def t_cell_processes(self):
         # TODO - MED - does this make sense - e.g. t-cell death is dependent on the bacteria number and movement time
         if self.number_of_bacteria_global >= self.parameters['bacteria_threshold_for_t_cells'] and \
-                self.time % self.parameters['t_cell_movement_time'] == 0:
+                                self.time % self.parameters['t_cell_movement_time'] == 0:
 
             for t_cell in self.t_cells:
                 t_cell.age += self.parameters['time_step']
@@ -1023,13 +1146,14 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                         new_event = TCellMovement(t_cell, t_cell.address, chosen_neighbour_address, internal)
                         self.potential_events.append(new_event)
                     elif isinstance(neighbour['contents'], Macrophage) and (neighbour['contents'].state == 'infected'
-                            or neighbour['contents'].state == 'chronically_infected'):
+                                                                            or neighbour[
+                            'contents'].state == 'chronically_infected'):
                         prob_tcell_killing = np.random.randint(1, 101)
                         if prob_tcell_killing <= self.parameters['t_cell_kills_macrophage_probability']:
                             new_event = TCellKillsMacrophage(t_cell, t_cell.address, chosen_neighbour_address, internal)
                             self.potential_events.append(new_event)
 
-        # MACROPHAGES - death, movement, bacteria ingestion
+    def macrophage_processes(self):
         for macrophage in self.macrophages:
             macrophage.age += self.parameters['time_step']
 
@@ -1054,7 +1178,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     random_move = False
                     if prob_random_move <= self.parameters['prob_resting_macrophage_random_move'] \
                             or max_chemokine_scale <= \
-                            self.parameters['minimum_chemokine_for_resting_macrophage_movement']:
+                                    self.parameters['minimum_chemokine_for_resting_macrophage_movement']:
                         random_move = True
 
                     if random_move:
@@ -1094,9 +1218,10 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
                         prob_macrophage_kill = np.random.randint(1, 101)
                         if (neighbour['contents'].metabolism == 'fast' and prob_macrophage_kill <= self.parameters[
-                                'prob_active_macrophage_kill_fast_bacteria']) or (
-                                neighbour['contents'].metabolism == 'slow' and prob_macrophage_kill <= self.parameters[
-                                'prob_active_macrophage_kill_slow_bacteria']):
+                            'prob_active_macrophage_kill_fast_bacteria']) or (
+                                        neighbour['contents'].metabolism == 'slow' and prob_macrophage_kill <=
+                                    self.parameters[
+                                        'prob_active_macrophage_kill_slow_bacteria']):
                             new_event = MacrophageKillsBacterium(macrophage, macrophage.address,
                                                                  chosen_neighbour_address, internal)
                             self.potential_events.append(new_event)
@@ -1164,7 +1289,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                                                              internal)
                         self.potential_events.append(new_event)
 
-        # MACROPHAGE STATE CHANGES / BURSTING
+    def macrophage_state_changes(self):
         for macrophage in self.macrophages:
 
             # MACROPHAGE STATE CHANGES
@@ -1172,7 +1297,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 # Resting to active
                 if self.chemokine_scale(macrophage.address) > \
                         self.parameters['chemokine_scale_for_macrophage_activation'] and \
-                        macrophage.intracellular_bacteria == 0:
+                                macrophage.intracellular_bacteria == 0:
                     new_event = MacrophageChangesState(macrophage.address, "active")
                     self.potential_events.append(new_event)
                 # Resting to infected
@@ -1195,14 +1320,14 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 if macrophage.intracellular_bacteria == self.parameters['bacteria_to_burst_macrophage']:
                     internal = self.address_is_on_grid(macrophage.address)
                     bacteria_addresses = []
-                    for depth in range(1,4):
+                    for depth in range(1, 4):
                         neighbours = self.neighbours_moore(macrophage.address, depth)
                         # Shuffle the neighbours so we don't give priority
                         np.random.shuffle(neighbours)
                         for n in neighbours:
                             # TODO - COMP - do this (contents and BV) too often.
                             # Could maybe make blood vessel part of contents
-                            if self.get(n) is not None and self.get_attribute(n,'contents') == 0.0 and \
+                            if self.get(n) is not None and self.get_attribute(n, 'contents') == 0.0 and \
                                             self.get_attribute(n, 'blood_vessel') == 0.0:
                                 bacteria_addresses.append(n)
                                 if not self.address_is_on_grid(n):
@@ -1214,123 +1339,34 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     new_event = MacrophageBursting(macrophage.address, bacteria_addresses, internal)
                     self.potential_events.append(new_event)
 
-        # BACTERIUM STATE CHANGES
+    def bacteria_state_changes(self):
         for bacterium in self.bacteria:
 
             # Metabolism change only happens later in process
             if self.time > 2 / self.parameters['time_step']:
 
                 if bacterium.metabolism == 'fast' and self.oxygen_scale(bacterium.address) <= self.parameters[
-                        'oxygen_scale_for_metabolism_change_to_slow']:
+                    'oxygen_scale_for_metabolism_change_to_slow']:
                     new_event = BacteriumStateChange(bacterium.address, 'metabolism', 'slow')
                     self.potential_events.append(new_event)
                 elif bacterium.metabolism == 'slow' and self.oxygen_scale(bacterium.address) > self.parameters[
-                        'oxygen_scale_for_metabolism_change_to_fast']:
+                    'oxygen_scale_for_metabolism_change_to_fast']:
                     new_event = BacteriumStateChange(bacterium.address, 'metabolism', 'fast')
                     self.potential_events.append(new_event)
 
             if bacterium.resting:
                 space_found = False
-                for depth in range(1,4):
+                for depth in range(1, 4):
                     neighbours = self.neighbours_moore(bacterium.address, depth)
                     for n in neighbours:
                         if self.get(n) is not None and self.get_attribute(n, 'blood_vessel') == 0.0 and \
-                                self.get_attribute(n, 'contents') == 0.0:
+                                        self.get_attribute(n, 'contents') == 0.0:
                             new_event = BacteriumStateChange(bacterium.address, 'resting', False)
                             self.potential_events.append(new_event)
                             space_found = True
                             break
                     if space_found:
                         break
-
-        # Reorder events
-        self.reorder_events()
-
-    def reorder_events(self):
-        # TODO - COMP - other methods - currently just random
-        np.random.shuffle(self.potential_events)
-
-    def process_events(self, events):
-        """
-        Given a list of acceptable addresses, pass to the Event Handler to update the grid
-        :param events:
-        :return:
-        """
-        for event in events:
-            self.handle_event(event)
-
-        # Ensure all agents are put onto the work grid
-        self.persist_agents()
-        # Swap work grid with main grid
-        self.swap_grids()
-
-    def diffusion_pre_process(self):
-        """
-        Pre-processing for diffusion. Looks through all cells and calculates the diffusion rates - diffusion rate
-        of oxygen and chemotherapy drops if there is too much caseum in the vicinity
-        :return:
-        """
-
-        # Loop through all cells
-        for location in range(self.size):
-            address = self.location_to_address(location)
-
-            # Get initial diffusion rates
-            oxygen_diffusion = self.parameters['oxygen_diffusion']
-            chemotherapy_diffusion = self.parameters['chemotherapy_diffusion']
-
-            # Get all neighbours up to the specified distance
-            neighbours = []
-            for i in range(1, int(self.parameters['caseum_distance_to_reduce_diffusion']) + 1):
-                neighbours += self.neighbours_moore(address, i)
-
-            # Check if there is specified amount of caseum within specified distance of cell
-            caseum_count = 0
-            for neighbour_address in neighbours:
-                cell = self.get(neighbour_address)
-                if cell is not None and cell['contents'] == 'caseum':
-                    caseum_count += 1
-                    # Once the caseum threshold is reached
-                    if caseum_count == self.parameters['caseum_threshold_to_reduce_diffusion']:
-                        # Decrease the diffusion level at the cell
-                        oxygen_diffusion /= self.parameters['oxygen_diffusion_caseum_reduction']
-                        chemotherapy_diffusion /= self.parameters['chemotherapy_diffusion_caseum_reduction']
-                        # Exit the loop
-                        break
-
-            # Need to set the values on the current grid
-            self.set_attribute_grid(address, 'oxygen_diffusion_rate', oxygen_diffusion)
-            self.set_attribute_grid(address, 'chemotherapy_diffusion_rate', chemotherapy_diffusion)
-
-        # Set diffusion rates on halo depth 1
-        for halo_address in self.halo_depth1:
-            if self.get(halo_address) is not None:
-
-                # Get initial rates
-                oxygen_diffusion = self.parameters['oxygen_diffusion']
-                chemotherapy_diffusion = self.parameters['chemotherapy_diffusion']
-                # Get neighbours
-                neighbours = []
-                for i in range(1, int(self.parameters['caseum_distance_to_reduce_diffusion']) + 1):
-                    neighbours += self.neighbours_moore(halo_address, i)
-                # Check if caseum in neighbourhood exceeds threshold
-                caseum_count = 0
-                for neighbour_address in neighbours:
-                    cell = self.get(neighbour_address)
-                    if cell is not None and cell['contents'] == 'caseum':
-                        caseum_count += 1
-                        # Once the caseum threshold is reached
-                        if caseum_count == self.parameters['caseum_threshold_to_reduce_diffusion']:
-                            # Decrease the diffusion level at the cell
-                            oxygen_diffusion /= self.parameters['oxygen_diffusion_caseum_reduction']
-                            chemotherapy_diffusion /= self.parameters['chemotherapy_diffusion_caseum_reduction']
-                            # Exit the loop
-                            break
-
-                # Need to set the values on the halo
-                index = self.halo_addresses.index(halo_address)
-                self.halo_cells[index]['oxygen_diffusion_rate'] = oxygen_diffusion
-                self.halo_cells[index]['chemotherapy_diffusion_rate'] = chemotherapy_diffusion
 
     def oxygen(self, address):
         # Get the current cell values
