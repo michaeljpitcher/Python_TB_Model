@@ -1,12 +1,14 @@
 import cProfile
 import TB_Model
-
+import numpy as np
 
 def setup_topology():
 
     params = dict()
     params['max_depth'] = 3
-    params['caseum_threshold_to_reduce_diffusion'] = 999
+    params['caseum_threshold_to_reduce_diffusion'] = 2
+    params['oxygen_diffusion_caseum_reduction'] = 1.5
+    params['chemotherapy_diffusion_caseum_reduction'] = 1.5
     params['initial_oxygen'] = 1.5
     params['oxygen_diffusion'] = 0.0
     params['chemotherapy_diffusion'] = 0.0
@@ -77,8 +79,17 @@ def main():
     sort_out_halos(topology)
 
     pr = cProfile.Profile()
+
+    # amount_of_caseum = 2499
+    # locations = np.random.choice(range(0,2499),amount_of_caseum,False)
+    #
+    # for a in locations:
+    #     address = topology.automata[0].location_to_address(a)
+    #     topology.automata[0].set_attribute_grid(address, 'contents', 'caseum')
+    #     topology.automata[0].caseum.append(address)
+
     pr.enable()
-    topology.automata[0].diffusion_pre_process()
+    topology.automata[0].update()
     pr.disable()
     pr.print_stats(sort='cumtime')
 

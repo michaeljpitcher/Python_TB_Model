@@ -691,10 +691,12 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
 
         # Add some caseum to automaton 0
         self.topology.automata[0].grid[0, 0]['contents'] = 'caseum'
+        self.topology.automata[0].caseum.append([0, 0])
         self.topology.automata[0].grid[0, 1]['contents'] = 'caseum'
+        self.topology.automata[0].caseum.append([0, 1])
 
         # Run the pre process loop
-        self.topology.automata[0].diffusion_pre_process()
+        self.topology.automata[0].diffusion_pre_process_v2()
 
         # Cells close to caseum
         self.assertEqual(self.topology.automata[0].grid[0, 2]['oxygen_diffusion_rate'], 1.0 / 1.5)
@@ -722,9 +724,11 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
 
         # Add some caseum to automaton 0
         self.topology.automata[0].grid[0, 0]['contents'] = 'caseum'
+        self.topology.automata[0].caseum.append([0, 0])
         self.topology.automata[0].grid[0, 1]['contents'] = 'caseum'
+        self.topology.automata[0].caseum.append([0, 1])
 
-        # Create a halo
+        # Create a halo with caseum in [0,7] and [1,7] - which is [0,2] and [1,2] of right neighbour tile
         halo = []
         for a in self.topology.automata[0].halo_addresses:
             x, y = a
@@ -742,7 +746,7 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         self.topology.automata[0].set_halo(halo)
 
         # Run the pre process loop
-        self.topology.automata[0].diffusion_pre_process()
+        self.topology.automata[0].diffusion_pre_process_v2()
 
         halo_addresses = self.topology.automata[0].halo_addresses
         halo_cells = self.topology.automata[0].halo_cells
@@ -846,8 +850,6 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
                                                                   self.topology.automata[0].chemokine([x, y]))
 
         self.topology.automata[0].swap_grids()
-
-        print self.topology.automata[0].grid
 
         self.assertAlmostEqual(self.topology.automata[0].max_oxygen_local, 1.3536)
         self.assertAlmostEqual(self.topology.automata[0].max_chemotherapy_local, 0.0015)

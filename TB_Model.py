@@ -1,6 +1,7 @@
 import numpy as np
 import math
 import itertools
+from collections import Counter
 
 '''
 Tuberculosis Automaton Model
@@ -621,6 +622,7 @@ class EventHandler:
             macrophage = self.get_attribute(to_address, 'contents')
             self.macrophages.remove(macrophage)
             self.set_attribute_work_grid(to_address, 'contents', 'caseum')
+            self.caseum.append(to_address)
 
         if self.address_is_on_grid(from_address):
             # Remove t-cell
@@ -637,6 +639,7 @@ class EventHandler:
         #el
         if macrophage_to_die.state == 'infected' or macrophage_to_die.state == 'chronically_infected':
             self.set_attribute_work_grid(macrophage_to_die.address, 'contents', 'caseum')
+            self.caseum.append(macrophage_to_die.address)
         # Remove macrophage
         self.macrophages.remove(macrophage_to_die)
 
@@ -719,6 +722,7 @@ class EventHandler:
         print "MACROPHAGE BURSTING"
         macrophage_to_burst = self.get_attribute(event.macrophage_address, 'contents')
         self.set_attribute_work_grid(macrophage_to_burst.address, 'contents', 'caseum')
+        self.caseum.append(macrophage_to_burst.address)
         self.macrophages.remove(macrophage_to_burst)
 
         # TODO - COMP - bacteria stuff
@@ -758,6 +762,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         self.macrophages = []
         self.t_cells = []
         self.potential_events = []
+        self.caseum = []
 
         # INITIAL VESSELS
         self.initialise_blood_vessels(blood_vessels)
@@ -807,7 +812,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         # ----------------------------
 
         # Pre-processing (calculating diffusion rates)
-        self.diffusion_pre_process()
+        self.diffusion_pre_process_v2()
         # In chemo window?
         if (((self.parameters['chemotherapy_schedule1_start'] / self.parameters['time_step']) <=
                 self.time <
@@ -945,6 +950,57 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                             chemotherapy_diffusion /= self.parameters['chemotherapy_diffusion_caseum_reduction']
                             # Exit the loop
                             break
+
+                # Need to set the values on the halo
+                index = self.halo_addresses.index(halo_address)
+                self.halo_cells[index]['oxygen_diffusion_rate'] = oxygen_diffusion
+                self.halo_cells[index]['chemotherapy_diffusion_rate'] = chemotherapy_diffusion
+
+    def diffusion_pre_process_v2(self):
+
+        affected_addresses = []
+        caseum_addresses = list(self.caseum)
+        
+        for index in range(len(self.halo_cells)):
+            if self.halo_cells[index] is not None and self.halo_cells[index]['contents'] == 'caseum':
+                caseum_addresses.append(self.halo_addresses[index])
+
+        for address in caseum_addresses:
+
+            for depth in range(1, self.parameters['caseum_distance_to_reduce_diffusion']+1):
+                neighbours = self.neighbours_moore(address, depth)
+                for n in neighbours:
+                    tuple_address = tuple(n)
+                    affected_addresses.append(tuple_address)
+
+        counted = Counter(affected_addresses)
+
+        for location in range(self.size):
+            address = self.location_to_address(location)
+
+            # Get initial diffusion rates
+            oxygen_diffusion = self.parameters['oxygen_diffusion']
+            chemotherapy_diffusion = self.parameters['chemotherapy_diffusion']
+
+            if tuple(address) in counted and counted[tuple(address)] >= \
+                    self.parameters['caseum_threshold_to_reduce_diffusion']:
+                oxygen_diffusion /= self.parameters['oxygen_diffusion_caseum_reduction']
+                chemotherapy_diffusion /= self.parameters['chemotherapy_diffusion_caseum_reduction']
+
+            # Need to set the values on the current grid
+            self.set_attribute_grid(address, 'oxygen_diffusion_rate', oxygen_diffusion)
+            self.set_attribute_grid(address, 'chemotherapy_diffusion_rate', chemotherapy_diffusion)
+
+        for halo_address in self.halo_depth1:
+            if self.get(halo_address) is not None:
+                # Get initial rates
+                oxygen_diffusion = self.parameters['oxygen_diffusion']
+                chemotherapy_diffusion = self.parameters['chemotherapy_diffusion']
+
+                if tuple(halo_address) in counted and counted[tuple(halo_address)] >= \
+                        self.parameters['caseum_threshold_to_reduce_diffusion']:
+                    oxygen_diffusion /= self.parameters['oxygen_diffusion_caseum_reduction']
+                    chemotherapy_diffusion /= self.parameters['chemotherapy_diffusion_caseum_reduction']
 
                 # Need to set the values on the halo
                 index = self.halo_addresses.index(halo_address)
