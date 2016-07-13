@@ -346,8 +346,7 @@ class Tile:
                 index = self.halo_addresses.index(address)
                 return self.halo_cells[index]
             except ValueError:
-                raise Exception, "Address {0} is not on grid or in halo".format(address)
-
+                raise Exception("Address {0} is not on grid or in halo".format(address))
 
     def get_attribute(self, address, attribute):
         """
@@ -356,17 +355,12 @@ class Tile:
         :param attribute:
         :return:
         """
-        if self.address_is_on_grid(address):
-            address = tuple(address)
-            return self.grid[address][attribute]
-        elif address in self.halo_addresses:
-            index = self.halo_addresses.index(address)
-            if self.halo_cells[index] is None:
-                return None
-            else:
-                return self.halo_cells[index][attribute]
+        cell = self.get(address)
+        if cell is None:
+            return None
         else:
-            raise Exception("Failure at get method")
+            return cell[attribute]
+
 
     def set_attribute_grid(self, address, attribute, value):
         """
