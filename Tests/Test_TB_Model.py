@@ -908,10 +908,13 @@ class BacteriaReplicationTestCase(unittest.TestCase):
         # Set the limits to 1 and 2 - forces random number to be 1 and thus always replicates each step
         params['bacteria_replication_fast_upper'] = 2
         params['bacteria_replication_fast_lower'] = 1
+        params['bacteria_replication_slow_upper'] = 2
+        params['bacteria_replication_slow_lower'] = 1
 
         params['bacteria_threshold_for_t_cells'] = 100
         params['macrophage_recruitment_probability'] = 0
         params['chemotherapy_scale_for_kill_fast_bacteria'] = 100
+        params['chemotherapy_scale_for_kill_slow_bacteria'] = 100
 
         atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
                 'chemotherapy', 'chemokine']
@@ -942,6 +945,19 @@ class BacteriaReplicationTestCase(unittest.TestCase):
         self.assertSequenceEqual(event.dependant_addresses[0], [0, 0])
         self.assertTrue(event.dependant_addresses[1] == [0, 1] or event.dependant_addresses[1] == [1, 0] or
                         event.dependant_addresses[1] == [1, 1])
+
+    def test_bacteria_replication_event_creation_slow(self):
+        self.sort_out_halos()
+
+        self.topology.automata[3].update()
+
+        self.assertEqual(len(self.topology.automata[3].potential_events), 1)
+        event = self.topology.automata[3].potential_events[0]
+        self.assertTrue(isinstance(event, TB_Model.BacteriumReplication))
+        self.assertEqual(len(event.dependant_addresses), 2)
+        self.assertSequenceEqual(event.dependant_addresses[0], [4, 4])
+        self.assertTrue(event.dependant_addresses[1] == [3, 4] or event.dependant_addresses[1] == [4, 3] or
+                        event.dependant_addresses[1] == [3, 3])
 
     def test_bacteria_replication_event_process(self):
         self.sort_out_halos()
@@ -1006,6 +1022,42 @@ class BacteriaReplicationTestCase(unittest.TestCase):
 
         self.assertTrue(isinstance(self.topology.automata[0].grid[3, 4]['contents'], TB_Model.Bacterium))
         self.assertTrue(isinstance(self.topology.automata[1].grid[3, 0]['contents'], TB_Model.Bacterium))
+
+    def test_bacteria_replication_negative_resting(self):
+        self.sort_out_halos()
+
+        self.topology.automata[0].bacteria[0].resting = True
+
+        for x in range(0,5):
+            for y in range(0,5):
+                if x != 0 or y != 0:
+                    self.topology.automata[0].grid[x,y]['contents'] = 'caseum'
+                    self.topology.automata[0].caseum.append([x,y])
+
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+    def test_bacteria_replication_negative_fast_age(self):
+        self.sort_out_halos()
+
+        self.topology.automata[0].parameters['bacteria_replication_fast_upper'] = 999
+        self.topology.automata[0].parameters['bacteria_replication_fast_lower'] = 998
+
+        self.topology.automata[0].update()
+
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+    def test_bacteria_replication_negative_slow_age(self):
+        self.sort_out_halos()
+
+        self.topology.automata[3].parameters['bacteria_replication_slow_upper'] = 999
+        self.topology.automata[3].parameters['bacteria_replication_slow_lower'] = 998
+
+        self.topology.automata[3].update()
+
+        self.assertEqual(len(self.topology.automata[3].potential_events), 0)
+
 
 
 class TCellRecruitmentTestCase(unittest.TestCase):
