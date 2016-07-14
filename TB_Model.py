@@ -333,35 +333,43 @@ class Tile:
         for i in range(len(cells)):
             self.halo_cells.append(cells[i])
 
-    def get(self, address):
+    def get(self, address, location='unknown'):
         """
-        Get a cell from the active grid (or from halo)
-        :param address:
+
+        :param address: Address of cell to return
+        :param location: Optional location value ("grid" or "halo")
         :return:
         """
-        if self.address_is_on_grid(address):
+
+        if location == 'unknown':
+            if self.address_is_on_grid(address):
+                location = 'grid'
+            else:
+                location = 'halo'
+
+        if location == 'grid':
             address = tuple(address)
             return self.grid[address]
-        else:
+        elif location == 'halo':
             try:
                 index = self.halo_addresses.index(address)
                 return self.halo_cells[index]
             except ValueError:
                 raise Exception("Address {0} is not on grid or in halo".format(address))
 
-    def get_attribute(self, address, attribute):
+    def get_attribute(self, address, attribute, location='unknown'):
         """
         Get an attribute from a cell on the active grid (or halo)
         :param address:
         :param attribute:
+        :param location: Optional location ("grid" or "halo")
         :return:
         """
-        cell = self.get(address)
+        cell = self.get(address, location)
         if cell is None:
             return None
         else:
             return cell[attribute]
-
 
     def set_attribute_grid(self, address, attribute, value):
         """
@@ -386,7 +394,7 @@ class Tile:
         :return:
         """
         address = tuple(address)
-        if attribute in self.work_grid[address].keys():
+        if attribute in self.attributes:
             self.work_grid[address][attribute] = value
         else:  # Specified attribute hasn't been set as a possibility
             raise Exception('Attribute {0} does not exist'.format(attribute))
@@ -925,7 +933,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
         # Set diffusion rates on halo depth 1
         for halo_address in self.halo_depth1:
-            if self.get(halo_address) is not None:
+            if self.get(halo_address, "halo") is not None:
 
                 # Get initial rates
                 oxygen_diffusion = self.parameters['oxygen_diffusion']
@@ -989,7 +997,8 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             self.set_attribute_grid(address, 'chemotherapy_diffusion_rate', chemotherapy_diffusion)
 
         for halo_address in self.halo_depth1:
-            if self.get(halo_address) is not None:
+            if self.get(halo_address, "halo") is not None:
+
                 # Get initial rates
                 oxygen_diffusion = self.parameters['oxygen_diffusion']
                 chemotherapy_diffusion = self.parameters['chemotherapy_diffusion']
@@ -1001,6 +1010,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
                 # Need to set the values on the halo
                 index = self.halo_addresses.index(halo_address)
+
                 self.halo_cells[index]['oxygen_diffusion_rate'] = oxygen_diffusion
                 self.halo_cells[index]['chemotherapy_diffusion_rate'] = chemotherapy_diffusion
 
@@ -1086,13 +1096,13 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     neighbours = self.neighbours_von_neumann(bv_address, 1)
                     # Get neighbours which are empty and have a high enough chemokine level
                     free_neighbours = []
-                    for n in neighbours:
-                        if self.get(n) is not None and \
-                                        self.get_attribute(n, 'blood_vessel') == 0.0 and \
-                                        self.get_attribute(n, 'contents') == 0.0 and \
-                                        self.chemokine_scale(n) > self.parameters[
+                    for neighbour_address in neighbours:
+                        if self.get(neighbour_address) is not None and \
+                                        self.get_attribute(neighbour_address, 'blood_vessel') == 0.0 and \
+                                        self.get_attribute(neighbour_address, 'contents') == 0.0 and \
+                                        self.chemokine_scale(neighbour_address) > self.parameters[
                                     'chemokine_scale_for_t_cell_recruitment']:
-                            free_neighbours.append(n)
+                            free_neighbours.append(neighbour_address)
                     # Check there is free space
                     if len(free_neighbours) > 0:
                         # Pick one of the neighbours
@@ -1110,22 +1120,22 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             if r <= self.parameters['macrophage_recruitment_probability']:
                 neighbours = self.neighbours_von_neumann(bv_address, 1)
                 free_neighbours = []
-                for n in neighbours:
-                    if self.get(n) is not None and \
-                                    self.get_attribute(n, 'blood_vessel') == 0.0 and \
-                                    self.get_attribute(n, 'contents') == 0.0 and \
-                                    self.chemokine_scale(n) > self.parameters[
+                for neighbour_address in neighbours:
+                    if self.get(neighbour_address) is not None and \
+                                    self.get_attribute(neighbour_address, 'blood_vessel') == 0.0 and \
+                                    self.get_attribute(neighbour_address, 'contents') == 0.0 and \
+                                    self.chemokine_scale(neighbour_address) > self.parameters[
                                 'chemokine_scale_for_macrophage_recruitment']:
-                        free_neighbours.append(n)
+                        free_neighbours.append(neighbour_address)
 
                 if len(free_neighbours) > 0:
                     # Pick one of the neighbours
-                    neighbour_address = free_neighbours[np.random.randint(len(free_neighbours))]
-                    if self.address_is_on_grid(neighbour_address):
+                    chosen_neighbour = free_neighbours[np.random.randint(len(free_neighbours))]
+                    if self.address_is_on_grid(chosen_neighbour):
                         internal = True
                     else:
                         internal = False
-                    new_event = RecruitMacrophage(neighbour_address, internal)
+                    new_event = RecruitMacrophage(chosen_neighbour, internal)
                     self.potential_events.append(new_event)
 
     def chemotherapy_killing_bacteria(self):
@@ -1181,7 +1191,13 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
                     # Check if leaving the grid
                     internal = self.address_is_on_grid(chosen_neighbour_address)
-                    neighbour = self.get(chosen_neighbour_address)
+
+                    if internal:
+                        location = 'grid'
+                    else:
+                        location = 'halo'
+
+                    neighbour = self.get(chosen_neighbour_address, location)
 
                     if neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
                         new_event = TCellMovement(t_cell, t_cell.address, chosen_neighbour_address, internal)
@@ -1229,7 +1245,13 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
                     # Check if leaving the grid
                     internal = self.address_is_on_grid(chosen_neighbour_address)
-                    neighbour = self.get(chosen_neighbour_address)
+
+                    if internal:
+                        location = 'grid'
+                    else:
+                        location = 'halo'
+
+                    neighbour = self.get(chosen_neighbour_address,location)
 
                     if neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
                         new_event = MacrophageMovement(macrophage, macrophage.address, chosen_neighbour_address,
@@ -1251,9 +1273,13 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 if self.time % self.parameters['active_macrophage_movement_time'] == 0:
                     neighbours = self.neighbours_moore(macrophage.address, 1)
                     chosen_neighbour_address = neighbours[self.find_max_chemokine_neighbour(neighbours)[0]]
-                    neighbour = self.get(chosen_neighbour_address)
 
                     internal = self.address_is_on_grid(chosen_neighbour_address)
+                    if internal:
+                        location = 'grid'
+                    else:
+                        location = 'halo'
+                    neighbour = self.get(chosen_neighbour_address, location)
 
                     if isinstance(neighbour['contents'], Bacterium):
 
@@ -1285,11 +1311,14 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 if self.time % self.parameters['infected_macrophage_movement_time'] == 0:
                     neighbours = self.neighbours_moore(macrophage.address, 1)
                     chosen_neighbour_address = neighbours[self.find_max_chemokine_neighbour(neighbours)[0]]
-                    neighbour = self.get(chosen_neighbour_address)
 
                     internal = False
+                    location = 'halo'
                     if self.address_is_on_grid(chosen_neighbour_address):
                         internal = True
+                        location = 'grid'
+
+                    neighbour = self.get(chosen_neighbour_address, location)
 
                     if neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
                         new_event = MacrophageMovement(macrophage, macrophage.address, chosen_neighbour_address,
@@ -1315,11 +1344,14 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 if self.time % self.parameters['chronically_infected_macrophage_movement_time'] == 0:
                     neighbours = self.neighbours_moore(macrophage.address, 1)
                     chosen_neighbour_address = neighbours[self.find_max_chemokine_neighbour(neighbours)[0]]
-                    neighbour = self.get(chosen_neighbour_address)
 
                     internal = False
+                    location = 'halo'
                     if self.address_is_on_grid(chosen_neighbour_address):
                         internal = True
+                        location = 'grid'
+
+                    neighbour = self.get(chosen_neighbour_address, location)
 
                     if neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
                         new_event = MacrophageMovement(macrophage, macrophage.address, chosen_neighbour_address,
@@ -1411,7 +1443,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
     def oxygen(self, address):
         # Get the current cell values
-        cell = self.get(address)
+        cell = self.get(address, "grid")
 
         # Get diffusion value for cell
         cell_diffusion = cell['oxygen_diffusion_rate']
@@ -1445,7 +1477,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
     def chemotherapy(self, address):
         # Get the current cell values
-        cell = self.get(address)
+        cell = self.get(address, "grid")
 
         # Get diffusion value for cell based on system parameters
         cell_diffusion = cell['chemotherapy_diffusion_rate']
@@ -1482,7 +1514,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
     def chemokine(self, address):
 
         # Get the current cell values
-        cell = self.get(address)
+        cell = self.get(address, "grid")
 
         # Get diffusion value for cell based on system parameters
         cell_diffusion = self.parameters['chemokine_diffusion']
