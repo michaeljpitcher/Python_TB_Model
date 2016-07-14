@@ -1011,12 +1011,6 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         for i in range(self.size):
             address = self.location_to_address(i)
 
-            # Persist - if the cell has caseum, persist it, else clear it (agents will be added later)
-            if self.get_attribute(address, 'contents') == 'caseum':
-                self.set_attribute_work_grid(address, 'contents', 'caseum')
-            else:
-                self.set_attribute_work_grid(address, 'contents', 0.0)
-
             # OXYGEN
             oxygen_level = self.oxygen(address)
             self.set_attribute_work_grid(address, 'oxygen', oxygen_level)
