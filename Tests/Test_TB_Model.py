@@ -977,6 +977,8 @@ class BacteriaReplicationTestCase(unittest.TestCase):
         self.topology.automata[1].grid[3, 1]['contents'] = 'caseum'
         self.topology.automata[1].grid[4, 0]['contents'] = 'caseum'
         self.topology.automata[1].grid[4, 1]['contents'] = 'caseum'
+        self.topology.automata[0].caseum += [[2, 4], [4, 4]]
+        self.topology.automata[1].caseum += [[2, 0], [2, 1], [3, 1], [4, 0], [4, 1]]
 
         self.sort_out_halos()
 
@@ -1124,6 +1126,8 @@ class TCellRecruitmentTestCase(unittest.TestCase):
         self.topology.automata[0].grid[1, 3]['contents'] = 'caseum'
         self.topology.automata[0].grid[1, 4]['contents'] = 'caseum'
         self.topology.automata[1].grid[1, 0]['contents'] = 'caseum'
+        self.topology.automata[0].caseum += [[0, 3], [1, 3], [1, 4]]
+        self.topology.automata[1].caseum.append([1,0])
 
         self.topology.automata[0].update()
         self.assertTrue(self.topology.automata[0].potential_events[0].dependant_addresses[0] == [0, 5])
@@ -1269,6 +1273,8 @@ class MacrophageRecruitmentTestCase(unittest.TestCase):
         self.topology.automata[0].grid[1, 3]['contents'] = 'caseum'
         self.topology.automata[0].grid[1, 4]['contents'] = 'caseum'
         self.topology.automata[1].grid[1, 0]['contents'] = 'caseum'
+        self.topology.automata[0].caseum += [[0, 3],[1, 3],[1, 4]]
+        self.topology.automata[1].caseum.append([1,0])
 
         self.topology.automata[0].update()
         self.assertTrue(self.topology.automata[0].potential_events[0].dependant_addresses[0] == [0, 5])
@@ -2070,6 +2076,7 @@ class TCellKillsMacrophageTestCase(unittest.TestCase):
         self.topology.automata[0].process_events([event])
         self.assertEqual(self.topology.automata[0].grid[1, 1]['contents'], 0.0)
         self.assertEqual(self.topology.automata[0].grid[1, 2]['contents'], 'caseum')
+        self.assertTrue([1,2] in self.topology.automata[0].caseum)
 
     def test_tcell_kill_macrophage_negative_resting(self):
 
@@ -2207,6 +2214,7 @@ class TCellKillsMacrophageTestCase(unittest.TestCase):
 
         self.topology.automata[1].process_events([new_event])
         self.assertEqual(self.topology.automata[1].grid[4, 0]['contents'], 'caseum')
+        self.assertTrue([4,0] in self.topology.automata[1].caseum)
         self.assertEqual(len(self.topology.automata[1].macrophages), 0)
 
 
@@ -2403,6 +2411,7 @@ class MacrophageDeathTestCase(unittest.TestCase):
         self.topology.automata[0].process_events([event])
         self.assertEqual(len(self.topology.automata[0].macrophages), 0)
         self.assertEqual(self.topology.automata[0].grid[1, 1]['contents'], 'caseum')
+        self.assertTrue([1,1] in self.topology.automata[0].caseum)
 
     def test_macrophage_death_chronically_infected_process(self):
 
@@ -2418,6 +2427,7 @@ class MacrophageDeathTestCase(unittest.TestCase):
         self.topology.automata[0].process_events([event])
         self.assertEqual(len(self.topology.automata[0].macrophages), 0)
         self.assertEqual(self.topology.automata[0].grid[1, 1]['contents'], 'caseum')
+        self.assertTrue([1, 1] in self.topology.automata[0].caseum)
 
 
 class MacrophageMovementTestCase(unittest.TestCase):
@@ -3456,6 +3466,7 @@ class BacteriaStateChangeTestCase(unittest.TestCase):
             for y in range(5):
                 if x != 1 or y != 1:
                     self.topology.automata[0].grid[x, y]['contents'] = 'caseum'
+                    self.topology.automata[0].caseum.append([x,y])
 
         self.sort_out_halos()
         self.topology.automata[0].update()
@@ -3489,6 +3500,7 @@ class BacteriaStateChangeTestCase(unittest.TestCase):
             for y in range(5):
                 if x != 1 or y != 1:
                     self.topology.automata[0].grid[x, y]['contents'] = 'caseum'
+                    self.topology.automata[0].caseum.append([x,y])
 
         self.topology.automata[0].grid[0, 0]['contents'] = 0.0
 
@@ -3508,6 +3520,7 @@ class BacteriaStateChangeTestCase(unittest.TestCase):
             for y in range(5):
                 if x != 1 or y != 1:
                     self.topology.automata[0].grid[x, y]['contents'] = 'caseum'
+                    self.topology.automata[0].caseum.append([x, y])
 
         self.sort_out_halos()
         self.topology.automata[0].update()
@@ -3524,6 +3537,7 @@ class BacteriaStateChangeTestCase(unittest.TestCase):
             for y in range(5):
                 if x != 1 or y != 1:
                     self.topology.automata[0].grid[x, y]['contents'] = 'caseum'
+                    self.topology.automata[0].caseum.append([x, y])
 
         self.sort_out_halos()
         self.topology.automata[0].update()
@@ -3643,6 +3657,7 @@ class MacrophageBurstingTestCase(unittest.TestCase):
         self.topology.automata[0].grid[0, 4]['contents'] = 'caseum'
         self.topology.automata[0].grid[4, 0]['contents'] = 'caseum'
         self.topology.automata[0].grid[4, 4]['contents'] = 'caseum'
+        self.topology.automata[0].caseum += [[0,0],[0,4],[4,0],[4,4]]
 
         self.sort_out_halos()
         self.topology.automata[0].update()
@@ -3676,10 +3691,12 @@ class MacrophageBurstingTestCase(unittest.TestCase):
             for y in range(0, 5):
                 if not(x == 3 and y == 3):
                     self.topology.automata[0].grid[x, y]['contents'] = 'caseum'
+                    self.topology.automata[0].caseum.append([x,y])
         # Caseum in automaton 1
         for x in range(0, 5):
             for y in range(0, 2):
                 self.topology.automata[1].grid[x, y]['contents'] = 'caseum'
+                self.topology.automata[1].caseum.append([x, y])
 
         self.sort_out_halos()
         self.topology.automata[0].update()
@@ -3716,6 +3733,7 @@ class MacrophageBurstingTestCase(unittest.TestCase):
         self.topology.automata[0].grid[0, 4]['contents'] = 'caseum'
         self.topology.automata[0].grid[4, 0]['contents'] = 'caseum'
         self.topology.automata[0].grid[4, 4]['contents'] = 'caseum'
+        self.topology.automata[0].caseum += [[0,0], [0,4], [4,0], [4,4]]
 
         self.sort_out_halos()
         self.topology.automata[0].update()
@@ -3738,6 +3756,7 @@ class MacrophageBurstingTestCase(unittest.TestCase):
 
         self.assertEqual(len(self.topology.automata[0].macrophages), 0)
         self.assertEqual(self.topology.automata[0].grid[2, 2]['contents'], 'caseum')
+        self.assertTrue([2,2] in self.topology.automata[0].caseum)
 
         for i in expected_bacteria_addresses:
             cell_contents = self.topology.automata[0].grid[i[0], i[1]]['contents']
