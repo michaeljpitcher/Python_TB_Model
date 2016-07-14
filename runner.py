@@ -406,7 +406,7 @@ def veto_conflicting_events(received_events, topology):
                     # If it's the original tile, just return the event and record addresses
                     if impacted_tile_id == tile_id_of_event:
                         events_to_return[tile_id_of_event].append(event)
-                        addresses_processed[tile_id_of_event] += event.impacted_addresses
+                        addresses_processed[tile_id_of_event] += event.impacted_addresses_allowed
                     # If this event impacts a new tile, need to clone the event and add addresses relative to
                     # the new tile
                     else:
