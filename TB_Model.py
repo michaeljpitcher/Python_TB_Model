@@ -444,10 +444,7 @@ class Neighbourhood:
         output = []
         for i in range(len(table)):
             # Build new neighbour
-            neighbour = []
-            for j in range(self.dimensions):
-                neighbour.append(address[j] + table[i][j])
-            output.append(neighbour)
+            output.append([address[j] + table[i][j] for j in range(len(address))])
         return output
 
     def neighbours_moore(self, address, depth=1):
