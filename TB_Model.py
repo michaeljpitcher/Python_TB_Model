@@ -621,7 +621,7 @@ class EventHandler:
             # Turn macrophage into caseum
             macrophage = self.get_attribute(to_address, 'contents')
             self.macrophages.remove(macrophage)
-            self.set_attribute_work_grid(to_address, 'contents', 'caseum')
+            # self.set_attribute_work_grid(to_address, 'contents', 'caseum')
             self.caseum.append(to_address)
 
         if self.address_is_on_grid(from_address):
@@ -638,7 +638,7 @@ class EventHandler:
         #    self.set_attribute_work_grid(macrophage_to_die.address, 'contents', 0.0)
         #el
         if macrophage_to_die.state == 'infected' or macrophage_to_die.state == 'chronically_infected':
-            self.set_attribute_work_grid(macrophage_to_die.address, 'contents', 'caseum')
+            # self.set_attribute_work_grid(macrophage_to_die.address, 'contents', 'caseum')
             self.caseum.append(macrophage_to_die.address)
         # Remove macrophage
         self.macrophages.remove(macrophage_to_die)
@@ -1580,6 +1580,8 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             self.set_attribute_work_grid(m.address, 'contents', m)
         for t in self.t_cells:
             self.set_attribute_work_grid(t.address, 'contents', t)
+        for c_address in self.caseum:
+            self.set_attribute_work_grid(c_address, 'contents', 'caseum')
 
     def find_max_chemokine_neighbour(self, neighbours):
         """
