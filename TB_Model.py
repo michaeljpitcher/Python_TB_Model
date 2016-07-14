@@ -1048,7 +1048,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 minimum = self.parameters['bacteria_replication_fast_lower']
             else:  # Slow
                 maximum = self.parameters['bacteria_replication_slow_upper']
-                minimum = self.parameters['bacteria_replication_fast_lower']
+                minimum = self.parameters['bacteria_replication_slow_lower']
 
             replication_time = np.random.randint(minimum, maximum)
 
