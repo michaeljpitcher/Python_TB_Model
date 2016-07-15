@@ -249,6 +249,10 @@ class Tile:
         self.size = reduce(lambda x, y: x * y, shape)
         self.grid = self.create_grid(attributes)
 
+        self.list_addresses = []
+        for i in range(self.size):
+            self.list_addresses.append(self.location_to_address(i))
+
     def create_grid(self, attributes):
         """
         Create a grid where cells are dictionaries of given attributes
@@ -271,8 +275,7 @@ class Tile:
         :return:
         """
         cells = []
-        for i in range(self.size):
-            address = self.location_to_address(i)
+        for address in self.list_addresses:
             cell = self.grid[tuple(address)].copy()
             cells.append(cell)
 
@@ -901,9 +904,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         :return:
         """
         # Loop through all cells
-        for location in range(self.size):
-            address = self.location_to_address(location)
-
+        for address in self.list_addresses:
             # Get initial diffusion rates
             oxygen_diffusion = self.parameters['oxygen_diffusion']
             chemotherapy_diffusion = self.parameters['chemotherapy_diffusion']
@@ -980,9 +981,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
         counted = Counter(affected_addresses)
 
-        for location in range(self.size):
-            address = self.location_to_address(location)
-
+        for address in self.list_addresses:
             # Get initial diffusion rates
             oxygen_diffusion = self.parameters['oxygen_diffusion']
             chemotherapy_diffusion = self.parameters['chemotherapy_diffusion']
@@ -1015,9 +1014,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 self.halo_cells[index]['chemotherapy_diffusion_rate'] = chemotherapy_diffusion
 
     def diffusion(self, chemo):
-        for i in range(self.size):
-            address = self.location_to_address(i)
-
+        for address in self.list_addresses:
             # OXYGEN
             oxygen_level = self.oxygen(address)
             self.set_attribute_work_grid(address, 'oxygen', oxygen_level)
