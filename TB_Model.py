@@ -1066,7 +1066,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 maximum = self.parameters['bacteria_replication_slow_upper']
                 minimum = self.parameters['bacteria_replication_slow_lower']
 
-            replication_time = np.random.randint(minimum, maximum)
+            replication_time = np.random.randint(minimum, maximum) / self.parameters['time_step']
 
             if self.time % replication_time == 0:
                 division = True
@@ -1555,8 +1555,8 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         if isinstance(cell['contents'], Bacterium):
             expression += self.parameters['chemokine_from_bacteria']
 
-        # Release of chemokine by macrophages
-        if isinstance(cell['contents'], Macrophage):
+        # Release of chemokine by (non-resting) macrophages
+        if isinstance(cell['contents'], Macrophage) and cell['contents'].state != 'resting':
             expression += self.parameters['chemokine_from_macrophage']
 
         # Chemokine decay
