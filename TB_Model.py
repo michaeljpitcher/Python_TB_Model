@@ -1656,8 +1656,8 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         chemotherapy_file = open(self.chemotherapy_file_path, 'a')
         chemokine_file = open(self.chemokine_file_path, 'a')
 
-        for i in self.list_addresses:
-            cell = self.get(i, 'grid')
+        for address in self.list_addresses:
+            cell = self.get(address, 'grid')
 
             contents_number = 0.0
 
@@ -1693,15 +1693,15 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             contents_file.write('\n')
 
             # Record oxygen
-            oxygen_file.write(str(cell['oxygen']))
+            oxygen_file.write(str(self.oxygen_scale(address)))
             oxygen_file.write('\n')
 
             # Record chemotherapy
-            chemotherapy_file.write(str(cell['chemotherapy']))
+            chemotherapy_file.write(str(self.chemotherapy_scale(address)))
             chemotherapy_file.write('\n')
 
             # Record chemokine
-            chemokine_file.write(str(cell['chemokine']))
+            chemokine_file.write(str(self.chemokine_scale(address)))
             chemokine_file.write('\n')
 
 

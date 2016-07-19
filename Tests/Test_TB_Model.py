@@ -3919,6 +3919,8 @@ class OutputWritingTestCase(unittest.TestCase):
         self.topology.automata[0].caseum.append([5,0])
         self.topology.automata[0].grid[5,0]['contents'] = 'caseum'
 
+        self.topology.automata[0].max_oxygen_global = 1.5
+
     def sort_out_halos(self):
         dz = []
         for i in self.topology.automata:
@@ -3976,7 +3978,7 @@ class OutputWritingTestCase(unittest.TestCase):
         oxygen_lines = [line.rstrip('\n') for line in open('0_oxygen.txt')]
         for i in range(len(oxygen_lines)):
             if i == 0:
-                self.assertEqual(oxygen_lines[i], '1.5')
+                self.assertEqual(oxygen_lines[i], '100.0')
             else:
                 self.assertEqual(oxygen_lines[i], '0.0')
 
