@@ -3930,14 +3930,6 @@ class OutputWritingTestCase(unittest.TestCase):
             self.topology.automata[i].set_halo(halos[i])
 
     def test_output(self):
-        # Remove any existing output files (from e.g. previous tests)
-        try:
-            os.remove('0_contents.txt')
-            os.remove('0_oxygen.txt')
-            os.remove('0_chemotherapy.txt')
-            os.remove('0_chemokine.txt')
-        except OSError:
-            pass
 
         self.topology.automata[0].record_state()
 
@@ -3996,7 +3988,26 @@ class OutputWritingTestCase(unittest.TestCase):
         self.topology.automata[0].update()
         self.topology.automata[0].process_events([])
 
+    def test_parameter(self):
 
+        self.sort_out_halos()
+        self.topology.automata[0].parameters['interval_to_record_results'] = 2
+
+        self.topology.automata[0].update()
+        self.topology.automata[0].process_events([])
+
+        self.assertFalse(os.path.isfile('0_contents.txt'))
+        self.assertFalse(os.path.isfile('0_oxygen.txt'))
+        self.assertFalse(os.path.isfile('0_chemotherapy.txt'))
+        self.assertFalse(os.path.isfile('0_chemokine.txt'))
+
+        self.topology.automata[0].update()
+        self.topology.automata[0].process_events([])
+
+        self.assertTrue(os.path.isfile('0_contents.txt'))
+        self.assertTrue(os.path.isfile('0_oxygen.txt'))
+        self.assertTrue(os.path.isfile('0_chemotherapy.txt'))
+        self.assertTrue(os.path.isfile('0_chemokine.txt'))
 
 if __name__ == '__main__':
     unittest.main()
