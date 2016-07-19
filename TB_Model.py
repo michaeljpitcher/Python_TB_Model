@@ -2,6 +2,7 @@ import numpy as np
 import math
 import itertools
 from collections import Counter
+import os
 
 '''
 Tuberculosis Automaton Model
@@ -783,6 +784,20 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         self.initialise_bacteria(fast_bacteria, slow_bacteria)
         self.initialise_macrophages(macrophages)
 
+        self.contents_file_path = str(self.tile_id) + '_contents.txt'
+        self.oxygen_file_path = str(self.tile_id) + '_oxygen.txt'
+        self.chemotherapy_file_path = str(self.tile_id) + '_chemotherapy.txt'
+        self.chemokine_file_path = str(self.tile_id) + '_chemokine.txt'
+
+        # Clear up any old output files
+        try:
+            os.remove(self.contents_file_path)
+            os.remove(self.oxygen_file_path)
+            os.remove(self.chemotherapy_file_path)
+            os.remove(self.chemokine_file_path)
+        except OSError:
+            pass
+
         self.swap_grids()
 
     def initialise_blood_vessels(self, addresses):
@@ -896,6 +911,10 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         self.persist_agents()
         # Swap work grid with main grid
         self.swap_grids()
+
+        # Record state
+        if self.time % self.parameters['interval_to_record_results'] == 0.0:
+            self.record_state()
 
     def diffusion_pre_process(self):
         """
@@ -1368,6 +1387,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 if self.chemokine_scale(macrophage.address) > \
                         self.parameters['chemokine_scale_for_macrophage_activation'] and \
                                 macrophage.intracellular_bacteria == 0:
+
                     new_event = MacrophageChangesState(macrophage.address, "active")
                     self.potential_events.append(new_event)
                 # Resting to infected
@@ -1576,7 +1596,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         if self.max_chemokine_global == 0.0:
             return 0.0
         else:
-            return (self.get_attribute(address, 'chemokine') / self.max_chemokine_global) * 100
+            return (self.get_attribute(address, 'chemokine') / self.max_chemokine_global) * 100.0
 
     def add_bacterium(self, address, metabolism):
         new_bacterium = Bacterium(address, metabolism)
@@ -1628,6 +1648,62 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             chosen_index = highest_indices[choice]
 
         return chosen_index, max_chemokine_scale
+
+    def record_state(self):
+
+        contents_file = open(self.contents_file_path, 'a')
+        oxygen_file = open(self.oxygen_file_path, 'a')
+        chemotherapy_file = open(self.chemotherapy_file_path, 'a')
+        chemokine_file = open(self.chemokine_file_path, 'a')
+
+        for i in self.list_addresses:
+            cell = self.get(i, 'grid')
+
+            contents_number = 0.0
+
+            # Record contents
+            # 0.0 - Empty
+            # 1.0 - Fast bacteria //  1.25 - fast bacteria resting
+            # 2.0 - slow bacteria //  2.25 - slow bacteria resting
+            # 3.0 - T-cell
+            # 4.0 - Resting macrophage  //  5.0 - active macrophage
+            # 6.0 - infected macrophage //  7.0 - chronically infected macrophage
+            # 100.0 - caseum
+
+            if isinstance(cell['contents'], Bacterium):
+                if cell['contents'].metabolism == 'fast':
+                    contents_number = 1.0
+                else:
+                    contents_number = 2.0
+                if cell['contents'].resting:
+                    contents_number += 0.25
+            elif isinstance(cell['contents'], Macrophage):
+                contents_number = 4.0
+                if cell['contents'].state == 'active':
+                    contents_number += 1.0
+                elif cell['contents'].state == 'infected':
+                    contents_number += 2.0
+                elif cell['contents'].state == 'chronically_infected':
+                    contents_number += 3.0
+            elif isinstance(cell['contents'], TCell):
+                contents_number = 3.0
+            elif cell['contents'] == 'caseum':
+                contents_number = 100.0
+            contents_file.write(str(contents_number))
+            contents_file.write('\n')
+
+            # Record oxygen
+            oxygen_file.write(str(cell['oxygen']))
+            oxygen_file.write('\n')
+
+            # Record chemotherapy
+            chemotherapy_file.write(str(cell['chemotherapy']))
+            chemotherapy_file.write('\n')
+
+            # Record chemokine
+            chemokine_file.write(str(cell['chemokine']))
+            chemokine_file.write('\n')
+
 
 # ------------------------------
 # AGENTS
