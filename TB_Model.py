@@ -353,7 +353,10 @@ class Tile:
 
         if location == 'grid':
             address = tuple(address)
-            return self.grid[address]
+            try:
+                return self.grid[address]
+            except IndexError:
+                raise Exception("Test")
         elif location == 'halo':
             try:
                 index = self.halo_addresses.index(address)
@@ -1034,20 +1037,23 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
     def diffusion(self, chemo):
         for address in self.list_addresses:
+
+            neighbour_addresses = self.neighbours_von_neumann(address, 1)
+
             # OXYGEN
-            oxygen_level = self.oxygen(address)
+            oxygen_level = self.oxygen(address, neighbour_addresses)
             self.set_attribute_work_grid(address, 'oxygen', oxygen_level)
 
             # CHEMOTHERAPY
             if chemo:
-                chemotherapy_level = self.chemotherapy(address)
+                chemotherapy_level = self.chemotherapy(address, neighbour_addresses)
                 self.set_attribute_work_grid(address, 'chemotherapy', chemotherapy_level)
             else:
                 # TODO - MED - check validity of this (how can chemotherapy suddenly disappear)
                 self.set_attribute_work_grid(address, 'chemotherapy', 0.0)
 
             # CHEMOKINE
-            chemokine_level = self.chemokine(address)
+            chemokine_level = self.chemokine(address, neighbour_addresses)
             self.set_attribute_work_grid(address, 'chemokine', chemokine_level)
 
     def bacteria_replication(self):
@@ -1458,7 +1464,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     if space_found:
                         break
 
-    def oxygen(self, address):
+    def oxygen(self, address, neighbour_addresses):
         # Get the current cell values
         cell = self.get(address, "grid")
 
@@ -1469,7 +1475,6 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         expression = 0
 
         # Get immediate von neumann neighbours
-        neighbour_addresses = self.neighbours_von_neumann(address, 1)
         for neighbour_address in neighbour_addresses:
             neighbour = self.get(neighbour_address)
             # Only process if not boundary
@@ -1492,7 +1497,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
         return new_oxygen
 
-    def chemotherapy(self, address):
+    def chemotherapy(self, address, neighbour_addresses):
         # Get the current cell values
         cell = self.get(address, "grid")
 
@@ -1503,7 +1508,6 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         expression = 0
 
         # Get immediate von Neumann neighbours
-        neighbour_addresses = self.neighbours_von_neumann(address, 1)
         for neighbour_address in neighbour_addresses:
             neighbour = self.get(neighbour_address)
             # Only process if not boundary
@@ -1528,7 +1532,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
         return new_chemotherapy
 
-    def chemokine(self, address):
+    def chemokine(self, address, neighbour_addresses):
 
         # Get the current cell values
         cell = self.get(address, "grid")
@@ -1540,8 +1544,6 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         expression = 0
 
         # Get immediate von Neumann neighbours
-        neighbour_addresses = self.neighbours_von_neumann(address, 1)
-
         for neighbour_address in neighbour_addresses:
             neighbour = self.get(neighbour_address)
             # Only process if not boundary
