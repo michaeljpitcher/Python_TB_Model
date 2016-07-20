@@ -304,7 +304,7 @@ class Tile:
         :return:
         """
         for i in range(len(address)):
-            if address[i] < 0 or address[i] >= self.shape[0]:
+            if address[i] < 0 or address[i] >= self.shape[i]:
                 return False
 
         return True
@@ -353,10 +353,7 @@ class Tile:
 
         if location == 'grid':
             address = tuple(address)
-            try:
-                return self.grid[address]
-            except IndexError:
-                raise Exception("Test")
+            return self.grid[address]
         elif location == 'halo':
             try:
                 index = self.halo_addresses.index(address)
