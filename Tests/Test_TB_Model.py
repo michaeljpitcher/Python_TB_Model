@@ -774,11 +774,16 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
 
         self.topology.automata[0].diffusion_pre_process()
 
-        self.assertAlmostEqual(self.topology.automata[0].oxygen([3, 3]), 1.3536)
-        self.assertAlmostEqual(self.topology.automata[0].oxygen([2, 3]), 0.0375)
-        self.assertAlmostEqual(self.topology.automata[0].oxygen([4, 3]), 0.0375)
-        self.assertAlmostEqual(self.topology.automata[0].oxygen([3, 2]), 0.0375)
-        self.assertAlmostEqual(self.topology.automata[0].oxygen([3, 4]), 0.0375)
+        neighbours = self.topology.automata[0].neighbours_von_neumann([3,3], 1)
+        self.assertAlmostEqual(self.topology.automata[0].oxygen([3, 3], neighbours), 1.3536)
+        neighbours = self.topology.automata[0].neighbours_von_neumann([2, 3], 1)
+        self.assertAlmostEqual(self.topology.automata[0].oxygen([2, 3], neighbours), 0.0375)
+        neighbours = self.topology.automata[0].neighbours_von_neumann([4, 3], 1)
+        self.assertAlmostEqual(self.topology.automata[0].oxygen([4, 3], neighbours), 0.0375)
+        neighbours = self.topology.automata[0].neighbours_von_neumann([3, 2], 1)
+        self.assertAlmostEqual(self.topology.automata[0].oxygen([3, 2], neighbours), 0.0375)
+        neighbours = self.topology.automata[0].neighbours_von_neumann([3, 4], 1)
+        self.assertAlmostEqual(self.topology.automata[0].oxygen([3, 4], neighbours), 0.0375)
 
     def test_chemotherapy_basic(self):
 
@@ -789,23 +794,34 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         self.assertEqual(self.topology.automata[0].grid[3, 4]['chemotherapy'], 0.0)
         self.topology.automata[0].diffusion_pre_process()
 
-        self.assertEqual(self.topology.automata[0].chemotherapy([3, 3]), 0.0015)
-        self.assertEqual(self.topology.automata[0].chemotherapy([2, 3]), 0.0)
-        self.assertEqual(self.topology.automata[0].chemotherapy([4, 3]), 0.0)
-        self.assertEqual(self.topology.automata[0].chemotherapy([3, 2]), 0.0)
-        self.assertEqual(self.topology.automata[0].chemotherapy([3, 4]), 0.0)
+        neighbours = self.topology.automata[0].neighbours_von_neumann([3,3], 1)
+        self.assertEqual(self.topology.automata[0].chemotherapy([3, 3],neighbours), 0.0015)
+        neighbours = self.topology.automata[0].neighbours_von_neumann([2, 3], 1)
+        self.assertEqual(self.topology.automata[0].chemotherapy([2, 3],neighbours), 0.0)
+        neighbours = self.topology.automata[0].neighbours_von_neumann([4, 3], 1)
+        self.assertEqual(self.topology.automata[0].chemotherapy([4, 3],neighbours), 0.0)
+        neighbours = self.topology.automata[0].neighbours_von_neumann([3, 2], 1)
+        self.assertEqual(self.topology.automata[0].chemotherapy([3, 2],neighbours), 0.0)
+        neighbours = self.topology.automata[0].neighbours_von_neumann([3, 4], 1)
+        self.assertEqual(self.topology.automata[0].chemotherapy([3, 4],neighbours), 0.0)
 
         # Set value direct to grid to save time
+        neighbours = self.topology.automata[0].neighbours_von_neumann([3, 3], 1)
         self.topology.automata[0].set_attribute_grid([3, 3], 'chemotherapy',
-                                                     self.topology.automata[0].chemotherapy([3, 3]))
+                                                     self.topology.automata[0].chemotherapy([3, 3], neighbours))
 
         self.topology.automata[0].diffusion_pre_process()
 
-        self.assertEqual(self.topology.automata[0].chemotherapy([3, 3]), 0.002886975)
-        self.assertEqual(self.topology.automata[0].chemotherapy([2, 3]), 0.000028125)
-        self.assertEqual(self.topology.automata[0].chemotherapy([4, 3]), 0.000028125)
-        self.assertEqual(self.topology.automata[0].chemotherapy([3, 2]), 0.000028125)
-        self.assertEqual(self.topology.automata[0].chemotherapy([3, 4]), 0.000028125)
+        neighbours = self.topology.automata[0].neighbours_von_neumann([3, 3], 1)
+        self.assertEqual(self.topology.automata[0].chemotherapy([3, 3],neighbours), 0.002886975)
+        neighbours = self.topology.automata[0].neighbours_von_neumann([2, 3], 1)
+        self.assertEqual(self.topology.automata[0].chemotherapy([2, 3],neighbours), 0.000028125)
+        neighbours = self.topology.automata[0].neighbours_von_neumann([4, 3], 1)
+        self.assertEqual(self.topology.automata[0].chemotherapy([4, 3],neighbours), 0.000028125)
+        neighbours = self.topology.automata[0].neighbours_von_neumann([3, 2], 1)
+        self.assertEqual(self.topology.automata[0].chemotherapy([3, 2],neighbours), 0.000028125)
+        neighbours = self.topology.automata[0].neighbours_von_neumann([3, 4], 1)
+        self.assertEqual(self.topology.automata[0].chemotherapy([3, 4],neighbours), 0.000028125)
 
     def test_chemokine_basic(self):
         self.topology.automata[0].diffusion_pre_process()
@@ -816,20 +832,30 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         self.assertEqual(self.topology.automata[0].grid[1, 2]['chemokine'], 0.0)
 
         self.topology.automata[0].diffusion_pre_process()
-        self.assertEqual(self.topology.automata[0].chemokine([1, 1]), 0.0005)
-        self.assertEqual(self.topology.automata[0].chemokine([0, 1]), 0.0)
-        self.assertEqual(self.topology.automata[0].chemokine([2, 1]), 0.0)
-        self.assertEqual(self.topology.automata[0].chemokine([1, 0]), 0.0)
-        self.assertEqual(self.topology.automata[0].chemokine([1, 2]), 0.0)
+        neighbours = self.topology.automata[0].neighbours_von_neumann([1,1],1)
+        self.assertEqual(self.topology.automata[0].chemokine([1, 1], neighbours), 0.0005)
+        neighbours = self.topology.automata[0].neighbours_von_neumann([0, 1], 1)
+        self.assertEqual(self.topology.automata[0].chemokine([0, 1], neighbours), 0.0)
+        neighbours = self.topology.automata[0].neighbours_von_neumann([2, 1], 1)
+        self.assertEqual(self.topology.automata[0].chemokine([2, 1], neighbours), 0.0)
+        neighbours = self.topology.automata[0].neighbours_von_neumann([1, 0], 1)
+        self.assertEqual(self.topology.automata[0].chemokine([1, 0], neighbours), 0.0)
+        neighbours = self.topology.automata[0].neighbours_von_neumann([1, 2], 1)
+        self.assertEqual(self.topology.automata[0].chemokine([1, 2], neighbours), 0.0)
 
         self.topology.automata[0].set_attribute_grid([1, 1], 'chemokine', 0.0005)
 
         self.topology.automata[0].diffusion_pre_process()
-        self.assertEqual(self.topology.automata[0].chemokine([1, 1]), 0.0009973265)
-        self.assertAlmostEqual(self.topology.automata[0].chemokine([0, 1]), 0.000000625)
-        self.assertAlmostEqual(self.topology.automata[0].chemokine([2, 1]), 0.000000625)
-        self.assertAlmostEqual(self.topology.automata[0].chemokine([1, 0]), 0.000000625)
-        self.assertAlmostEqual(self.topology.automata[0].chemokine([1, 2]), 0.000000625)
+        neighbours = self.topology.automata[0].neighbours_von_neumann([1, 1], 1)
+        self.assertEqual(self.topology.automata[0].chemokine([1, 1], neighbours), 0.0009973265)
+        neighbours = self.topology.automata[0].neighbours_von_neumann([0, 1], 1)
+        self.assertAlmostEqual(self.topology.automata[0].chemokine([0, 1], neighbours), 0.000000625)
+        neighbours = self.topology.automata[0].neighbours_von_neumann([2, 1], 1)
+        self.assertAlmostEqual(self.topology.automata[0].chemokine([2, 1], neighbours), 0.000000625)
+        neighbours = self.topology.automata[0].neighbours_von_neumann([1, 0], 1)
+        self.assertAlmostEqual(self.topology.automata[0].chemokine([1, 0], neighbours), 0.000000625)
+        neighbours = self.topology.automata[0].neighbours_von_neumann([1, 2], 1)
+        self.assertAlmostEqual(self.topology.automata[0].chemokine([1, 2], neighbours), 0.000000625)
 
     def test_local_and_global_levels(self):
 
@@ -843,12 +869,13 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
 
         for x in range(5):
             for y in range(5):
+                neighbours = self.topology.automata[0].neighbours_von_neumann([x, y], 1)
                 self.topology.automata[0].set_attribute_work_grid([x, y], 'oxygen',
-                                                                  self.topology.automata[0].oxygen([x, y]))
+                                                            self.topology.automata[0].oxygen([x, y], neighbours))
                 self.topology.automata[0].set_attribute_work_grid([x, y], 'chemotherapy',
-                                                                  self.topology.automata[0].chemotherapy([x, y]))
+                                                            self.topology.automata[0].chemotherapy([x, y], neighbours))
                 self.topology.automata[0].set_attribute_work_grid([x, y], 'chemokine',
-                                                                  self.topology.automata[0].chemokine([x, y]))
+                                                            self.topology.automata[0].chemokine([x, y], neighbours))
 
         self.topology.automata[0].swap_grids()
 
@@ -896,7 +923,7 @@ class BacteriaReplicationTestCase(unittest.TestCase):
         params['spatial_step'] = 0.2
         params['oxygen_from_source'] = 2.4
         params['oxygen_uptake_from_bacteria'] = 1.0
-        params['time_step'] = 0.001
+        params['time_step'] = 1
         params['chemotherapy_from_source'] = 1.0
         params['chemotherapy_decay'] = 0.35
         params['chemokine_diffusion'] = 0.05
