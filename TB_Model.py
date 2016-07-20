@@ -1035,22 +1035,27 @@ class Automaton(Tile, Neighbourhood, EventHandler):
     def diffusion(self, chemo):
         for address in self.list_addresses:
 
+            cell = self.get(address, "grid")
+
+            neighbours = []
             neighbour_addresses = self.neighbours_von_neumann(address, 1)
+            for neighbour_address in neighbour_addresses:
+                neighbours.append(self.get(neighbour_address))
 
             # OXYGEN
-            oxygen_level = self.oxygen(address, neighbour_addresses)
+            oxygen_level = self.oxygen(cell, neighbours)
             self.set_attribute_work_grid(address, 'oxygen', oxygen_level)
 
             # CHEMOTHERAPY
             if chemo:
-                chemotherapy_level = self.chemotherapy(address, neighbour_addresses)
+                chemotherapy_level = self.chemotherapy(cell, neighbours)
                 self.set_attribute_work_grid(address, 'chemotherapy', chemotherapy_level)
             else:
                 # TODO - MED - check validity of this (how can chemotherapy suddenly disappear)
                 self.set_attribute_work_grid(address, 'chemotherapy', 0.0)
 
             # CHEMOKINE
-            chemokine_level = self.chemokine(address, neighbour_addresses)
+            chemokine_level = self.chemokine(cell, neighbours)
             self.set_attribute_work_grid(address, 'chemokine', chemokine_level)
 
     def bacteria_replication(self):
@@ -1461,9 +1466,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     if space_found:
                         break
 
-    def oxygen(self, address, neighbour_addresses):
-        # Get the current cell values
-        cell = self.get(address, "grid")
+    def oxygen(self, cell, neighbours):
 
         # Get diffusion value for cell
         cell_diffusion = cell['oxygen_diffusion_rate']
@@ -1472,8 +1475,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         expression = 0
 
         # Get immediate von neumann neighbours
-        for neighbour_address in neighbour_addresses:
-            neighbour = self.get(neighbour_address)
+        for neighbour in neighbours:
             # Only process if not boundary
             if neighbour is not None:
                 neighbour_diffusion = neighbour['oxygen_diffusion_rate']
@@ -1494,9 +1496,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
         return new_oxygen
 
-    def chemotherapy(self, address, neighbour_addresses):
-        # Get the current cell values
-        cell = self.get(address, "grid")
+    def chemotherapy(self, cell, neighbours):
 
         # Get diffusion value for cell based on system parameters
         cell_diffusion = cell['chemotherapy_diffusion_rate']
@@ -1505,8 +1505,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         expression = 0
 
         # Get immediate von Neumann neighbours
-        for neighbour_address in neighbour_addresses:
-            neighbour = self.get(neighbour_address)
+        for neighbour in neighbours:
             # Only process if not boundary
             if neighbour is not None:
                 # Pre-calculated diffusion rate
@@ -1529,10 +1528,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
         return new_chemotherapy
 
-    def chemokine(self, address, neighbour_addresses):
-
-        # Get the current cell values
-        cell = self.get(address, "grid")
+    def chemokine(self, cell, neighbours):
 
         # Get diffusion value for cell based on system parameters
         cell_diffusion = self.parameters['chemokine_diffusion']
@@ -1541,8 +1537,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         expression = 0
 
         # Get immediate von Neumann neighbours
-        for neighbour_address in neighbour_addresses:
-            neighbour = self.get(neighbour_address)
+        for neighbour in neighbours:
             # Only process if not boundary
             if neighbour is not None:
                 neighbour_diffusion = self.parameters['chemokine_diffusion']
