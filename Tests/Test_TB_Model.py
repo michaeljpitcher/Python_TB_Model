@@ -697,7 +697,7 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         self.topology.automata[0].caseum.append([0, 1])
 
         # Run the pre process loop
-        self.topology.automata[0].diffusion_pre_process_v2()
+        self.topology.automata[0].diffusion_pre_process()
 
         # Cells close to caseum
         self.assertEqual(self.topology.automata[0].grid[0, 2]['oxygen_diffusion_rate'], 1.0 / 1.5)
@@ -747,7 +747,7 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         self.topology.automata[0].set_halo(halo)
 
         # Run the pre process loop
-        self.topology.automata[0].diffusion_pre_process_v2()
+        self.topology.automata[0].diffusion_pre_process()
 
         halo_addresses = self.topology.automata[0].halo_addresses
         halo_cells = self.topology.automata[0].halo_cells

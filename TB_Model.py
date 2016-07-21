@@ -835,7 +835,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         # ----------------------------
 
         # Pre-processing (calculating diffusion rates)
-        self.diffusion_pre_process_v2()
+        self.diffusion_pre_process()
         # In chemo window?
         if (((self.parameters['chemotherapy_schedule1_start'] / self.parameters['time_step']) <=
                 self.time <
@@ -917,71 +917,6 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             self.record_state()
 
     def diffusion_pre_process(self):
-        """
-        Pre-processing for diffusion. Looks through all cells and calculates the diffusion rates - diffusion rate
-        of oxygen and chemotherapy drops if there is too much caseum in the vicinity
-        :return:
-        """
-        # Loop through all cells
-        for address in self.list_addresses:
-            # Get initial diffusion rates
-            oxygen_diffusion = self.parameters['oxygen_diffusion']
-            chemotherapy_diffusion = self.parameters['chemotherapy_diffusion']
-
-            # Get all neighbours up to the specified distance
-            neighbours = []
-            for i in range(1, int(self.parameters['caseum_distance_to_reduce_diffusion']) + 1):
-                neighbours += self.neighbours_moore(address, i)
-
-            # Check if there is specified amount of caseum within specified distance of cell
-            caseum_count = 0
-            for neighbour_address in neighbours:
-                cell = self.get(neighbour_address)
-                if cell is not None and cell['contents'] == 'caseum':
-                    caseum_count += 1
-                    # Once the caseum threshold is reached
-                    if caseum_count == self.parameters['caseum_threshold_to_reduce_diffusion']:
-                        # Decrease the diffusion level at the cell
-                        oxygen_diffusion /= self.parameters['oxygen_diffusion_caseum_reduction']
-                        chemotherapy_diffusion /= self.parameters['chemotherapy_diffusion_caseum_reduction']
-                        # Exit the loop
-                        break
-
-            # Need to set the values on the current grid
-            self.set_attribute_grid(address, 'oxygen_diffusion_rate', oxygen_diffusion)
-            self.set_attribute_grid(address, 'chemotherapy_diffusion_rate', chemotherapy_diffusion)
-
-        # Set diffusion rates on halo depth 1
-        for halo_address in self.halo_depth1:
-            if self.get(halo_address, "halo") is not None:
-
-                # Get initial rates
-                oxygen_diffusion = self.parameters['oxygen_diffusion']
-                chemotherapy_diffusion = self.parameters['chemotherapy_diffusion']
-                # Get neighbours
-                neighbours = []
-                for i in range(1, int(self.parameters['caseum_distance_to_reduce_diffusion']) + 1):
-                    neighbours += self.neighbours_moore(halo_address, i)
-                # Check if caseum in neighbourhood exceeds threshold
-                caseum_count = 0
-                for neighbour_address in neighbours:
-                    cell = self.get(neighbour_address)
-                    if cell is not None and cell['contents'] == 'caseum':
-                        caseum_count += 1
-                        # Once the caseum threshold is reached
-                        if caseum_count == self.parameters['caseum_threshold_to_reduce_diffusion']:
-                            # Decrease the diffusion level at the cell
-                            oxygen_diffusion /= self.parameters['oxygen_diffusion_caseum_reduction']
-                            chemotherapy_diffusion /= self.parameters['chemotherapy_diffusion_caseum_reduction']
-                            # Exit the loop
-                            break
-
-                # Need to set the values on the halo
-                index = self.halo_addresses.index(halo_address)
-                self.halo_cells[index]['oxygen_diffusion_rate'] = oxygen_diffusion
-                self.halo_cells[index]['chemotherapy_diffusion_rate'] = chemotherapy_diffusion
-
-    def diffusion_pre_process_v2(self):
 
         affected_addresses = []
         caseum_addresses = list(self.caseum)
