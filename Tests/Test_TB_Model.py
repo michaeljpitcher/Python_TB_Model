@@ -43,14 +43,6 @@ class TileTestCase(unittest.TestCase):
             for y in range(5, 10):
                 self.assertFalse(self.tile.address_is_on_grid([x, y]))
 
-    def test_integer_to_address(self):
-
-        location = 0
-        for x in range(5):
-            for y in range(5):
-                self.assertEqual(self.tile.location_to_address(location), [x, y])
-                location += 1
-
     def test_swap_grids(self):
         self.tile.set_attribute_work_grid([0, 1], 'a', 1)
         self.tile.swap_grids()

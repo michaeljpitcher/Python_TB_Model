@@ -67,9 +67,8 @@ class Topology:
         """
         external_addresses = []
         # Loop through every cell
-        for i in range(0, automaton.grid.size):
+        for address in automaton.list_addresses:
             # Pull the addresses of cells in neighbourhood of this cell
-            address = automaton.location_to_address(i)
             neighbours = []
             for j in range(1, depth+1):
                 neighbours += automaton.neighbours_moore(address, j)
@@ -252,7 +251,8 @@ class Tile:
 
         self.list_addresses = []
         for i in range(self.size):
-            self.list_addresses.append(self.location_to_address(i))
+            address = list(np.unravel_index(i, self.grid.shape))
+            self.list_addresses.append(address)
 
     def create_grid(self, attributes):
         """
@@ -288,14 +288,6 @@ class Tile:
         :return:
         """
         self.grid, self.work_grid = self.work_grid, self.grid
-
-    def location_to_address(self, integer):
-        """
-        Turn an integer value into an address list of co-ordinates
-        :param integer:
-        :return:
-        """
-        return list(np.unravel_index(integer, self.grid.shape))
 
     def address_is_on_grid(self, address):
         """
