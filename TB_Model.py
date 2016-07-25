@@ -48,7 +48,6 @@ class Topology:
         # Will be the same for all tiles (as they're same shape) so just pull from one
         self.external_addresses_required = self.get_external_addresses_required(self.automata[0],
                                                                                 parameters['max_depth'])
-
         # Halo of depth 1 - needed for calculating diffusion rates
         # TODO - COMP - is there a better way of doing this?
         depth1_addresses = self.get_external_addresses_required(self.automata[0], 1)
@@ -145,7 +144,7 @@ class TwoDimensionalTopology(Topology):
         x, y = address
         if x < 0 or x >= self.total_shape[0] or y < 0 or y >= self.total_shape[1]:
             return None
-        return [x, y]
+        return (x, y)
 
     def global_to_local(self, global_address):
         """
@@ -154,7 +153,7 @@ class TwoDimensionalTopology(Topology):
         :return:
         """
         if global_address is None:
-            return [None, None]
+            return (None, None)
 
         x, y = global_address
         tile_rows, tile_cols = self.tile_shape
@@ -162,7 +161,9 @@ class TwoDimensionalTopology(Topology):
         # Add the tile ID - x modulo num of rows in a tile * number of tiles in width of the grid
         output = [divmod(x, tile_rows)[0] * self.tile_arrangement[1] + divmod(y, tile_cols)[0]]
         # Add the Local coordinates
-        output.append([divmod(x, tile_rows)[1], divmod(y, tile_cols)[1]])
+        x = divmod(x, tile_rows)[1]
+        y = divmod(y, tile_cols)[1]
+        output.append((x, y))
 
         return output
 
@@ -176,7 +177,7 @@ class TwoDimensionalTopology(Topology):
         x, y = local_address
         origin = self.origins[tile_id]
         # Normalise the address before it's returned
-        return self.normalise_address([origin[0] + x, origin[1] + y])
+        return self.normalise_address((origin[0] + x, origin[1] + y))
 
     def local_to_local(self, original_tile_id, local_address, new_tile_id):
         """
@@ -189,7 +190,7 @@ class TwoDimensionalTopology(Topology):
         """
         global_address = self.local_to_global(original_tile_id, local_address)
         origin_x, origin_y = self.origins[new_tile_id]
-        return [global_address[0] - origin_x, global_address[1] - origin_y]
+        return (global_address[0] - origin_x, global_address[1] - origin_y)
 
     def create_halos(self, danger_zone_values):
         """
@@ -250,9 +251,9 @@ class Tile:
         self.list_addresses = []
         self.address_locations = dict()
         for i in range(self.size):
-            address = list(np.unravel_index(i, self.grid.shape))
+            address = np.unravel_index(i, self.grid.shape)
             self.list_addresses.append(address)
-            self.address_locations[tuple(address)] = 'grid'
+            self.address_locations[address] = 'grid'
 
     def create_grid(self, attributes):
         """
@@ -277,7 +278,7 @@ class Tile:
         """
         cells = []
         for address in self.list_addresses:
-            cell = self.grid[tuple(address)].copy()
+            cell = self.grid[address].copy()
             cells.append(cell)
 
         self.work_grid = np.array(cells).reshape(self.shape)
@@ -313,14 +314,14 @@ class Tile:
         danger_zone = []
         for address in self.danger_zone_addresses:
             # Get cell from the work grid
-            danger_zone.append(self.grid[tuple(address)])
+            danger_zone.append(self.grid[address])
 
         return danger_zone
 
     def configure_halo_addresses(self, external_addresses_required, depth1_addresses):
         self.halo_addresses = external_addresses_required
         for address in external_addresses_required:
-            self.address_locations[tuple(address)] = 'halo'
+            self.address_locations[address] = 'halo'
         self.halo_depth1 = depth1_addresses
 
     def set_halo(self, cells):
@@ -329,6 +330,7 @@ class Tile:
         :param cells:
         :return:
         """
+
         self.halo_cells = []
         for i in range(len(cells)):
             self.halo_cells.append(cells[i])
@@ -342,10 +344,9 @@ class Tile:
         """
 
         if location == 'unknown':
-            location = self.address_locations[tuple(address)]
+            location = self.address_locations[address]
 
         if location == 'grid':
-            address = tuple(address)
             return self.grid[address]
         elif location == 'halo':
             try:
@@ -376,7 +377,6 @@ class Tile:
         :param value:
         :return:
         """
-        address = tuple(address)
         if attribute in self.grid[address].keys():
             self.grid[address][attribute] = value
         else:  # Specified attribute hasn't been set as a possibility
@@ -390,13 +390,10 @@ class Tile:
         :param value:
         :return:
         """
-        address = tuple(address)
         if attribute in self.attributes:
             self.work_grid[address][attribute] = value
         else:  # Specified attribute hasn't been set as a possibility
             raise Exception('Attribute {0} does not exist'.format(attribute))
-
-
 
 
 class Neighbourhood:
@@ -440,10 +437,8 @@ class Neighbourhood:
 
         for address in list_addresses:
 
-            address_key = tuple(address)
-
-            self.moore_neighbours[address_key] = dict()
-            self.von_neumann_neighbours[address_key] = dict()
+            self.moore_neighbours[address] = dict()
+            self.von_neumann_neighbours[address] = dict()
 
             for depth in range(1, self.max_depth+1):
 
@@ -451,23 +446,23 @@ class Neighbourhood:
                 table = self.moore_relative[depth]
                 for i in range(len(table)):
                     # Build new neighbour
-                    output.append([address[j] + table[i][j] for j in range(len(address))])
-                self.moore_neighbours[address_key][depth] = output
+                    new_address = tuple(address[j] + table[i][j] for j in range(len(address)))
+                    output.append(new_address)
+                self.moore_neighbours[address][depth] = output
 
                 output = []
                 table = self.von_neumann_relative[depth]
                 for i in range(len(table)):
                     # Build new neighbour
-                    output.append([address[j] + table[i][j] for j in range(len(address))])
-                self.von_neumann_neighbours[address_key][depth] = output
+                    new_address = tuple(address[j] + table[i][j] for j in range(len(address)))
+                    output.append(new_address)
+                self.von_neumann_neighbours[address][depth] = output
 
     def configure_neighbourhood_for_halo(self, halo_addresses):
         for address in halo_addresses:
 
-            address_key = tuple(address)
-
-            self.moore_neighbours[address_key] = dict()
-            self.von_neumann_neighbours[address_key] = dict()
+            self.moore_neighbours[address] = dict()
+            self.von_neumann_neighbours[address] = dict()
 
             for depth in range(1, self.max_depth + 1):
 
@@ -475,21 +470,23 @@ class Neighbourhood:
                 table = self.moore_relative[depth]
                 for i in range(len(table)):
                     # Build new neighbour
-                    output.append([address[j] + table[i][j] for j in range(len(address))])
-                self.moore_neighbours[address_key][depth] = output
+                    new_address = tuple(address[j] + table[i][j] for j in range(len(address)))
+                    output.append(new_address)
+                self.moore_neighbours[address][depth] = output
 
                 output = []
                 table = self.von_neumann_relative[depth]
                 for i in range(len(table)):
                     # Build new neighbour
-                    output.append([address[j] + table[i][j] for j in range(len(address))])
-                self.von_neumann_neighbours[address_key][depth] = output
+                    new_address = tuple(address[j] + table[i][j] for j in range(len(address)))
+                    output.append(new_address)
+                self.von_neumann_neighbours[address][depth] = output
 
     def neighbours_moore(self, address, depth=1):
-        return self.moore_neighbours[tuple(address)][depth]
+        return self.moore_neighbours[address][depth]
 
     def neighbours_von_neumann(self, address, depth=1):
-        return self.von_neumann_neighbours[tuple(address)][depth]
+        return self.von_neumann_neighbours[address][depth]
 
 
 class EventHandler:
@@ -744,7 +741,6 @@ class EventHandler:
         self.caseum.append(macrophage_to_burst.address)
         self.macrophages.remove(macrophage_to_burst)
 
-        # TODO - COMP - bacteria stuff
         for i in event.bacteria_addresses:
             if i in event.impacted_addresses_allowed and self.address_is_on_grid(i):
                     self.add_bacterium(i, 'slow')
@@ -847,13 +843,9 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         # Pre-processing (calculating diffusion rates)
         self.diffusion_pre_process()
         # In chemo window?
-        if (((self.parameters['chemotherapy_schedule1_start'] / self.parameters['time_step']) <=
-                self.time <
-                (self.parameters['chemotherapy_schedule1_end'] / self.parameters['time_step'])) or
-                (self.parameters['chemotherapy_schedule2_start'] / self.parameters['time_step'] <= self.time)):
-            chemo = True
-        else:
-            chemo = False
+        chemo = (self.parameters['chemotherapy_schedule1_start'] / self.parameters['time_step']) <= self.time < \
+                (self.parameters['chemotherapy_schedule1_end'] / self.parameters['time_step']) or \
+                self.parameters['chemotherapy_schedule2_start'] / self.parameters['time_step'] <= self.time
 
         # Reset local maximum values
         self.max_oxygen_local = 0.0
@@ -932,6 +924,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         caseum_addresses = list(self.caseum)
         
         for index in range(len(self.halo_cells)):
+
             if self.halo_cells[index] is not None and self.halo_cells[index]['contents'] == 'caseum':
                 caseum_addresses.append(self.halo_addresses[index])
 
@@ -939,9 +932,8 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
             for depth in range(1, self.parameters['caseum_distance_to_reduce_diffusion']+1):
                 neighbours = self.neighbours_moore(address, depth)
-                for n in neighbours:
-                    tuple_address = tuple(n)
-                    affected_addresses.append(tuple_address)
+                for address in neighbours:
+                    affected_addresses.append(address)
 
         counted = Counter(affected_addresses)
 
@@ -950,7 +942,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             oxygen_diffusion = self.parameters['oxygen_diffusion']
             chemotherapy_diffusion = self.parameters['chemotherapy_diffusion']
 
-            if tuple(address) in counted and counted[tuple(address)] >= \
+            if address in counted and counted[address] >= \
                     self.parameters['caseum_threshold_to_reduce_diffusion']:
                 oxygen_diffusion /= self.parameters['oxygen_diffusion_caseum_reduction']
                 chemotherapy_diffusion /= self.parameters['chemotherapy_diffusion_caseum_reduction']
@@ -966,7 +958,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 oxygen_diffusion = self.parameters['oxygen_diffusion']
                 chemotherapy_diffusion = self.parameters['chemotherapy_diffusion']
 
-                if tuple(halo_address) in counted and counted[tuple(halo_address)] >= \
+                if halo_address in counted and counted[halo_address] >= \
                         self.parameters['caseum_threshold_to_reduce_diffusion']:
                     oxygen_diffusion /= self.parameters['oxygen_diffusion_caseum_reduction']
                     chemotherapy_diffusion /= self.parameters['chemotherapy_diffusion_caseum_reduction']
@@ -1048,10 +1040,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 else:  # Free space found
                     neighbour_address = free_neighbours[np.random.randint(len(free_neighbours))]
 
-                    if self.address_is_on_grid(neighbour_address):
-                        internal = True
-                    else:
-                        internal = False
+                    internal = self.address_is_on_grid(neighbour_address)
                     new_event = BacteriumReplication(bacterium.address, neighbour_address, bacterium.metabolism,
                                                      internal)
                     self.potential_events.append(new_event)
@@ -1076,10 +1065,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     if len(free_neighbours) > 0:
                         # Pick one of the neighbours
                         neighbour_address = free_neighbours[np.random.randint(len(free_neighbours))]
-                        if self.address_is_on_grid(neighbour_address):
-                            internal = True
-                        else:
-                            internal = False
+                        internal = self.address_is_on_grid(neighbour_address)
                         new_event = RecruitTCell(neighbour_address, internal)
                         self.potential_events.append(new_event)
 
@@ -1100,10 +1086,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 if len(free_neighbours) > 0:
                     # Pick one of the neighbours
                     chosen_neighbour = free_neighbours[np.random.randint(len(free_neighbours))]
-                    if self.address_is_on_grid(chosen_neighbour):
-                        internal = True
-                    else:
-                        internal = False
+                    internal = self.address_is_on_grid(chosen_neighbour)
                     new_event = RecruitMacrophage(chosen_neighbour, internal)
                     self.potential_events.append(new_event)
 
@@ -1281,11 +1264,12 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     neighbours = self.neighbours_moore(macrophage.address, 1)
                     chosen_neighbour_address = neighbours[self.find_max_chemokine_neighbour(neighbours)[0]]
 
-                    internal = False
-                    location = 'halo'
-                    if self.address_is_on_grid(chosen_neighbour_address):
-                        internal = True
+                    internal = self.address_is_on_grid(chosen_neighbour_address)
+
+                    if internal:
                         location = 'grid'
+                    else:
+                        location = 'halo'
 
                     neighbour = self.get(chosen_neighbour_address, location)
 
@@ -1314,11 +1298,12 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     neighbours = self.neighbours_moore(macrophage.address, 1)
                     chosen_neighbour_address = neighbours[self.find_max_chemokine_neighbour(neighbours)[0]]
 
-                    internal = False
-                    location = 'halo'
-                    if self.address_is_on_grid(chosen_neighbour_address):
-                        internal = True
+                    internal = self.address_is_on_grid(chosen_neighbour_address)
+
+                    if internal:
                         location = 'grid'
+                    else:
+                        location = 'halo'
 
                     neighbour = self.get(chosen_neighbour_address, location)
 
@@ -1685,6 +1670,7 @@ class TCell(Agent):
 # ------------------------------
 
 class Event(object):
+    # TODO - store type as attribute?
     def __init__(self, dependant_addresses, impacted_addresses, internal):
         self.dependant_addresses = dependant_addresses
         self.impacted_addresses_potential = impacted_addresses
