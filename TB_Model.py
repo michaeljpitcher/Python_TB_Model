@@ -56,6 +56,7 @@ class Topology:
         # Set the halo address and halo of depth 1 address
         for automaton in self.automata:
             automaton.configure_halo_addresses(self.external_addresses_required, depth1_addresses)
+            automaton.configure_neighbourhood_for_halo(self.external_addresses_required)
 
     def get_external_addresses_required(self, automaton, depth):
         """
@@ -289,6 +290,7 @@ class Tile:
         self.grid, self.work_grid = self.work_grid, self.grid
 
     def address_is_on_grid(self, address):
+        # TODO - replace with checking dictionary (remove here, alter calls to here)
         """
         Check if address is within the boundaries
         :param address:
@@ -314,6 +316,12 @@ class Tile:
             danger_zone.append(self.grid[tuple(address)])
 
         return danger_zone
+
+    def configure_halo_addresses(self, external_addresses_required, depth1_addresses):
+        self.halo_addresses = external_addresses_required
+        for address in external_addresses_required:
+            self.address_locations[tuple(address)] = 'halo'
+        self.halo_depth1 = depth1_addresses
 
     def set_halo(self, cells):
         """
@@ -389,96 +397,20 @@ class Tile:
             raise Exception('Attribute {0} does not exist'.format(attribute))
 
 
+
+
 class Neighbourhood:
 
-    def __init__(self, dimensions, max_depth):
-        self.dimensions = dimensions
-        self.neighbour_table_moore, self.neighbour_table_von_neumann = self.construct_neighbour_table(max_depth)
-
-    def construct_neighbour_table(self, max_depth):
-        """
-        Creates the required tables listing the addresses for varying depths for Moore and Von Neumann neighbourhoods.
-        This is done once at the start so that we don't keep dynamically generating addresses each time.
-        :param max_depth:
-        :return:
-        """
-        moore_table = dict()
-        von_neumann_table = dict()
-
-        # Set up the required entries for Von Neumann
-        for d in range(1, max_depth + 1):
-            von_neumann_table[d] = []
-
-        for d in range(max_depth):
-            depth = d+1
-            # Get truth table values
-            range_ = range(-depth, depth + 1)
-            row = list(itertools.product(range_, repeat=self.dimensions))
-            # Remove the (0,0) entry
-            row.remove((0,) * self.dimensions)
-            reduced_row_moore = []
-            von_neumann_table[depth] = []
-            for neighbour in row:
-                # Calculate Manhattan distance and add to appropraite von Neumann table row
-                manhattan_distance = int(sum([math.fabs(x) for x in neighbour]))
-                if manhattan_distance <= max_depth and neighbour not in von_neumann_table[manhattan_distance]:
-                    von_neumann_table[manhattan_distance].append(neighbour)
-                # Check if one of coordinates = depth, if so then use for moore at this depth
-                for x in neighbour:
-                    if int(math.fabs(x)) == depth:
-                        reduced_row_moore.append(neighbour)
-                        break
-            moore_table[depth] = reduced_row_moore
-        return moore_table, von_neumann_table
-
-    def calculate_neighbours_locations(self, address, table):
-        """
-        Applies the given neighbour table to the given address to get addresses of neighbours
-        :param address:
-        :param table:
-        :return:
-        """
-        output = []
-        for i in range(len(table)):
-            # Build new neighbour
-            output.append([address[j] + table[i][j] for j in range(len(address))])
-        return output
-
-    def neighbours_moore(self, address, depth=1):
-        """
-        Address of neighbours in the Moore neighbourhood of given depth
-        :param address:
-        :param depth:
-        :param inclusive: Include lower depths?
-        :return:
-        """
-        table = self.neighbour_table_moore[depth]
-        return self.calculate_neighbours_locations(address, table)
-
-    def neighbours_von_neumann(self, address, depth=1):
-        """
-        Gives the neighbours in the Von Neumann neighbourhood of address of given depth
-        :param address:
-        :param depth:
-        :param inclusive: Includes lower depths?
-        :return:
-        """
-        table = self.neighbour_table_von_neumann[depth]
-        return self.calculate_neighbours_locations(address, table)
-
-
-class Neighbourhood2:
-
-    def __init__(self, dimensions, max_depth):
+    def __init__(self, dimensions, max_depth, list_addresses):
         self.max_depth = max_depth
         self.dimensions = dimensions
 
         self.moore_neighbours = dict()
         self.von_neumann_neighbours = dict()
 
-        self.populate_neighbour_tables()
+        self.populate_neighbour_tables(list_addresses)
 
-    def populate_neighbour_tables(self):
+    def populate_neighbour_tables(self, list_addresses):
         self.moore_relative = dict()
         self.von_neumann_relative = dict()
 
@@ -506,7 +438,7 @@ class Neighbourhood2:
                         break
             self.moore_relative[depth] = reduced_row_moore
 
-        for address in self.list_addresses:
+        for address in list_addresses:
 
             address_key = tuple(address)
 
@@ -529,8 +461,8 @@ class Neighbourhood2:
                     output.append([address[j] + table[i][j] for j in range(len(address))])
                 self.von_neumann_neighbours[address_key][depth] = output
 
-    def neighbourhood_for_halo(self):
-        for address in self.halo_addresses:
+    def configure_neighbourhood_for_halo(self, halo_addresses):
+        for address in halo_addresses:
 
             address_key = tuple(address)
 
@@ -818,12 +750,12 @@ class EventHandler:
                     self.add_bacterium(i, 'slow')
 
 
-class Automaton(Tile, Neighbourhood2, EventHandler):
+class Automaton(Tile, Neighbourhood, EventHandler):
 
     def __init__(self, shape, tile_id, attributes, parameters, blood_vessels, fast_bacteria=None, slow_bacteria=None,
                  macrophages=None):
         Tile.__init__(self, shape, attributes)
-        Neighbourhood2.__init__(self, len(shape), parameters['max_depth'])
+        Neighbourhood.__init__(self, len(shape), parameters['max_depth'], self.list_addresses)
         EventHandler.__init__(self)
 
         # Max depth must be +1 or more greater than the caseum distance as we need to work out diffusion rates one
@@ -877,13 +809,6 @@ class Automaton(Tile, Neighbourhood2, EventHandler):
             pass
 
         self.swap_grids()
-
-    def configure_halo_addresses(self, external_addresses_required, depth1_addresses):
-        self.halo_addresses = external_addresses_required
-        for address in external_addresses_required:
-            self.address_locations[tuple(address)] = 'halo'
-        self.halo_depth1 = depth1_addresses
-        self.neighbourhood_for_halo()
 
     def initialise_blood_vessels(self, addresses):
         for address in addresses:
