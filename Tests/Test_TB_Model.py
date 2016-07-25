@@ -8,182 +8,346 @@ import os
 class TileTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.tile = TB_Model.Tile([5, 5], ['a', 'b', 'c'])
-        self.tile.grid[0, 0]['a'] = 1.1
-        self.tile.create_work_grid()
+        self.tile = TB_Model.Tile([5,4], ['a','b','c'])
 
-    def test_shape(self):
-        self.assertEqual(self.tile.grid.shape, (5, 5))
+    def test_initialisation(self):
+        self.assertItemsEqual(self.tile.attributes, ['a','b','c'])
+        self.assertSequenceEqual(self.tile.shape, (5,4))
+        self.assertEqual(self.tile.size, 20)
+
+        # Grid
+        self.assertTrue(isinstance(self.tile.grid, np.ndarray))
+        self.assertSequenceEqual(self.tile.grid.shape, (5,4))
+        for x in range(5):
+            for y in range(4):
+                self.assertTrue(isinstance(self.tile.grid[x,y], dict))
+                self.assertItemsEqual(self.tile.grid[x,y].keys(), ['a','b','c'])
+                self.assertEqual(self.tile.grid[x, y]['a'], 0.0)
+                self.assertEqual(self.tile.grid[x, y]['b'], 0.0)
+                self.assertEqual(self.tile.grid[x, y]['c'], 0.0)
+
+        # List of addresses
+        self.assertEqual(len(self.tile.list_addresses), 20)
+
+        self.assertItemsEqual(self.tile.list_addresses, [[0, 0], [0, 1], [0, 2], [0, 3],
+                                                         [1, 0], [1, 1], [1, 2], [1, 3],
+                                                         [2, 0], [2, 1], [2, 2], [2, 3],
+                                                         [3, 0], [3, 1], [3, 2], [3, 3],
+                                                         [4, 0], [4, 1], [4, 2], [4, 3]
+                                                         ])
+
+        # Address locations
+        self.assertEqual(len(self.tile.address_locations.keys()), 20)
+        self.assertItemsEqual(self.tile.address_locations.keys(), [(0, 0), (0, 1), (0, 2), (0, 3),
+                                                                   (1, 0), (1, 1), (1, 2), (1, 3),
+                                                                   (2, 0), (2, 1), (2, 2), (2, 3),
+                                                                   (3, 0), (3, 1), (3, 2), (3, 3),
+                                                                   (4, 0), (4, 1), (4, 2), (4, 3)
+                                                                   ])
+        for x in range(5):
+            for y in range(4):
+                self.assertEqual(self.tile.address_locations[(x,y)], 'grid')
 
     def test_create_work_grid(self):
 
-        self.assertEqual(self.tile.work_grid[0, 0]['a'], 1.1)
+        self.tile.grid[2, 2]['a'] = 1.0
+        self.tile.grid[1, 3]['b'] = 2.0
+        self.tile.grid[4, 3]['c'] = 3.0
 
-        self.tile.grid[1, 1]['b'] = 99.9
-        self.assertEqual(self.tile.work_grid[1, 1]['b'], 0.0)
+        self.tile.create_work_grid()
 
-    def test_attributes(self):
-        self.assertTrue(isinstance(self.tile.grid[0, 0], dict))
-
+        self.assertTrue(isinstance(self.tile.work_grid, np.ndarray))
+        self.assertSequenceEqual(self.tile.grid.shape, (5, 4))
         for x in range(5):
-            for y in range(5):
+            for y in range(4):
+                self.assertTrue(isinstance(self.tile.grid[x, y], dict))
                 self.assertItemsEqual(self.tile.grid[x, y].keys(), ['a', 'b', 'c'])
-                self.assertItemsEqual(self.tile.work_grid[x, y].keys(), ['a', 'b', 'c'])
 
-    def test_is_on_grid(self):
-        for x in range(5):
-            for y in range(5):
-                self.assertTrue(self.tile.address_is_on_grid([x, y]))
+                if x == 2 and y == 2:
+                    self.assertEqual(self.tile.grid[x, y]['a'], 1.0)
+                else:
+                    self.assertEqual(self.tile.grid[x, y]['a'], 0.0)
 
-        for x in range(-5, 0):
-            for y in range(-5, 0):
-                self.assertFalse(self.tile.address_is_on_grid([x, y]))
+                if x == 1 and y == 3:
+                    self.assertEqual(self.tile.grid[x, y]['b'], 2.0)
+                else:
+                    self.assertEqual(self.tile.grid[x, y]['b'], 0.0)
 
-        for x in range(5, 10):
-            for y in range(5, 10):
-                self.assertFalse(self.tile.address_is_on_grid([x, y]))
+                if x == 4 and y == 3:
+                    self.assertEqual(self.tile.grid[x, y]['c'], 3.0)
+                else:
+                    self.assertEqual(self.tile.grid[x, y]['c'], 0.0)
 
     def test_swap_grids(self):
-        self.tile.set_attribute_work_grid([0, 1], 'a', 1)
+
+        self.tile.create_work_grid()
+
+        self.tile.work_grid[2, 2]['a'] = 1.0
+        self.tile.work_grid[1, 3]['b'] = 2.0
+        self.tile.work_grid[4, 3]['c'] = 3.0
+
         self.tile.swap_grids()
-        self.assertEqual(self.tile.grid[0, 1]['a'], 1)
-        self.assertEqual(self.tile.work_grid[0, 1]['a'], 0.0)
 
-    def test_set_DZ_addresses(self):
-        self.tile.set_addresses_for_danger_zone([[0, 0], [1, 1], [2, 2]])
-        self.assertSequenceEqual(self.tile.danger_zone_addresses, [[0, 0], [1, 1], [2, 2]])
+        self.assertTrue(isinstance(self.tile.work_grid, np.ndarray))
+        self.assertSequenceEqual(self.tile.grid.shape, (5, 4))
+        for x in range(5):
+            for y in range(4):
+                self.assertTrue(isinstance(self.tile.grid[x, y], dict))
+                self.assertItemsEqual(self.tile.grid[x, y].keys(), ['a', 'b', 'c'])
 
-    def test_get_DZ(self):
+                if x == 2 and y == 2:
+                    self.assertEqual(self.tile.grid[x, y]['a'], 1.0)
+                else:
+                    self.assertEqual(self.tile.grid[x, y]['a'], 0.0)
+                self.assertEqual(self.tile.work_grid[x, y]['a'], 0.0)
 
-        self.tile.set_addresses_for_danger_zone([[4, 4], [4, 3], [3, 4]])
-        self.tile.grid[4, 4]['a'] = 99
-        self.tile.grid[4, 3]['b'] = 99
-        self.tile.grid[3, 4]['c'] = 99
+                if x == 1 and y == 3:
+                    self.assertEqual(self.tile.grid[x, y]['b'], 2.0)
+                else:
+                    self.assertEqual(self.tile.grid[x, y]['b'], 0.0)
+                self.assertEqual(self.tile.work_grid[x, y]['b'], 0.0)
 
-        danger_zone = self.tile.get_danger_zone()
+                if x == 4 and y == 3:
+                    self.assertEqual(self.tile.grid[x, y]['c'], 3.0)
+                else:
+                    self.assertEqual(self.tile.grid[x, y]['c'], 0.0)
+                self.assertEqual(self.tile.work_grid[x, y]['c'], 0.0)
 
-        self.assertEqual(len(danger_zone), 3)
-        self.assertEqual(danger_zone[0]['a'], 99)
-        self.assertEqual(danger_zone[0]['b'], 0.0)
-        self.assertEqual(danger_zone[0]['c'], 0.0)
-        self.assertEqual(danger_zone[1]['a'], 0.0)
-        self.assertEqual(danger_zone[1]['b'], 99)
-        self.assertEqual(danger_zone[1]['c'], 0.0)
-        self.assertEqual(danger_zone[2]['a'], 0.0)
-        self.assertEqual(danger_zone[2]['b'], 0.0)
-        self.assertEqual(danger_zone[2]['c'], 99)
+    def test_set_danger_zone_addresses(self):
+        self.tile.set_addresses_for_danger_zone([[4,0],[4,1],[4,2],[4,3],[0,3],[1,3],[2,3],[3,3]])
+        self.assertItemsEqual(self.tile.danger_zone_addresses, [[4,0],[4,1],[4,2],[4,3],[0,3],[1,3],[2,3],[3,3]])
 
-    def test_set_addresses_for_halo(self):
-        self.tile.set_addresses_for_halo([[-1, -1], [-1, 0], [0, -1]])
-        self.assertSequenceEqual(self.tile.halo_addresses, [[-1, -1], [-1, 0], [0, -1]])
+    def test_get_danger_zone(self):
+        addresses = [[4, 0], [4, 1], [4, 2], [4, 3], [0, 3], [1, 3], [2, 3], [3, 3]]
+        self.tile.set_addresses_for_danger_zone(addresses)
+        for a in addresses:
+            x, y = a
+            self.tile.grid[x,y]['a'] = (x + y) + (x*y)
+
+        dz = self.tile.get_danger_zone()
+
+        for index in range(len(self.tile.danger_zone_addresses)):
+            x, y = self.tile.danger_zone_addresses[index]
+            cell = dz[index]
+
+            self.assertEqual(cell['a'], (x+y) + (x*y))
+
+    def test_configure_halo_addresses(self):
+        # Not a complete halo but enough for testing
+        halo_addresses = [[-1, -1], [-1, 0], [-1, 1], [-1, 2], [-1, 3], [-1, 4], [0, -1], [0, 4], [1, -1], [1, 4],
+                          [2, -1], [2, 4], [3, -1], [3, 4], [4, -1], [4, 4], [5, -1], [5, 0], [5, 1], [5, 2], [5, 3],
+                          [5, 4], [-2, -2], [-2, -1], [-2, 0], [-2, 1], [-2, 2], [-2, 3], [-2, 4], [-2, 5]]
+        halo_depth1_addresses = [[-1, -1], [-1, 0], [-1, 1], [-1, 2], [-1, 3], [-1, 4], [0, -1], [0, 4], [1, -1],
+                                 [1, 4], [2, -1], [2, 4], [3, -1], [3, 4], [4, -1], [4, 4], [5, -1], [5, 0], [5, 1],
+                                 [5, 2], [5, 3], [5, 4]]
+        self.tile.configure_halo_addresses(halo_addresses, halo_depth1_addresses)
+
+        self.assertItemsEqual(self.tile.halo_addresses, halo_addresses)
+        for i in halo_addresses:
+            self.assertEqual(self.tile.address_locations[tuple(i)], 'halo')
+
+        self.assertEqual(len(self.tile.address_locations.keys()), 20 + len(halo_addresses))
+
+        self.assertItemsEqual(self.tile.halo_depth1, halo_depth1_addresses)
 
     def test_set_halo(self):
-        self.tile.set_addresses_for_halo([[-1, -1], [-1, 0], [0, -1]])
-        cells = []
-        for i in range(3):
-            cell = dict()
-            cell['a'] = i
-            cell['b'] = i
-            cell['c'] = i
-            cells.append(cell)
-        self.tile.set_halo(cells)
-        self.assertEqual(self.tile.halo_cells[0]['a'], 0)
-        self.assertEqual(self.tile.halo_cells[0]['b'], 0)
-        self.assertEqual(self.tile.halo_cells[0]['c'], 0)
-        self.assertEqual(self.tile.halo_cells[1]['a'], 1)
-        self.assertEqual(self.tile.halo_cells[1]['b'], 1)
-        self.assertEqual(self.tile.halo_cells[1]['c'], 1)
-        self.assertEqual(self.tile.halo_cells[2]['a'], 2)
-        self.assertEqual(self.tile.halo_cells[2]['b'], 2)
-        self.assertEqual(self.tile.halo_cells[2]['c'], 2)
 
-    def test_get_on_grid(self):
-        self.assertItemsEqual(self.tile.get([0, 1]).keys(), ['a', 'b', 'c'])
-        self.assertItemsEqual(self.tile.get([0, 1]).values(), [0.0, 0.0, 0.0])
+        halo = []
+        for i in range(4):
+            cell = dict(a=i,b=9,c=10)
+            halo.append(cell)
 
-    def test_get_attribute_on_grid(self):
-        self.assertEqual(self.tile.get_attribute([0, 1], 'a'), 0.0)
+        self.tile.set_halo(halo)
 
-    def test_get_on_halo(self):
-        self.tile.set_addresses_for_halo([[-1, -1], [-1, 0], [0, -1]])
-        cells = []
-        for i in range(3):
-            cell = dict()
-            cell['a'] = i
-            cell['b'] = i
-            cell['c'] = i
-            cells.append(cell)
-        self.tile.set_halo(cells)
+        self.assertEqual(len(self.tile.halo_cells), 4)
+        self.assertEqual(self.tile.halo_cells, halo)
 
-        self.assertItemsEqual(self.tile.get([-1, -1]).keys(), ['a', 'b', 'c'])
+    def test_get(self):
 
-    def test_get_attribute_on_halo(self):
-        self.tile.set_addresses_for_halo([[-1, -1], [-1, 0], [0, -1]])
-        cells = []
-        for i in range(3):
-            cell = dict()
-            cell['a'] = i
-            cell['b'] = i
-            cell['c'] = i
-            cells.append(cell)
-        self.tile.set_halo(cells)
+        # Not a complete halo but enough for testing
+        halo_addresses = [[-1,-1],[-1,0],[-1,1],[-1,2],[-1,3],[-1,4]]
+        halo_depth1_addresses = [[-1,-1],[-1,0],[-1,1],[-1,2],[-1,3],[-1,4]]
+        self.tile.configure_halo_addresses(halo_addresses, halo_depth1_addresses)
 
-        self.assertEqual(self.tile.get_attribute([-1, -1], 'a'), 0.0)
+        halo = []
+        for i in range(6):
+            cell = dict(a=i, b=9, c=10)
+            halo.append(cell)
+        self.tile.set_halo(halo)
 
-    def test_set_att(self):
+        self.tile.grid[0, 0]['a'] = 77.0
+        self.tile.grid[1, 1]['b'] = 56.0
 
-        self.tile.set_attribute_grid([2, 2], 'a', 99.0)
-        self.assertEqual(self.tile.grid[2, 2]['a'], 99.0)
-        # Check an exception is raised if the attribute doesn't exist
-        self.assertRaises(Exception, self.tile.set_attribute_grid, [2, 2], 'not set', 99.0)
+        # Get from grid
+        self.assertTrue(isinstance(self.tile.get([0, 0], 'grid'), dict))
+        self.assertEqual(self.tile.get([0, 0])['a'], 77.0)
+        self.assertEqual(self.tile.get([0, 0])['b'], 0.0)
+        self.assertEqual(self.tile.get([0, 0])['c'], 0.0)
 
-    def test_set_att_work(self):
-        self.tile.set_attribute_work_grid([2, 2], 'a', 99.0)
-        self.assertEqual(self.tile.work_grid[2, 2]['a'], 99.0)
-        # Check an exception is raised if the attribute doesn't exist
-        self.assertRaises(Exception, self.tile.set_attribute_grid, [2, 2], 'not set', 99.0)
+        # Get from halo
+        self.assertTrue(isinstance(self.tile.get([-1, -1], 'halo'), dict))
+        self.assertEqual(self.tile.get([-1, -1])['a'], 0)
+        self.assertEqual(self.tile.get([-1, -1])['b'], 9)
+        self.assertEqual(self.tile.get([-1, -1])['c'], 10)
+
+        # Get unknown (grid)
+        self.assertTrue(isinstance(self.tile.get([1, 1]), dict))
+        self.assertEqual(self.tile.get([1,1])['a'], 0.0)
+        self.assertEqual(self.tile.get([1,1])['b'], 56.0)
+        self.assertEqual(self.tile.get([1,1])['c'], 0.0)
+
+        # Get unknown (halo)
+        self.assertTrue(isinstance(self.tile.get([-1, 4], 'halo'), dict))
+        self.assertEqual(self.tile.get([-1, 4])['a'], 5)
+        self.assertEqual(self.tile.get([-1, 4])['b'], 9)
+        self.assertEqual(self.tile.get([-1, 4])['c'], 10)
+
+    def test_get_attribute(self):
+        # Not a complete halo but enough for testing
+        halo_addresses = [[-1, -1], [-1, 0], [-1, 1], [-1, 2], [-1, 3], [-1, 4]]
+        halo_depth1_addresses = [[-1, -1], [-1, 0], [-1, 1], [-1, 2], [-1, 3], [-1, 4]]
+        self.tile.configure_halo_addresses(halo_addresses, halo_depth1_addresses)
+
+        halo = []
+        for i in range(6):
+            cell = dict(a=i, b=9, c=10)
+            halo.append(cell)
+        self.tile.set_halo(halo)
+
+        self.tile.grid[0, 0]['a'] = 77.0
+        self.tile.grid[1, 1]['b'] = 56.0
+
+        # Get from grid
+        self.assertEqual(self.tile.get_attribute([0,0],'a','grid'), 77.0)
+
+        # Get from halo
+        self.assertEqual(self.tile.get_attribute([-1, -1], 'a', 'halo'), 0)
+
+        # Get unknown (grid)
+        self.assertEqual(self.tile.get_attribute([1, 1], 'b'), 56.0)
+
+        # Get unknown (halo)
+        self.assertEqual(self.tile.get_attribute([-1, 4], 'a'), 5)
+
+    def test_set_attribute_grid(self):
+        self.tile.set_attribute_grid([0,0], 'a', 99.9)
+        self.assertEqual(self.tile.grid[0,0]['a'], 99.9)
+
+    def test_set_attribute_work_grid(self):
+
+        self.tile.create_work_grid()
+
+        self.tile.set_attribute_work_grid([0, 0], 'a', 99.9)
+        self.assertEqual(self.tile.work_grid[0, 0]['a'], 99.9)
 
 
 class NeighbourhoodTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.neighbourhood = TB_Model.Neighbourhood(2, 3)
+        # The address list is contained on the Tile mixin class
+        self.tile = TB_Model.Tile([5, 5], ['a', 'b', 'c'])
+        self.neighbourhood = TB_Model.Neighbourhood(2, 3, self.tile.list_addresses)
 
-    def test_neighbour_table_moore(self):
-        table = self.neighbourhood.neighbour_table_moore[1]
-        self.assertItemsEqual(table, [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)])
+    def test_attributes(self):
+        self.assertEqual(self.neighbourhood.dimensions, 2)
+        self.assertEqual(self.neighbourhood.max_depth, 3)
 
-        table = self.neighbourhood.neighbour_table_moore[2]
-        self.assertItemsEqual(table, [(-2, -2), (-2, -1), (-2, 0), (-2, 1), (-2, 2), (-1, -2), (-1, 2), (0, -2), (0, 2),
-                                      (1, -2), (1, 2), (2, -2), (2, -1), (2, 0), (2, 1), (2, 2)])
-
-        table = self.neighbourhood.neighbour_table_moore[3]
-        self.assertItemsEqual(table,
+    def test_neighbour_tables_relative(self):
+        self.assertItemsEqual(self.neighbourhood.moore_relative.keys(), [1,2,3])
+        self.assertItemsEqual(self.neighbourhood.moore_relative[1], [(-1,-1), (-1,0), (-1,1), (0,-1), (0,1), (1,-1),
+                                                                     (1,0), (1,1)])
+        self.assertItemsEqual(self.neighbourhood.moore_relative[2],
+                              [(-2, -2), (-2, -1), (-2, 0), (-2, 1), (-2, 2), (-1, -2), (-1, 2), (0, -2), (0, 2),
+                               (1, -2), (1, 2), (2, -2), (2, -1), (2, 0), (2, 1), (2, 2)])
+        self.assertItemsEqual(self.neighbourhood.moore_relative[3],
                               [(-3, -3), (-3, -2), (-3, -1), (-3, 0), (-3, 1), (-3, 2), (-3, 3), (-2, -3), (-2, 3),
                                (-1, -3), (-1, 3), (0, -3), (0, 3), (1, -3), (1, 3), (2, -3), (2, 3), (3, -3), (3, -2),
                                (3, -1), (3, 0), (3, 1), (3, 2), (3, 3)])
 
-    def test_calculate_neighbour_location_moore(self):
-        table = self.neighbourhood.neighbour_table_moore[1]
-        locations = self.neighbourhood.calculate_neighbours_locations([2, 2], table)
-        self.assertItemsEqual(locations, [[1, 1], [1, 2], [1, 3], [2, 1], [2, 3], [3, 1], [3, 2], [3, 3]])
+        self.assertItemsEqual(self.neighbourhood.von_neumann_relative.keys(), [1, 2, 3])
+        self.assertItemsEqual(self.neighbourhood.von_neumann_relative[1],
+                              [(-1, 0), (0, -1), (0, 1), (1, 0)])
+        self.assertItemsEqual(self.neighbourhood.von_neumann_relative[2],
+                              [(-2, 0), (-1, -1), (-1, 1), (0, -2), (0, 2), (1, -1), (1, 1), (2, 0)])
+        self.assertItemsEqual(self.neighbourhood.von_neumann_relative[3],
+                              [(-3, 0), (-2, -1), (-2, 1), (-1, -2), (-1, 2), (0, -3), (0, 3), (1, -2), (1, 2), (2, -1),
+                               (2, 1), (3, 0)])
 
-    def test_calculate_neighbour_location_von_neumann(self):
-        table = self.neighbourhood.neighbour_table_von_neumann[1]
-        locations = self.neighbourhood.calculate_neighbours_locations([2, 2], table)
-        self.assertItemsEqual(locations, [[2, 3], [1, 2], [2, 1], [3, 2]])
+    def test_neighbourhood_tables(self):
+        self.assertItemsEqual(self.neighbourhood.moore_neighbours.keys(), [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4),
+                                                                           (1, 0), (1, 1), (1, 2), (1, 3), (1, 4),
+                                                                           (2, 0), (2, 1), (2, 2), (2, 3), (2, 4),
+                                                                           (3, 0), (3, 1), (3, 2), (3, 3), (3, 4),
+                                                                           (4, 0), (4, 1), (4, 2), (4, 3), (4, 4),
+                                                                           ])
 
-    def test_neighbours_moore(self):
-        nm_2_exc = self.neighbourhood.neighbours_moore([2, 2], 2)
-        self.assertItemsEqual(nm_2_exc, [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4],
-                                         [1, 0], [1, 4],
-                                         [2, 0], [2, 4],
-                                         [3, 0], [3, 4],
-                                         [4, 0], [4, 1], [4, 2], [4, 3], [4, 4]])
+        self.assertItemsEqual(self.neighbourhood.von_neumann_neighbours.keys(), [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4),
+                                                                           (1, 0), (1, 1), (1, 2), (1, 3), (1, 4),
+                                                                           (2, 0), (2, 1), (2, 2), (2, 3), (2, 4),
+                                                                           (3, 0), (3, 1), (3, 2), (3, 3), (3, 4),
+                                                                           (4, 0), (4, 1), (4, 2), (4, 3), (4, 4),
+                                                                           ])
+        for a in self.neighbourhood.moore_neighbours:
+            self.assertItemsEqual(self.neighbourhood.moore_neighbours[a].keys(), [1,2,3])
+            self.assertItemsEqual(self.neighbourhood.von_neumann_neighbours[a].keys(), [1, 2, 3])
 
-    def test_neighbours_von_neumann(self):
-        nvn_2_exc = self.neighbourhood.neighbours_von_neumann([2, 2], 2)
-        self.assertItemsEqual(nvn_2_exc, [[0, 2], [1, 1], [1, 3], [2, 0], [2, 4], [3, 1], [3, 3], [4, 2]])
+            self.assertItemsEqual(self.neighbourhood.moore_neighbours[(0, 0)][1],
+                                  [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]])
+            self.assertItemsEqual(self.neighbourhood.moore_neighbours[(2, 2)][2],
+                                  [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [1, 0], [1, 4], [2, 0], [2, 4], [3, 0],
+                                   [3, 4], [4, 0], [4, 1], [4, 2], [4, 3], [4, 4]])
+            self.assertItemsEqual(self.neighbourhood.moore_neighbours[(4, 4)][3],
+                                  [[1, 1], [1, 2], [1, 3], [1, 4], [1, 5], [1, 6], [1, 7], [2, 1], [2, 7], [3, 1],
+                                   [3, 7], [4, 1], [4, 7], [5, 1], [5, 7], [6, 1], [6, 7], [7, 1], [7, 2], [7, 3],
+                                   [7, 4], [7, 5], [7, 6], [7, 7]])
+
+            self.assertItemsEqual(self.neighbourhood.von_neumann_neighbours[(0,4)][1], [[-1,4],[0,3],[0,5],[1,4]])
+            self.assertItemsEqual(self.neighbourhood.von_neumann_neighbours[(1, 1)][2],
+                                  [[-1, 1], [0, 0], [0, 2], [1, -1], [1, 3], [2, 0], [2, 2], [3, 1]])
+            self.assertItemsEqual(self.neighbourhood.von_neumann_neighbours[(4, 0)][3],
+                                  [[1, 0], [2, -1], [2, 1], [3, -2], [3, 2], [4, -3], [4, 3], [5, -2], [5, 2], [6, -1],
+                                   [6, 1], [7, 0]])
+
+    def test_neighbourhood_functions(self):
+        # Specify depth
+        self.assertItemsEqual(self.neighbourhood.neighbours_moore([0, 0], 1),
+                              [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]])
+        self.assertItemsEqual(self.neighbourhood.neighbours_moore([2, 2], 2),
+                              [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [1, 0], [1, 4], [2, 0], [2, 4], [3, 0],
+                               [3, 4], [4, 0], [4, 1], [4, 2], [4, 3], [4, 4]])
+        # Don't specify depth
+        self.assertItemsEqual(self.neighbourhood.neighbours_moore([0, 0]),
+                              [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]])
+
+        # Specify depth
+        self.assertItemsEqual(self.neighbourhood.neighbours_von_neumann([0, 0], 1),
+                              [[-1, 0], [0, -1], [0, 1], [1, 0]])
+        self.assertItemsEqual(self.neighbourhood.neighbours_von_neumann([1, 1], 2),
+                              [[-1, 1], [0, 0], [0, 2], [1, -1], [1, 3], [2, 0], [2, 2], [3, 1]])
+        # Don't specify depth
+        self.assertItemsEqual(self.neighbourhood.neighbours_von_neumann([0, 0]),
+                              [[-1, 0], [0, -1], [0, 1], [1, 0]])
+
+    def test_configure_halo_neighbourhood(self):
+        self.neighbourhood.configure_neighbourhood_for_halo([[-1,-1],[-1,0],[-1,1]])
+        self.assertTrue((-1, -1) in self.neighbourhood.moore_neighbours.keys())
+        self.assertTrue((-1, 0) in self.neighbourhood.moore_neighbours.keys())
+        self.assertTrue((-1, 1) in self.neighbourhood.moore_neighbours.keys())
+        self.assertTrue((-1, -1) in self.neighbourhood.von_neumann_neighbours.keys())
+        self.assertTrue((-1, 0) in self.neighbourhood.von_neumann_neighbours.keys())
+        self.assertTrue((-1, 1) in self.neighbourhood.von_neumann_neighbours.keys())
+
+        self.assertItemsEqual(self.neighbourhood.moore_neighbours[(-1, -1)].keys(), [1, 2, 3])
+        self.assertItemsEqual(self.neighbourhood.moore_neighbours[(-1, 0)].keys(), [1, 2, 3])
+        self.assertItemsEqual(self.neighbourhood.moore_neighbours[(-1, 1)].keys(), [1, 2, 3])
+        self.assertItemsEqual(self.neighbourhood.von_neumann_neighbours[(-1, -1)].keys(), [1, 2, 3])
+        self.assertItemsEqual(self.neighbourhood.von_neumann_neighbours[(-1, 0)].keys(), [1, 2, 3])
+        self.assertItemsEqual(self.neighbourhood.von_neumann_neighbours[(-1, 1)].keys(), [1, 2, 3])
+
+        self.assertItemsEqual(self.neighbourhood.moore_neighbours[(-1, -1)][1],
+                              [[-2, -2], [-2, -1], [-2, 0], [-1, -2], [-1, 0], [0, -2], [0, -1], [0, 0]])
+        self.assertItemsEqual(self.neighbourhood.von_neumann_neighbours[(-1, 0)][2],
+                              [[-3, 0], [-2, -1], [-2, 1], [-1, -2], [-1, 2], [0, -1], [0, 1], [1, 0]])
 
 
 class AutomatonTestCase(unittest.TestCase):
