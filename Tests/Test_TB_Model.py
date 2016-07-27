@@ -405,6 +405,7 @@ class TopologyTestCase(unittest.TestCase):
         params = dict()
         params['max_depth'] = 3
         params['initial_oxygen'] = 1.0
+        params['blood_vessel_value'] = 1.5
         params['caseum_distance_to_reduce_diffusion'] = 0
         atts = ['a', 'b', 'c', 'blood_vessel', 'contents', 'oxygen']
 
@@ -490,6 +491,7 @@ class TwoDimensionalTopologyTestCase(unittest.TestCase):
         params = dict()
         params['max_depth'] = 3
         params['initial_oxygen'] = 1.0
+        params['blood_vessel_value'] = 1.5
         params['caseum_distance_to_reduce_diffusion'] = 0
         atts = ['a', 'b', 'c', 'blood_vessel', 'contents', 'oxygen']
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, [(3, 3)], [(1, 1)], [(9, 9)],
@@ -563,6 +565,7 @@ class TwoDimensionalTopologyTestCase(unittest.TestCase):
         self.parameters = dict()
         self.parameters['max_depth'] = 1
         self.parameters['initial_oxygen'] = 1.0
+        self.parameters['blood_vessel_value'] = 1.5
         self.parameters['caseum_distance_to_reduce_diffusion'] = 0
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [6, 6], self.attributes, self.parameters, [[3, 3]], [],
                                                         [], [])
@@ -583,6 +586,7 @@ class TwoDimensionalTopologyTestCase(unittest.TestCase):
         self.parameters = dict()
         self.parameters['max_depth'] = 1
         self.parameters['initial_oxygen'] = 1.0
+        self.parameters['blood_vessel_value'] = 1.5
         self.parameters['caseum_distance_to_reduce_diffusion'] = 0
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [6, 6], self.attributes, self.parameters, [(3, 3)], [],
                                                         [], [])
@@ -683,6 +687,7 @@ class TwoDimensionalTopologyTestCase(unittest.TestCase):
         self.parameters = dict()
         self.parameters['max_depth'] = 1
         self.parameters['initial_oxygen'] = 1.0
+        self.parameters['blood_vessel_value'] = 1.5
         self.parameters['caseum_distance_to_reduce_diffusion'] = 0
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [6, 6], self.attributes, self.parameters, [(3, 3)], [],
                                                         [], [])
@@ -786,32 +791,44 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         params = dict()
         params['max_depth'] = 3
         params['initial_oxygen'] = 1.5
+        params['blood_vessel_value'] = 1.5
         params['oxygen_diffusion'] = 1.0
         params['chemotherapy_diffusion'] = 0.75
+
         params['caseum_distance_to_reduce_diffusion'] = 2
         params['caseum_threshold_to_reduce_diffusion'] = 2
         params['oxygen_diffusion_caseum_reduction'] = 1.5
         params['chemotherapy_diffusion_caseum_reduction'] = 1.5
+
         params['spatial_step'] = 0.2
-        params['oxygen_from_source'] = 2.4
-        params['oxygen_uptake_from_bacteria'] = 1.0
-        params['time_step'] = 0.001
+        params['time_step'] = 0.1
+
+        params['oxygen_from_source'] = 10
+        params['oxygen_uptake_from_bacteria'] = 3
+
         params['chemotherapy_from_source'] = 1.0
         params['chemotherapy_decay'] = 0.35
-        params['chemokine_diffusion'] = 0.05
-        params['chemokine_from_bacteria'] = 0.5
+
+        params['chemokine_diffusion'] = 10
+        params['chemokine_from_bacteria'] = 20
         params['chemokine_from_macrophages'] = 1
         params['chemokine_decay'] = 0.347
 
         atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
                 'chemotherapy', 'chemokine']
-        blood_vessels = [(3, 3)]
-        fast_bacteria = [(1, 1)]
-        slow_bacteria = [(9, 9)]
-        macrophages = [(7, 1)]
+
+        self.params = params
+        self.atts = atts
+
+        blood_vessels = []
+        fast_bacteria = []
+        slow_bacteria = []
+        macrophages = []
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
                                                         slow_bacteria, macrophages)
+        self.sort_out_halo()
 
+    def sort_out_halo(self):
         # Create a halo - not needed for tests but needed for code
         halo = []
         for a in self.topology.automata[0].halo_addresses:
@@ -830,20 +847,41 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
                 halo.append(cell)
         self.topology.automata[0].set_halo(halo)
 
-    def test_initialise(self):
+    def test_initialise_no_additions(self):
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.atts, self.params, [], [], [], [])
+        self.assertEqual(len(self.topology.automata[0].blood_vessels), 0)
+        self.assertEqual(len(self.topology.automata[1].blood_vessels), 0)
+        self.assertEqual(len(self.topology.automata[2].blood_vessels), 0)
+        self.assertEqual(len(self.topology.automata[3].blood_vessels), 0)
+        self.assertEqual(len(self.topology.automata[0].bacteria), 0)
+        self.assertEqual(len(self.topology.automata[1].bacteria), 0)
+        self.assertEqual(len(self.topology.automata[2].bacteria), 0)
+        self.assertEqual(len(self.topology.automata[3].bacteria), 0)
+
+    def test_initialise_with_additions(self):
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.atts, self.params, [(3, 3)], [(1, 8)],
+                                                        [(9, 9)], [(7, 2)])
         self.assertEqual(len(self.topology.automata[0].blood_vessels), 1)
         self.assertItemsEqual(self.topology.automata[0].blood_vessels[0], (3, 3))
         self.assertEqual(len(self.topology.automata[1].blood_vessels), 0)
         self.assertEqual(len(self.topology.automata[2].blood_vessels), 0)
         self.assertEqual(len(self.topology.automata[3].blood_vessels), 0)
-        self.assertEqual(len(self.topology.automata[0].bacteria), 1)
-        self.assertEqual(self.topology.automata[0].bacteria[0].metabolism, "fast")
-        self.assertItemsEqual(self.topology.automata[0].bacteria[0].address, (1, 1))
-        self.assertEqual(len(self.topology.automata[1].bacteria), 0)
+
+        self.assertEqual(len(self.topology.automata[0].bacteria), 0)
+        self.assertEqual(len(self.topology.automata[1].bacteria), 1)
+        self.assertEqual(self.topology.automata[1].bacteria[0].metabolism, "fast")
+        self.assertItemsEqual(self.topology.automata[1].bacteria[0].address, (1, 3))
         self.assertEqual(len(self.topology.automata[2].bacteria), 0)
         self.assertEqual(len(self.topology.automata[3].bacteria), 1)
         self.assertEqual(self.topology.automata[3].bacteria[0].metabolism, "slow")
         self.assertItemsEqual(self.topology.automata[3].bacteria[0].address, (4, 4))
+
+        self.assertEqual(len(self.topology.automata[0].macrophages), 0)
+        self.assertEqual(len(self.topology.automata[1].macrophages), 0)
+        self.assertEqual(len(self.topology.automata[2].macrophages), 1)
+        self.assertEqual(self.topology.automata[2].macrophages[0].address, (2,2))
+        self.assertEqual(self.topology.automata[2].macrophages[0].state, 'resting')
+        self.assertEqual(len(self.topology.automata[3].macrophages), 0)
 
     def test_pre_process_caseum(self):
 
@@ -922,201 +960,26 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         self.assertEqual(halo_cells[halo_addresses.index((5, 5))]['oxygen_diffusion_rate'], 1.0)
 
     def test_oxygen_basic(self):
+        """
+        Just one blood vessel, no other contents
+        :return:
+        """
 
-        self.assertEqual(self.topology.automata[0].grid[3, 3]['oxygen'], 1.5)
-        self.assertEqual(self.topology.automata[0].grid[2, 3]['oxygen'], 0.0)
-        self.assertEqual(self.topology.automata[0].grid[4, 3]['oxygen'], 0.0)
-        self.assertEqual(self.topology.automata[0].grid[3, 2]['oxygen'], 0.0)
-        self.assertEqual(self.topology.automata[0].grid[3, 4]['oxygen'], 0.0)
+        self.params['blood_vessel_value'] = 1.5 # m[i][j]
+        self.params['initial_oxygen'] = 0.0 # init_o2
+        self.params['oxygen_from_source'] = 10.0 # gamma[i][j]
 
-        self.topology.automata[0].diffusion_pre_process()
+        self.params['oxygen_uptake_from_bacteria'] = 3
 
-        neighbour_addresses = self.topology.automata[0].neighbours_von_neumann((3, 3), 1)
-        neighbours = [self.topology.automata[0].get(n) for n in neighbour_addresses]
-        self.assertAlmostEqual(
-            self.topology.automata[0].oxygen(self.topology.automata[0].get((3, 3), 'grid'), neighbours), 1.3536)
-        neighbour_addresses = self.topology.automata[0].neighbours_von_neumann((2, 3), 1)
-        neighbours = [self.topology.automata[0].get(n) for n in neighbour_addresses]
-        self.assertAlmostEqual(
-            self.topology.automata[0].oxygen(self.topology.automata[0].get((2, 3), 'grid'), neighbours), 0.0375)
-        neighbour_addresses = self.topology.automata[0].neighbours_von_neumann((4, 3), 1)
-        neighbours = [self.topology.automata[0].get(n) for n in neighbour_addresses]
-        self.assertAlmostEqual(
-            self.topology.automata[0].oxygen(self.topology.automata[0].get((4, 3), 'grid'), neighbours), 0.0375)
-        neighbour_addresses = self.topology.automata[0].neighbours_von_neumann((3, 2), 1)
-        neighbours = [self.topology.automata[0].get(n) for n in neighbour_addresses]
-        self.assertAlmostEqual(
-            self.topology.automata[0].oxygen(self.topology.automata[0].get((3, 2), 'grid'), neighbours), 0.0375)
-        neighbour_addresses = self.topology.automata[0].neighbours_von_neumann((3, 4), 1)
-        neighbours = [self.topology.automata[0].get(n) for n in neighbour_addresses]
-        self.assertAlmostEqual(
-            self.topology.automata[0].oxygen(self.topology.automata[0].get((3, 4), 'grid'), neighbours), 0.0375)
-
-    def test_chemotherapy_basic(self):
-
-        self.assertEqual(self.topology.automata[0].grid[3, 3]['chemotherapy'], 0.0)
-        self.assertEqual(self.topology.automata[0].grid[2, 3]['chemotherapy'], 0.0)
-        self.assertEqual(self.topology.automata[0].grid[4, 3]['chemotherapy'], 0.0)
-        self.assertEqual(self.topology.automata[0].grid[3, 2]['chemotherapy'], 0.0)
-        self.assertEqual(self.topology.automata[0].grid[3, 4]['chemotherapy'], 0.0)
-        self.topology.automata[0].diffusion_pre_process()
-
-        neighbour_addresses = self.topology.automata[0].neighbours_von_neumann((3,3), 1)
-        neighbours = [self.topology.automata[0].get(n) for n in neighbour_addresses]
-        self.assertEqual(self.topology.automata[0].chemotherapy(self.topology.automata[0].get((3, 3),'grid'),neighbours), 0.0015)
-        neighbour_addresses = self.topology.automata[0].neighbours_von_neumann((2, 3), 1)
-        neighbours = [self.topology.automata[0].get(n) for n in neighbour_addresses]
-        self.assertEqual(self.topology.automata[0].chemotherapy(self.topology.automata[0].get((2, 3),'grid'), neighbours), 0.0)
-        neighbour_addresses = self.topology.automata[0].neighbours_von_neumann((4, 3), 1)
-        neighbours = [self.topology.automata[0].get(n) for n in neighbour_addresses]
-        self.assertEqual(self.topology.automata[0].chemotherapy(self.topology.automata[0].get((4, 3),'grid'),neighbours), 0.0)
-        neighbour_addresses = self.topology.automata[0].neighbours_von_neumann((3, 2), 1)
-        neighbours = [self.topology.automata[0].get(n) for n in neighbour_addresses]
-        self.assertEqual(self.topology.automata[0].chemotherapy(self.topology.automata[0].get((3, 2),'grid'),neighbours), 0.0)
-        neighbour_addresses = self.topology.automata[0].neighbours_von_neumann((3, 4), 1)
-        neighbours = [self.topology.automata[0].get(n) for n in neighbour_addresses]
-        self.assertEqual(self.topology.automata[0].chemotherapy(self.topology.automata[0].get((3, 4),'grid'),neighbours), 0.0)
-
-        # Set value direct to grid to save time
-        neighbour_addresses = self.topology.automata[0].neighbours_von_neumann((3, 3), 1)
-        neighbours = [self.topology.automata[0].get(n) for n in neighbour_addresses]
-        chemo = self.topology.automata[0].chemotherapy(self.topology.automata[0].get((3, 3), 'grid'), neighbours)
-        self.topology.automata[0].set_attribute_grid((3, 3), 'chemotherapy', chemo)
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.atts, self.params, [(2, 2)], [], [], [])
+        self.sort_out_halo()
 
         self.topology.automata[0].diffusion_pre_process()
+        self.topology.automata[0].diffusion(False)
 
-        neighbour_addresses = self.topology.automata[0].neighbours_von_neumann((3, 3), 1)
-        neighbours = [self.topology.automata[0].get(n) for n in neighbour_addresses]
-        self.assertEqual(
-            self.topology.automata[0].chemotherapy(self.topology.automata[0].get((3, 3), 'grid'), neighbours),
-            0.002886975)
-        neighbour_addresses = self.topology.automata[0].neighbours_von_neumann((2, 3), 1)
-        neighbours = [self.topology.automata[0].get(n) for n in neighbour_addresses]
-        self.assertEqual(
-            self.topology.automata[0].chemotherapy(self.topology.automata[0].get((2, 3), 'grid'), neighbours),
-            0.000028125)
-        neighbour_addresses = self.topology.automata[0].neighbours_von_neumann((4, 3), 1)
-        neighbours = [self.topology.automata[0].get(n) for n in neighbour_addresses]
-        self.assertEqual(
-            self.topology.automata[0].chemotherapy(self.topology.automata[0].get((4, 3), 'grid'), neighbours),
-            0.000028125)
-        neighbour_addresses = self.topology.automata[0].neighbours_von_neumann((3, 2), 1)
-        neighbours = [self.topology.automata[0].get(n) for n in neighbour_addresses]
-        self.assertEqual(
-            self.topology.automata[0].chemotherapy(self.topology.automata[0].get((3, 2), 'grid'), neighbours),
-            0.000028125)
-        neighbour_addresses = self.topology.automata[0].neighbours_von_neumann((3, 4), 1)
-        neighbours = [self.topology.automata[0].get(n) for n in neighbour_addresses]
-        self.assertEqual(
-            self.topology.automata[0].chemotherapy(self.topology.automata[0].get((3, 4), 'grid'), neighbours),
-            0.000028125)
+        print self.topology.automata[0].work_grid[2,2]
 
-    def test_chemokine_basic(self):
-        self.topology.automata[0].diffusion_pre_process()
-        self.assertEqual(self.topology.automata[0].grid[1, 1]['chemokine'], 0.0)
-        self.assertEqual(self.topology.automata[0].grid[0, 1]['chemokine'], 0.0)
-        self.assertEqual(self.topology.automata[0].grid[2, 1]['chemokine'], 0.0)
-        self.assertEqual(self.topology.automata[0].grid[1, 0]['chemokine'], 0.0)
-        self.assertEqual(self.topology.automata[0].grid[1, 2]['chemokine'], 0.0)
 
-        self.topology.automata[0].diffusion_pre_process()
-        neighbour_addresses = self.topology.automata[0].neighbours_von_neumann((1,1),1)
-        neighbours = [self.topology.automata[0].get(n) for n in neighbour_addresses]
-        self.assertEqual(self.topology.automata[0].chemokine(self.topology.automata[0].get((1, 1), 'grid'), neighbours),
-                         0.0005)
-        neighbour_addresses = self.topology.automata[0].neighbours_von_neumann((0, 1), 1)
-        neighbours = [self.topology.automata[0].get(n) for n in neighbour_addresses]
-        self.assertEqual(self.topology.automata[0].chemokine(self.topology.automata[0].get((0, 1), 'grid'), neighbours),
-                         0.0)
-        neighbour_addresses = self.topology.automata[0].neighbours_von_neumann((2, 1), 1)
-        neighbours = [self.topology.automata[0].get(n) for n in neighbour_addresses]
-        self.assertEqual(self.topology.automata[0].chemokine(self.topology.automata[0].get((2, 1), 'grid'), neighbours),
-                         0.0)
-        neighbour_addresses = self.topology.automata[0].neighbours_von_neumann((1, 0), 1)
-        neighbours = [self.topology.automata[0].get(n) for n in neighbour_addresses]
-        self.assertEqual(self.topology.automata[0].chemokine(self.topology.automata[0].get((1, 0), 'grid'), neighbours),
-                         0.0)
-        neighbour_addresses = self.topology.automata[0].neighbours_von_neumann((1, 2), 1)
-        neighbours = [self.topology.automata[0].get(n) for n in neighbour_addresses]
-        self.assertEqual(self.topology.automata[0].chemokine(self.topology.automata[0].get((1, 2), 'grid'), neighbours),
-                         0.0)
-
-        self.topology.automata[0].set_attribute_grid((1, 1), 'chemokine', 0.0005)
-
-        self.topology.automata[0].diffusion_pre_process()
-        neighbour_addresses = self.topology.automata[0].neighbours_von_neumann((1, 1), 1)
-        neighbours = [self.topology.automata[0].get(n) for n in neighbour_addresses]
-        self.assertEqual(self.topology.automata[0].chemokine(self.topology.automata[0].get((1, 1), 'grid'), neighbours),
-                         0.0009973265)
-        neighbour_addresses = self.topology.automata[0].neighbours_von_neumann((0, 1), 1)
-        neighbours = [self.topology.automata[0].get(n) for n in neighbour_addresses]
-        self.assertAlmostEqual(
-            self.topology.automata[0].chemokine(self.topology.automata[0].get((0, 1), 'grid'), neighbours), 0.000000625)
-        neighbour_addresses = self.topology.automata[0].neighbours_von_neumann((2, 1), 1)
-        neighbours = [self.topology.automata[0].get(n) for n in neighbour_addresses]
-        self.assertAlmostEqual(
-            self.topology.automata[0].chemokine(self.topology.automata[0].get((2, 1), 'grid'), neighbours), 0.000000625)
-        neighbour_addresses = self.topology.automata[0].neighbours_von_neumann((1, 0), 1)
-        neighbours = [self.topology.automata[0].get(n) for n in neighbour_addresses]
-        self.assertAlmostEqual(
-            self.topology.automata[0].chemokine(self.topology.automata[0].get((1, 0), 'grid'), neighbours), 0.000000625)
-        neighbour_addresses = self.topology.automata[0].neighbours_von_neumann((1, 2), 1)
-        neighbours = [self.topology.automata[0].get(n) for n in neighbour_addresses]
-        self.assertAlmostEqual(
-            self.topology.automata[0].chemokine(self.topology.automata[0].get((1, 2), 'grid'), neighbours), 0.000000625)
-
-    def test_local_and_global_levels(self):
-
-        self.assertAlmostEqual(self.topology.automata[0].max_oxygen_local, 1.5)
-
-        self.topology.automata[0].diffusion_pre_process()
-
-        self.topology.automata[0].max_oxygen_local = 0.0
-        self.topology.automata[0].max_chemotherapy_local = 0.0
-        self.topology.automata[0].max_chemokine_local = 0.0
-
-        for x in range(5):
-            for y in range(5):
-                neighbour_addresses = self.topology.automata[0].neighbours_von_neumann((x, y), 1)
-                neighbours = [self.topology.automata[0].get(n) for n in neighbour_addresses]
-                self.topology.automata[0].set_attribute_work_grid((x, y), 'oxygen', self.topology.automata[0].oxygen(
-                    self.topology.automata[0].get((x, y), 'grid'), neighbours))
-                self.topology.automata[0].set_attribute_work_grid((x, y), 'chemotherapy',
-                                                                  self.topology.automata[0].chemotherapy(
-                                                                      self.topology.automata[0].get((x, y), 'grid'),
-                                                                      neighbours))
-                self.topology.automata[0].set_attribute_work_grid((x, y), 'chemokine',
-                                                                  self.topology.automata[0].chemokine(
-                                                                      self.topology.automata[0].get((x, y), 'grid'),
-                                                                      neighbours))
-
-        self.topology.automata[0].swap_grids()
-
-        self.assertAlmostEqual(self.topology.automata[0].max_oxygen_local, 1.3536)
-        self.assertAlmostEqual(self.topology.automata[0].max_chemotherapy_local, 0.0015)
-        self.assertAlmostEqual(self.topology.automata[0].max_chemokine_local, 0.0005)
-
-        for a in self.topology.automata:
-            a.set_max_oxygen_global(1.59)
-            a.set_max_chemotherapy_global(0.5)
-            a.set_max_chemokine_global(0.12)
-
-        self.assertEqual(self.topology.automata[0].max_oxygen_global, 1.59)
-        self.assertEqual(self.topology.automata[1].max_oxygen_global, 1.59)
-        self.assertEqual(self.topology.automata[2].max_oxygen_global, 1.59)
-        self.assertEqual(self.topology.automata[3].max_oxygen_global, 1.59)
-        self.assertEqual(self.topology.automata[0].max_chemotherapy_global, 0.5)
-        self.assertEqual(self.topology.automata[1].max_chemotherapy_global, 0.5)
-        self.assertEqual(self.topology.automata[2].max_chemotherapy_global, 0.5)
-        self.assertEqual(self.topology.automata[3].max_chemotherapy_global, 0.5)
-        self.assertEqual(self.topology.automata[0].max_chemokine_global, 0.12)
-        self.assertEqual(self.topology.automata[1].max_chemokine_global, 0.12)
-        self.assertEqual(self.topology.automata[2].max_chemokine_global, 0.12)
-        self.assertEqual(self.topology.automata[3].max_chemokine_global, 0.12)
-
-        self.assertAlmostEqual(self.topology.automata[0].oxygen_scale((3, 3)), 1.3536/1.59 * 100)
-        self.assertAlmostEqual(self.topology.automata[0].chemotherapy_scale((3, 3)), 0.0015 / 0.5 * 100)
-        self.assertAlmostEqual(self.topology.automata[0].chemokine_scale((1, 1)), 0.0005 / 0.12 * 100)
 
 
 # EVENT TESTING
@@ -1126,6 +989,7 @@ class BacteriaReplicationTestCase(unittest.TestCase):
     def setUp(self):
         params = dict()
         params['max_depth'] = 3
+        params['blood_vessel_value'] = 1.5
         params['initial_oxygen'] = 1.5
         params['oxygen_diffusion'] = 1.0
         params['chemotherapy_diffusion'] = 0.75
@@ -1310,6 +1174,7 @@ class TCellRecruitmentTestCase(unittest.TestCase):
         params = dict()
         params['max_depth'] = 3
         params['initial_oxygen'] = 1.5
+        params['blood_vessel_value'] = 1.5
         params['oxygen_diffusion'] = 1.0
         params['chemotherapy_diffusion'] = 0.75
         params['caseum_distance_to_reduce_diffusion'] = 2
@@ -1387,6 +1252,7 @@ class TCellRecruitmentTestCase(unittest.TestCase):
         params = dict()
         params['max_depth'] = 3
         params['initial_oxygen'] = 1.5
+        params['blood_vessel_value'] = 1.5
         params['oxygen_diffusion'] = 1.0
         params['chemotherapy_diffusion'] = 0.75
         params['caseum_distance_to_reduce_diffusion'] = 2
@@ -1475,6 +1341,7 @@ class MacrophageRecruitmentTestCase(unittest.TestCase):
         params = dict()
         params['max_depth'] = 3
         params['initial_oxygen'] = 1.5
+        params['blood_vessel_value'] = 1.5
         params['oxygen_diffusion'] = 1.0
         params['chemotherapy_diffusion'] = 0.75
         params['caseum_distance_to_reduce_diffusion'] = 2
@@ -1540,6 +1407,7 @@ class MacrophageRecruitmentTestCase(unittest.TestCase):
         params = dict()
         params['max_depth'] = 3
         params['initial_oxygen'] = 1.5
+        params['blood_vessel_value'] = 1.5
         params['oxygen_diffusion'] = 1.0
         params['chemotherapy_diffusion'] = 0.75
         params['caseum_distance_to_reduce_diffusion'] = 2
@@ -1618,6 +1486,7 @@ class ChemotherapyKillsBacteriaTestCase(unittest.TestCase):
     def setUp(self):
         params = dict()
         params['max_depth'] = 3
+        params['blood_vessel_value'] = 1.5
         params['initial_oxygen'] = 1.5
         params['oxygen_diffusion'] = 0.0
         params['chemotherapy_diffusion'] = 0.0
@@ -1772,6 +1641,7 @@ class ChemotherapyKillsMacrophageTestCase(unittest.TestCase):
         params = dict()
         params['max_depth'] = 3
         params['initial_oxygen'] = 1.5
+        params['blood_vessel_value'] = 1.5
         params['oxygen_diffusion'] = 0.0
         params['chemotherapy_diffusion'] = 0.0
         params['caseum_distance_to_reduce_diffusion'] = 2
@@ -1953,6 +1823,7 @@ class TCellDeathTestCase(unittest.TestCase):
         params = dict()
         params['max_depth'] = 3
         params['initial_oxygen'] = 1.5
+        params['blood_vessel_value'] = 1.5
         params['oxygen_diffusion'] = 0.0
         params['chemotherapy_diffusion'] = 0.0
         params['caseum_distance_to_reduce_diffusion'] = 2
@@ -2084,6 +1955,7 @@ class TCellMovementTestCase(unittest.TestCase):
         params = dict()
         params['max_depth'] = 3
         params['initial_oxygen'] = 1.5
+        params['blood_vessel_value'] = 1.5
         params['oxygen_diffusion'] = 0.0
         params['chemotherapy_diffusion'] = 0.0
         params['caseum_distance_to_reduce_diffusion'] = 2
@@ -2268,6 +2140,7 @@ class TCellKillsMacrophageTestCase(unittest.TestCase):
     def setUp(self):
         params = dict()
         params['max_depth'] = 3
+        params['blood_vessel_value'] = 1.5
         params['initial_oxygen'] = 1.5
         params['oxygen_diffusion'] = 0.0
         params['chemotherapy_diffusion'] = 0.0
@@ -2448,6 +2321,7 @@ class TCellKillsMacrophageTestCase(unittest.TestCase):
         params = dict()
         params['max_depth'] = 3
         params['initial_oxygen'] = 1.5
+        params['blood_vessel_value'] = 1.5
         params['oxygen_diffusion'] = 0.0
         params['chemotherapy_diffusion'] = 0.0
         params['caseum_distance_to_reduce_diffusion'] = 2
@@ -2537,6 +2411,7 @@ class MacrophageDeathTestCase(unittest.TestCase):
         params = dict()
         params['max_depth'] = 3
         params['initial_oxygen'] = 1.5
+        params['blood_vessel_value'] = 1.5
         params['oxygen_diffusion'] = 0.0
         params['chemotherapy_diffusion'] = 0.0
         params['caseum_distance_to_reduce_diffusion'] = 2
@@ -2749,6 +2624,7 @@ class MacrophageMovementTestCase(unittest.TestCase):
     def setUp(self):
         params = dict()
         params['max_depth'] = 3
+        params['blood_vessel_value'] = 1.5
         params['initial_oxygen'] = 1.5
         params['oxygen_diffusion'] = 0.0
         params['chemotherapy_diffusion'] = 0.0
@@ -2786,10 +2662,10 @@ class MacrophageMovementTestCase(unittest.TestCase):
         self.parameters = params
         self.attributes = atts
 
-        blood_vessels = [[8, 8]]
+        blood_vessels = [(8, 8)]
         fast_bacteria = []
         slow_bacteria = []
-        macrophages = [[1, 1]]
+        macrophages = [(1, 1)]
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
                                                         slow_bacteria, macrophages)
 
@@ -2816,8 +2692,8 @@ class MacrophageMovementTestCase(unittest.TestCase):
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(event, TB_Model.MacrophageMovement)
         addresses = event.dependant_addresses
-        self.assertSequenceEqual(addresses[0], [1, 1])
-        self.assertSequenceEqual(addresses[1], [1, 0])
+        self.assertSequenceEqual(addresses[0], (1, 1))
+        self.assertSequenceEqual(addresses[1], (1, 0))
 
     def test_macrophage_resting_movement_random_through_lack_of_chemokine(self):
 
@@ -2838,8 +2714,8 @@ class MacrophageMovementTestCase(unittest.TestCase):
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(event, TB_Model.MacrophageMovement)
         addresses = event.dependant_addresses
-        self.assertSequenceEqual(addresses[0], [1, 1])
-        self.assertSequenceEqual(addresses[1], [1, 0])
+        self.assertSequenceEqual(addresses[0], (1, 1))
+        self.assertSequenceEqual(addresses[1], (1, 0))
 
     def test_macrophage_resting_movement_max_chemokine(self):
         # Not random
@@ -2858,8 +2734,8 @@ class MacrophageMovementTestCase(unittest.TestCase):
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(event, TB_Model.MacrophageMovement)
         addresses = event.dependant_addresses
-        self.assertSequenceEqual(addresses[0], [1, 1])
-        self.assertSequenceEqual(addresses[1], [1, 0])
+        self.assertSequenceEqual(addresses[0], (1, 1))
+        self.assertSequenceEqual(addresses[1], (1, 0))
 
     def test_macrophage_resting_movement_negative_movement_time(self):
         self.topology.automata[0].parameters['resting_macrophage_movement_time'] = 99
@@ -2870,10 +2746,10 @@ class MacrophageMovementTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 0)
 
     def test_macrophage_resting_movement_across_boundary(self):
-        blood_vessels = [[8, 8]]
+        blood_vessels = [(8, 8)]
         fast_bacteria = []
         slow_bacteria = []
-        macrophages = [[4, 4]]
+        macrophages = [(4, 4)]
 
         # Not random
         self.parameters['prob_resting_macrophage_random_move'] = 0
@@ -2894,8 +2770,8 @@ class MacrophageMovementTestCase(unittest.TestCase):
         self.assertTrue(isinstance(event, TB_Model.MacrophageMovement))
         self.assertFalse(event.internal)
         addresses = event.dependant_addresses
-        self.assertSequenceEqual(addresses[0], [4, 4])
-        self.assertSequenceEqual(addresses[1], [4, 5])
+        self.assertSequenceEqual(addresses[0], (4, 4))
+        self.assertSequenceEqual(addresses[1], (4, 5))
 
     def test_macrophage_active_movement_max_chemokine(self):
         # Active always moves to max chemokine
@@ -2910,14 +2786,14 @@ class MacrophageMovementTestCase(unittest.TestCase):
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(isinstance(event, TB_Model.MacrophageMovement))
         addresses = event.dependant_addresses
-        self.assertSequenceEqual(addresses[0], [1, 1])
-        self.assertSequenceEqual(addresses[1], [2, 1])
+        self.assertSequenceEqual(addresses[0], (1, 1))
+        self.assertSequenceEqual(addresses[1], (2, 1))
 
     def test_macrophage_active_movement_across_boundary(self):
-        blood_vessels = [[8, 8]]
+        blood_vessels = [(8, 8)]
         fast_bacteria = []
         slow_bacteria = []
-        macrophages = [[4, 4]]
+        macrophages = [(4, 4)]
 
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.attributes, self.parameters,
                                                         blood_vessels, fast_bacteria, slow_bacteria, macrophages)
@@ -2934,8 +2810,8 @@ class MacrophageMovementTestCase(unittest.TestCase):
         self.assertTrue(isinstance(event, TB_Model.MacrophageMovement))
         self.assertFalse(event.internal)
         addresses = event.dependant_addresses
-        self.assertSequenceEqual(addresses[0], [4, 4])
-        self.assertSequenceEqual(addresses[1], [4, 5])
+        self.assertSequenceEqual(addresses[0], (4, 4))
+        self.assertSequenceEqual(addresses[1], (4, 5))
 
     def test_macrophage_active_movement_negative_movement_time(self):
 
@@ -2964,10 +2840,10 @@ class MacrophageMovementTestCase(unittest.TestCase):
         self.assertSequenceEqual(addresses[1], [2, 1])
 
     def test_macrophage_infected_movement_across_boundary(self):
-        blood_vessels = [[8, 8]]
+        blood_vessels = [(8, 8)]
         fast_bacteria = []
         slow_bacteria = []
-        macrophages = [[4, 4]]
+        macrophages = [(4, 4)]
 
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.attributes, self.parameters,
                                                         blood_vessels, fast_bacteria, slow_bacteria, macrophages)
@@ -3014,10 +2890,10 @@ class MacrophageMovementTestCase(unittest.TestCase):
         self.assertSequenceEqual(addresses[1], [2, 1])
 
     def test_macrophage_chronically_infected_movement_across_boundary(self):
-        blood_vessels = [[8, 8]]
+        blood_vessels = [(8, 8)]
         fast_bacteria = []
         slow_bacteria = []
-        macrophages = [[4, 4]]
+        macrophages = [(4, 4)]
 
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.attributes, self.parameters,
                                                         blood_vessels, fast_bacteria, slow_bacteria, macrophages)
@@ -3069,10 +2945,10 @@ class MacrophageMovementTestCase(unittest.TestCase):
         self.assertTrue(isinstance(self.topology.automata[0].grid[1, 0]['contents'], TB_Model.Macrophage))
 
     def test_process_macrophage_movement_across_boundaries(self):
-        blood_vessels = [[8, 8]]
+        blood_vessels = [(8, 8)]
         fast_bacteria = []
         slow_bacteria = []
-        macrophages = [[4, 4]]
+        macrophages = [(4, 4)]
 
         # Not random
         self.parameters['prob_resting_macrophage_random_move'] = 0
@@ -3115,6 +2991,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
         params = dict()
         params['max_depth'] = 3
         params['initial_oxygen'] = 1.5
+        params['blood_vessel_value'] = 1.5
         params['oxygen_diffusion'] = 0.0
         params['chemotherapy_diffusion'] = 0.0
         params['caseum_distance_to_reduce_diffusion'] = 2
@@ -3159,10 +3036,10 @@ class MacrophageKillsBacteria(unittest.TestCase):
         self.parameters = params
         self.attributes = atts
 
-        blood_vessels = [[8, 8]]
-        fast_bacteria = [[1, 2]]
+        blood_vessels = [(8, 8)]
+        fast_bacteria = [(1, 2)]
         slow_bacteria = []
-        macrophages = [[1, 1]]
+        macrophages = [(1, 1)]
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
                                                         slow_bacteria, macrophages)
 
@@ -3186,16 +3063,16 @@ class MacrophageKillsBacteria(unittest.TestCase):
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(event, TB_Model.MacrophageKillsBacterium)
         addresses = event.dependant_addresses
-        self.assertSequenceEqual(addresses[0], [1, 1])
-        self.assertSequenceEqual(addresses[1], [1, 2])
+        self.assertSequenceEqual(addresses[0], (1, 1))
+        self.assertSequenceEqual(addresses[1], (1, 2))
         self.assertTrue(event.internal)
 
     def test_resting_macrophage_kill_bacteria_across_boundary(self):
 
-        blood_vessels = [[8, 8]]
-        fast_bacteria = [[4, 5]]
+        blood_vessels = [(8, 8)]
+        fast_bacteria = [(4, 5)]
         slow_bacteria = []
-        macrophages = [[4, 4]]
+        macrophages = [(4, 4)]
 
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.attributes, self.parameters,
                                                         blood_vessels, fast_bacteria, slow_bacteria, macrophages)
@@ -3211,8 +3088,8 @@ class MacrophageKillsBacteria(unittest.TestCase):
         self.assertTrue(isinstance(event, TB_Model.MacrophageKillsBacterium))
         self.assertFalse(event.internal)
         addresses = event.dependant_addresses
-        self.assertSequenceEqual(addresses[0], [4, 4])
-        self.assertSequenceEqual(addresses[1], [4, 5])
+        self.assertSequenceEqual(addresses[0], (4, 4))
+        self.assertSequenceEqual(addresses[1], (4, 5))
 
     def test_active_macrophage_kill_fast_bacteria(self):
 
@@ -3230,8 +3107,8 @@ class MacrophageKillsBacteria(unittest.TestCase):
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(event, TB_Model.MacrophageKillsBacterium)
         addresses = event.dependant_addresses
-        self.assertSequenceEqual(addresses[0], [1, 1])
-        self.assertSequenceEqual(addresses[1], [1, 2])
+        self.assertSequenceEqual(addresses[0], (1, 1))
+        self.assertSequenceEqual(addresses[1], (1, 2))
         self.assertTrue(event.internal)
 
     def test_active_macrophage_kill_slow_bacteria(self):
@@ -3251,8 +3128,8 @@ class MacrophageKillsBacteria(unittest.TestCase):
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(event, TB_Model.MacrophageKillsBacterium)
         addresses = event.dependant_addresses
-        self.assertSequenceEqual(addresses[0], [1, 1])
-        self.assertSequenceEqual(addresses[1], [1, 2])
+        self.assertSequenceEqual(addresses[0], (1, 1))
+        self.assertSequenceEqual(addresses[1], (1, 2))
         self.assertTrue(event.internal)
 
     def test_active_macrophage_kill_fast_bacteria_negative_probability(self):
@@ -3286,10 +3163,10 @@ class MacrophageKillsBacteria(unittest.TestCase):
 
     def test_active_macrophage_kill_bacteria_across_boundary(self):
 
-        blood_vessels = [[8, 8]]
-        fast_bacteria = [[4, 5]]
+        blood_vessels = [(8, 8)]
+        fast_bacteria = [(4, 5)]
         slow_bacteria = []
-        macrophages = [[4, 4]]
+        macrophages = [(4, 4)]
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.attributes, self.parameters,
                                                         blood_vessels, fast_bacteria, slow_bacteria, macrophages)
 
@@ -3308,8 +3185,8 @@ class MacrophageKillsBacteria(unittest.TestCase):
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(event, TB_Model.MacrophageKillsBacterium)
         addresses = event.dependant_addresses
-        self.assertSequenceEqual(addresses[0], [4, 4])
-        self.assertSequenceEqual(addresses[1], [4, 5])
+        self.assertSequenceEqual(addresses[0], (4, 4))
+        self.assertSequenceEqual(addresses[1], (4, 5))
         self.assertFalse(event.internal)
 
     def test_infected_macrophage_kill_bacteria(self):
@@ -3497,6 +3374,7 @@ class MacrophageChangesState(unittest.TestCase):
         params = dict()
         params['max_depth'] = 3
         params['initial_oxygen'] = 1.5
+        params['blood_vessel_value'] = 1.5
         params['oxygen_diffusion'] = 0.0
         params['chemotherapy_diffusion'] = 0.0
         params['caseum_distance_to_reduce_diffusion'] = 2
@@ -3656,6 +3534,7 @@ class BacteriaStateChangeTestCase(unittest.TestCase):
     def setUp(self):
         params = dict()
         params['max_depth'] = 3
+        params['blood_vessel_value'] = 1.5
         params['initial_oxygen'] = 1.5
         params['oxygen_diffusion'] = 0.0
         params['chemotherapy_diffusion'] = 0.0
@@ -3894,6 +3773,7 @@ class MacrophageBurstingTestCase(unittest.TestCase):
         params['max_depth'] = 3
         params['caseum_threshold_to_reduce_diffusion'] = 999
         params['initial_oxygen'] = 1.5
+        params['blood_vessel_value'] = 1.5
         params['oxygen_diffusion'] = 0.0
         params['chemotherapy_diffusion'] = 0.0
         params['caseum_distance_to_reduce_diffusion'] = 2
@@ -4093,6 +3973,7 @@ class OutputWritingTestCase(unittest.TestCase):
         params['max_depth'] = 3
         params['caseum_threshold_to_reduce_diffusion'] = 999
         params['initial_oxygen'] = 1.5
+        params['blood_vessel_value'] = 1.5
         params['oxygen_diffusion'] = 0.0
         params['chemotherapy_diffusion'] = 0.0
         params['caseum_distance_to_reduce_diffusion'] = 2
