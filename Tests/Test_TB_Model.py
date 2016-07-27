@@ -1052,6 +1052,43 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         self.assertAlmostEqual(self.topology.automata[0].work_grid[2, 3]['oxygen'], 5.0)
         self.assertAlmostEqual(self.topology.automata[0].work_grid[3, 2]['oxygen'], 5.0)
 
+    def test_oxygen_diffusion_differing_rates(self):
+        """
+        test oxygen diffusion when the rates differ (due to caseum)
+        :return:
+        """
+        self.params['blood_vessel_value'] = 1.5  # m[i][j]
+        self.params['initial_oxygen'] = 100.0  # init_o2
+        self.params['oxygen_from_source'] = 0.0  # gamma[i][j]
+        self.params['oxygen_uptake_from_bacteria'] = 0.0  # phi[i][j]
+        self.params['spatial_step'] = 0.2  # dx or dy
+        self.params['time_step'] = 0.001  # dt
+        self.params['oxygen_diffusion'] = 1.0  # d[i][j]
+        self.params['oxygen_diffusion_caseum_reduction'] = 1.0  # value to divide d[i][j] by
+
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.atts, self.params, [(2, 2)], [], [], [])
+        self.sort_out_halo()
+
+        self.assertEqual(self.topology.automata[0].grid[1, 2]['oxygen'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 1]['oxygen'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 2]['oxygen'], 100.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 3]['oxygen'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[3, 2]['oxygen'], 0.0)
+
+        self.topology.automata[0].diffusion_pre_process()
+        # Manually reduce the diffusion rate
+        self.topology.automata[0].grid[2, 1]['oxygen_diffusion_rate'] = 0.5
+
+        self.topology.automata[0].diffusion(False)
+
+        # 100 + 0.001 * (((((1+0.5)/2)*(0 - 100) - ((1+1)/2)*(100 - 0)) / (0.2*0.2)) + ((((1+1)/2)*(0 - 100) - ((1+1)/2)*(100 - 0)) / (0.2*0.2))) = 90.625
+        self.assertEqual(self.topology.automata[0].work_grid[2, 2]['oxygen'], 90.625)
+        # 0 + 0.001 * ((((1+1)/2) * (100 - 0))/(0.2*0.2) + (((1+1)/2) * (0 - 0))/(0.2*0.2)) = 2.5
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[1, 2]['oxygen'], 2.5)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[2, 1]['oxygen'], 1.875)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[2, 3]['oxygen'], 2.5)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[3, 2]['oxygen'], 2.5)
+
     def test_oxygen_from_source(self):
         """
         No diffusion, only oxygen from source
@@ -1271,6 +1308,41 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         self.assertAlmostEqual(self.topology.automata[0].work_grid[2, 3]['chemotherapy'], 0.5)
         self.assertAlmostEqual(self.topology.automata[0].work_grid[3, 2]['chemotherapy'], 0.5)
 
+    def test_chemotherapy_diffusion_different_rates(self):
+        """
+        Only diffusion (no chemo from source). Place an amount of chemo in cell and check diffusions
+        :return:
+        """
+        self.params['blood_vessel_value'] = 1.5  # m[i][j]
+        self.params['spatial_step'] = 0.2  # dx or dy
+        self.params['time_step'] = 0.001  # dt
+
+        self.params['chemotherapy_diffusion'] = 1.0
+        self.params['chemotherapy_from_source'] = 0.0
+        self.params['chemotherapy_decay'] = 0.0
+
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.atts, self.params, [(2, 2)], [], [], [])
+        self.sort_out_halo()
+
+        self.topology.automata[0].grid[2,2]['chemotherapy'] = 10.0
+
+        self.assertEqual(self.topology.automata[0].grid[1, 2]['chemotherapy'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 1]['chemotherapy'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 2]['chemotherapy'], 10.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 3]['chemotherapy'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[3, 2]['chemotherapy'], 0.0)
+
+        self.topology.automata[0].diffusion_pre_process()
+        self.topology.automata[0].grid[2,1]['chemotherapy_diffusion_rate'] = 0.5
+        self.topology.automata[0].diffusion(True)
+
+        self.assertEqual(self.topology.automata[0].work_grid[2, 2]['chemotherapy'], 9.0625)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[1, 2]['chemotherapy'], 0.25)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[2, 1]['chemotherapy'], 0.1875)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[2, 3]['chemotherapy'], 0.25)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[3, 2]['chemotherapy'], 0.25)
+
+
     def test_chemotherapy_from_source(self):
         """
         Only chemo is from source, no diffusion
@@ -1360,9 +1432,6 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         self.topology.automata[0].diffusion(True)
 
         self.assertEqual(self.topology.automata[0].work_grid[1, 1]['chemotherapy'], 10 - 0.001 * (8.0 * 10.0))
-
-
-
 
 
 # EVENT TESTING
