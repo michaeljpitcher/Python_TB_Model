@@ -933,7 +933,7 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
                 halo.append(None)
             else:
                 cell = dict()
-                if (x == 0 and y == 5):
+                if x == 0 and y == 5:
                     cell['blood_vessel'] = 10.0
                 else:
                     cell['blood_vessel'] = 0.0
@@ -964,26 +964,194 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         self.assertEqual(halo_cells[halo_addresses.index((5, 4))]['oxygen_diffusion_rate'], 1.0)
         self.assertEqual(halo_cells[halo_addresses.index((5, 5))]['oxygen_diffusion_rate'], 1.0)
 
-    def test_oxygen_basic(self):
+    def test_oxygen_diffusion_no_changes(self):
         """
-        Just one blood vessel, no other contents
+        No diffusion, no oxygen from source. Starts zero, stays zero
         :return:
         """
-
-        self.params['blood_vessel_value'] = 1.5 # m[i][j]
-        self.params['initial_oxygen'] = 0.0 # init_o2
-        self.params['oxygen_from_source'] = 10.0 # gamma[i][j]
-
-        self.params['oxygen_uptake_from_bacteria'] = 3
+        self.params['blood_vessel_value'] = 1.5  # m[i][j]
+        self.params['initial_oxygen'] = 0.0  # init_o2
+        self.params['oxygen_from_source'] = 0.0  # gamma[i][j]
+        self.params['oxygen_uptake_from_bacteria'] = 0.0  # phi[i][j]
+        self.params['spatial_step'] = 0.2  # dx or dy
+        self.params['time_step'] = 0.001  # dt
+        self.params['oxygen_diffusion'] = 0.0  # d[i][j]
+        self.params['oxygen_diffusion_caseum_reduction'] = 1.0  # value to divide d[i][j] by
 
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.atts, self.params, [(2, 2)], [], [], [])
         self.sort_out_halo()
 
+        self.assertEqual(self.topology.automata[0].grid[1, 2]['oxygen'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 1]['oxygen'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 2]['oxygen'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 3]['oxygen'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[3, 2]['oxygen'], 0.0)
+
         self.topology.automata[0].diffusion_pre_process()
         self.topology.automata[0].diffusion(False)
 
-        print self.topology.automata[0].work_grid[2,2]
+        self.assertEqual(self.topology.automata[0].work_grid[2, 2]['oxygen'], 0.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[1, 2]['oxygen'], 0.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[2, 1]['oxygen'], 0.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[2, 3]['oxygen'], 0.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[3, 2]['oxygen'], 0.0)
 
+    def test_oxygen_diffusion(self):
+        """
+        Just one blood vessel, no other contents. No value from source so initial oxygen diffuses out, nothing more
+        :return:
+        """
+        self.params['blood_vessel_value'] = 1.5  # m[i][j]
+        self.params['initial_oxygen'] = 100.0  # init_o2
+        self.params['oxygen_from_source'] = 0.0  # gamma[i][j]
+        self.params['oxygen_uptake_from_bacteria'] = 0.0  # phi[i][j]
+        self.params['spatial_step'] = 0.2  # dx or dy
+        self.params['time_step'] = 0.001  # dt
+        self.params['oxygen_diffusion'] = 1.0  # d[i][j]
+        self.params['oxygen_diffusion_caseum_reduction'] = 1.0  # value to divide d[i][j] by
+
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.atts, self.params, [(2, 2)], [], [], [])
+        self.sort_out_halo()
+
+        self.assertEqual(self.topology.automata[0].grid[1, 2]['oxygen'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 1]['oxygen'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 2]['oxygen'], 100.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 3]['oxygen'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[3, 2]['oxygen'], 0.0)
+
+        self.topology.automata[0].diffusion_pre_process()
+        self.topology.automata[0].diffusion(False)
+
+        # 100 + 0.001 * ((((1+1)/2) * (-100 - 100))/(0.2*0.2) + (((1+1)/2) * (-100 - 100))/(0.2*0.2)) = 90.0
+        self.assertEqual(self.topology.automata[0].work_grid[2,2]['oxygen'], 90.0)
+        # 0 + 0.001 * ((((1+1)/2) * (100 - 0))/(0.2*0.2) + (((1+1)/2) * (0 - 0))/(0.2*0.2)) = 2.5
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[1, 2]['oxygen'], 2.5)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[2, 1]['oxygen'], 2.5)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[2, 3]['oxygen'], 2.5)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[3, 2]['oxygen'], 2.5)
+
+        # Now double the diffusion rate, should result in double the diffusion
+
+        self.params['oxygen_diffusion'] = 2.0  # d[i][j]
+
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.atts, self.params, [(2, 2)], [], [], [])
+        self.sort_out_halo()
+
+        self.assertEqual(self.topology.automata[0].grid[1, 2]['oxygen'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 1]['oxygen'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 2]['oxygen'], 100.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 3]['oxygen'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[3, 2]['oxygen'], 0.0)
+
+        self.topology.automata[0].diffusion_pre_process()
+        self.topology.automata[0].diffusion(False)
+
+        self.assertEqual(self.topology.automata[0].work_grid[2, 2]['oxygen'], 80.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[1, 2]['oxygen'], 5.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[2, 1]['oxygen'], 5.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[2, 3]['oxygen'], 5.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[3, 2]['oxygen'], 5.0)
+
+    def test_oxygen_from_source(self):
+        """
+        No diffusion, only oxygen from source
+        :return:
+        """
+        self.params['blood_vessel_value'] = 1.1  # m[i][j]
+        self.params['initial_oxygen'] = 0.0  # init_o2
+        self.params['oxygen_from_source'] = 10.0  # gamma[i][j]
+        self.params['oxygen_uptake_from_bacteria'] = 0.0  # phi[i][j]
+        self.params['spatial_step'] = 0.2  # dx or dy
+        self.params['time_step'] = 0.001  # dt
+        self.params['oxygen_diffusion'] = 0.0  # d[i][j]
+        self.params['oxygen_diffusion_caseum_reduction'] = 1.0  # value to divide d[i][j] by
+
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.atts, self.params, [(2, 2)], [], [], [])
+        self.sort_out_halo()
+
+        self.assertEqual(self.topology.automata[0].grid[1, 2]['oxygen'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 1]['oxygen'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 2]['oxygen'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 3]['oxygen'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[3, 2]['oxygen'], 0.0)
+
+        self.topology.automata[0].diffusion_pre_process()
+        self.topology.automata[0].diffusion(False)
+
+        self.assertEqual(self.topology.automata[0].work_grid[2, 2]['oxygen'], 10*1.1*0.001)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[1, 2]['oxygen'], 0.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[2, 1]['oxygen'], 0.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[2, 3]['oxygen'], 0.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[3, 2]['oxygen'], 0.0)
+
+        # Different oxygen from source rate
+        self.params['oxygen_from_source'] = 7.35  # gamma[i][j]
+
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.atts, self.params, [(2, 2)], [], [], [])
+        self.sort_out_halo()
+
+        self.assertEqual(self.topology.automata[0].grid[1, 2]['oxygen'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 1]['oxygen'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 2]['oxygen'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 3]['oxygen'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[3, 2]['oxygen'], 0.0)
+
+        self.topology.automata[0].diffusion_pre_process()
+        self.topology.automata[0].diffusion(False)
+
+        self.assertEqual(self.topology.automata[0].work_grid[2, 2]['oxygen'], 7.35 * 1.1 * 0.001)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[1, 2]['oxygen'], 0.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[2, 1]['oxygen'], 0.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[2, 3]['oxygen'], 0.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[3, 2]['oxygen'], 0.0)
+
+    def test_oxygen_uptake_by_bacteria(self):
+        """
+        No diffusion, no oxygen from source. oxygen at cell (1,1) is set to a value and decreased by bacteria
+        :return:
+        """
+        self.params['blood_vessel_value'] = 0.0  # m[i][j]
+        self.params['initial_oxygen'] = 0.0  # init_o2
+        self.params['oxygen_from_source'] = 0.0  # gamma[i][j]
+        self.params['oxygen_uptake_from_bacteria'] = 2.0  # phi[i][j]
+        self.params['spatial_step'] = 0.2  # dx or dy
+        self.params['time_step'] = 0.001  # dt
+        self.params['oxygen_diffusion'] = 0.0  # d[i][j]
+        self.params['oxygen_diffusion_caseum_reduction'] = 1.0  # value to divide d[i][j] by
+
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.atts, self.params, [(2, 2)], [], [], [])
+        self.sort_out_halo()
+
+        bacterium = TB_Model.Bacterium((1,1), 'fast')
+        self.topology.automata[0].bacteria.append(bacterium)
+        self.topology.automata[0].grid[1, 1]['contents'] = bacterium
+        self.topology.automata[0].grid[1, 1]['oxygen'] = 10.0
+
+        self.assertEqual(self.topology.automata[0].grid[1, 1]['oxygen'], 10.0)
+
+        self.topology.automata[0].diffusion_pre_process()
+        self.topology.automata[0].diffusion(False)
+
+        self.assertEqual(self.topology.automata[0].work_grid[1, 1]['oxygen'], 10 - 0.001 * (2*10))
+
+        # Change uptake rate
+
+        self.params['oxygen_uptake_from_bacteria'] = 4.8  # phi[i][j]
+
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.atts, self.params, [(2, 2)], [], [], [])
+        self.sort_out_halo()
+
+        bacterium = TB_Model.Bacterium((1, 1), 'fast')
+        self.topology.automata[0].bacteria.append(bacterium)
+        self.topology.automata[0].grid[1, 1]['contents'] = bacterium
+        self.topology.automata[0].grid[1, 1]['oxygen'] = 10.0
+
+        self.assertEqual(self.topology.automata[0].grid[1, 1]['oxygen'], 10.0)
+
+        self.topology.automata[0].diffusion_pre_process()
+        self.topology.automata[0].diffusion(False)
+
+        self.assertEqual(self.topology.automata[0].work_grid[1, 1]['oxygen'], 10 - 0.001 * (4.8 * 10))
 
 
 
