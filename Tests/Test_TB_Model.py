@@ -791,7 +791,7 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         params = dict()
         params['max_depth'] = 3
         params['initial_oxygen'] = 1.5
-        params['blood_vessel_value'] = 1.5
+        params['blood_vessel_value'] = 15
         params['oxygen_diffusion'] = 1.0
         params['chemotherapy_diffusion'] = 0.75
 
@@ -820,7 +820,7 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         self.params = params
         self.atts = atts
 
-        blood_vessels = []
+        blood_vessels = [(1,1)]
         fast_bacteria = []
         slow_bacteria = []
         macrophages = []
@@ -902,6 +902,7 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         self.assertEqual(self.topology.automata[0].grid[2, 0]['oxygen_diffusion_rate'], 1.0 / 1.5)
         self.assertEqual(self.topology.automata[0].grid[2, 1]['oxygen_diffusion_rate'], 1.0 / 1.5)
         self.assertEqual(self.topology.automata[0].grid[2, 2]['oxygen_diffusion_rate'], 1.0 / 1.5)
+        self.assertEqual(self.topology.automata[0].grid[1, 1]['blood_vessel'], 15 / 1.5)
 
         # Cells far enough away from caseum
         self.assertEqual(self.topology.automata[0].grid[0, 3]['oxygen_diffusion_rate'], 1.0)
@@ -932,7 +933,10 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
                 halo.append(None)
             else:
                 cell = dict()
-                cell['blood_vessel'] = 0.0
+                if (x == 0 and y == 5):
+                    cell['blood_vessel'] = 10.0
+                else:
+                    cell['blood_vessel'] = 0.0
                 if (x == 0 and y == 7) or (x == 1 and y == 7):
                     cell['contents'] = 'caseum'
                 else:
@@ -948,6 +952,7 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         halo_cells = self.topology.automata[0].halo_cells
 
         self.assertEqual(halo_cells[halo_addresses.index((0, 5))]['oxygen_diffusion_rate'], 1.0 / 1.5)
+        self.assertEqual(halo_cells[halo_addresses.index((0, 5))]['blood_vessel'], 10.0 / 1.5)
         self.assertEqual(halo_cells[halo_addresses.index((1, 5))]['oxygen_diffusion_rate'], 1.0 / 1.5)
         self.assertEqual(halo_cells[halo_addresses.index((2, 5))]['oxygen_diffusion_rate'], 1.0 / 1.5)
         self.assertEqual(halo_cells[halo_addresses.index((3, 5))]['oxygen_diffusion_rate'], 1.0)
