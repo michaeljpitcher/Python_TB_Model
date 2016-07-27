@@ -106,7 +106,7 @@ class TwoDimensionalTopology(Topology):
         x = 0
         y = 0
         for z in range(self.number_of_tiles):
-            self.origins.append([x, y])
+            self.origins.append((x, y))
             y += self.tile_shape[1]
             # If we've reached the width of the grid, reset y to 0 and increment x (start a new row)
             if y % self.total_shape[1] == 0:
