@@ -808,7 +808,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
     def initialise_blood_vessels(self, addresses):
         for address in addresses:
-            self.set_attribute_grid(address, 'blood_vessel', 1.5)
+            self.set_attribute_grid(address, 'blood_vessel', self.parameters['blood_vessel_value'])
             self.blood_vessels.append(address)
 
     def initialise_bacteria(self, fast_bacteria, slow_bacteria):
@@ -970,6 +970,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 self.halo_cells[index]['chemotherapy_diffusion_rate'] = chemotherapy_diffusion
 
     def diffusion(self, chemo):
+
         for address in self.list_addresses:
 
             cell = self.get(address, "grid")
@@ -979,21 +980,79 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             for neighbour_address in neighbour_addresses:
                 neighbours.append(self.get(neighbour_address))
 
+            # Get diffusion value for cell
+            oxygen_cell_diffusion = cell['oxygen_diffusion_rate']
+            chemotherapy_cell_diffusion = cell['chemotherapy_diffusion_rate']
+            chemokine_cell_diffusion = self.parameters['chemokine_diffusion']
+
+            # Initialise expression
+            oxygen_expression = 0
+            chemotherapy_expression = 0
+            chemokine_expression = 0
+
+            # Diffusion into neighbours
+            for neighbour in neighbours:
+                # Only process if not boundary
+                if neighbour is not None:
+                    oxygen_neighbour_diffusion = neighbour['oxygen_diffusion_rate']
+                    oxygen_expression += ((oxygen_cell_diffusion + oxygen_neighbour_diffusion) / 2 * (
+                        neighbour['oxygen'] - cell['oxygen'])) / (
+                                         self.parameters['spatial_step'] * self.parameters['spatial_step'])
+                    if chemo:
+                        chemotherapy_neighbour_diffusion = neighbour['chemotherapy_diffusion_rate']
+                        chemotherapy_expression += ((chemotherapy_cell_diffusion + chemotherapy_neighbour_diffusion) / 2 * (
+                            neighbour['chemotherapy'] - cell['chemotherapy'])) / (
+                                                   self.parameters['spatial_step'] * self.parameters['spatial_step'])
+
+                    chemokine_neighbour_diffusion = self.parameters['chemokine_diffusion']
+                    chemokine_expression += ((chemokine_cell_diffusion + chemokine_neighbour_diffusion) / 2 * (
+                        neighbour['chemokine'] - cell['chemokine'])) / (
+                                            self.parameters['spatial_step'] * self.parameters['spatial_step'])
+
+            # Amendments based on cell contents
             # OXYGEN
-            oxygen_level = self.oxygen(cell, neighbours)
-            self.set_attribute_work_grid(address, 'oxygen', oxygen_level)
+
+            # Add oxygen entering through blood vessel
+            oxygen_expression += (self.parameters['oxygen_from_source'] * cell['blood_vessel'])
+            # If there is bacteria in cell, then oxygen is taken up by bacteria so remove
+            if isinstance(cell['contents'], Bacterium):
+                oxygen_expression -= self.parameters['oxygen_uptake_from_bacteria'] * cell['oxygen']
+            # Calculate new level
+            new_oxygen = cell['oxygen'] + self.parameters['time_step'] * oxygen_expression
+            self.set_attribute_work_grid(address, 'oxygen', new_oxygen)
+            # Overwrite the maximum oxygen value if larger
+            self.max_oxygen_local = max(self.max_oxygen_local, new_oxygen)
 
             # CHEMOTHERAPY
+
             if chemo:
-                chemotherapy_level = self.chemotherapy(cell, neighbours)
-                self.set_attribute_work_grid(address, 'chemotherapy', chemotherapy_level)
+                # Release of chemotherapy from blood vessel
+                chemotherapy_expression += (self.parameters['chemotherapy_from_source'] * cell['blood_vessel'])
+                # Chemotherapy decay
+                chemotherapy_expression -= self.parameters['chemotherapy_decay'] * cell['chemotherapy']
+                # Calculate new level
+                new_chemotherapy = cell['chemotherapy'] + self.parameters['time_step'] * chemotherapy_expression
+                self.max_chemotherapy_local = max(self.max_chemotherapy_local, new_chemotherapy)
             else:
-                # TODO - MED - check validity of this (how can chemotherapy suddenly disappear)
-                self.set_attribute_work_grid(address, 'chemotherapy', 0.0)
+                self.max_chemotherapy_local = 0.0
+                new_chemotherapy = 0.0
+            self.set_attribute_work_grid(address, 'chemotherapy', new_chemotherapy)
+
 
             # CHEMOKINE
-            chemokine_level = self.chemokine(cell, neighbours)
-            self.set_attribute_work_grid(address, 'chemokine', chemokine_level)
+
+            # Release of chemokine by bacteria
+            if isinstance(cell['contents'], Bacterium):
+                chemokine_expression += self.parameters['chemokine_from_bacteria']
+            # Release of chemokine by (non-resting) macrophages
+            if isinstance(cell['contents'], Macrophage) and cell['contents'].state != 'resting':
+                chemokine_expression += self.parameters['chemokine_from_macrophage']
+            # Chemokine decay
+            chemokine_expression -= self.parameters['chemokine_decay'] * cell['chemokine']
+            # Calculate new level
+            new_chemokine = cell['chemokine'] + self.parameters['time_step'] * chemokine_expression
+            self.max_chemokine_local = max(self.max_chemokine_local, new_chemokine)
+            self.set_attribute_work_grid(address, 'chemokine', new_chemokine)
 
     def bacteria_replication(self):
         for bacterium in self.bacteria:
@@ -1395,102 +1454,6 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                             break
                     if space_found:
                         break
-
-    def oxygen(self, cell, neighbours):
-
-        # Get diffusion value for cell
-        cell_diffusion = cell['oxygen_diffusion_rate']
-
-        # Initialise expression
-        expression = 0
-
-        # Get immediate von neumann neighbours
-        for neighbour in neighbours:
-            # Only process if not boundary
-            if neighbour is not None:
-                neighbour_diffusion = neighbour['oxygen_diffusion_rate']
-                expression += ((cell_diffusion + neighbour_diffusion) / 2 * (neighbour['oxygen'] - cell['oxygen'])) / \
-                              (self.parameters['spatial_step'] * self.parameters['spatial_step'])
-
-        # Add oxygen entering through blood vessel
-        expression += (self.parameters['oxygen_from_source'] * cell['blood_vessel'])
-        # If there is bacteria in cell, then oxygen is taken up by bacteria so remove
-        if isinstance(cell['contents'], Bacterium):
-            expression -= self.parameters['oxygen_uptake_from_bacteria'] * cell['oxygen']
-
-        # Calculate new level
-        new_oxygen = cell['oxygen'] + self.parameters['time_step'] * expression
-
-        # Overwrite the maximum oxygen value if larger
-        self.max_oxygen_local = max(self.max_oxygen_local, new_oxygen)
-
-        return new_oxygen
-
-    def chemotherapy(self, cell, neighbours):
-
-        # Get diffusion value for cell based on system parameters
-        cell_diffusion = cell['chemotherapy_diffusion_rate']
-
-        # Initialise expression
-        expression = 0
-
-        # Get immediate von Neumann neighbours
-        for neighbour in neighbours:
-            # Only process if not boundary
-            if neighbour is not None:
-                # Pre-calculated diffusion rate
-                neighbour_diffusion = neighbour['chemotherapy_diffusion_rate']
-
-                expression += ((cell_diffusion + neighbour_diffusion) / 2 * (
-                    neighbour['chemotherapy'] - cell['chemotherapy'])) / (
-                                  self.parameters['spatial_step'] * self.parameters['spatial_step'])
-
-        # Release of chemotherapy from blood vessel
-        expression += (self.parameters['chemotherapy_from_source'] * cell['blood_vessel'])
-
-        # Chemotherapy decay
-        expression -= self.parameters['chemotherapy_decay'] * cell['chemotherapy']
-
-        # Calculate new level
-        new_chemotherapy = cell['chemotherapy'] + self.parameters['time_step'] * expression
-
-        self.max_chemotherapy_local = max(self.max_chemotherapy_local, new_chemotherapy)
-
-        return new_chemotherapy
-
-    def chemokine(self, cell, neighbours):
-
-        # Get diffusion value for cell based on system parameters
-        cell_diffusion = self.parameters['chemokine_diffusion']
-
-        # Initialise expression
-        expression = 0
-
-        # Get immediate von Neumann neighbours
-        for neighbour in neighbours:
-            # Only process if not boundary
-            if neighbour is not None:
-                neighbour_diffusion = self.parameters['chemokine_diffusion']
-                expression += ((cell_diffusion + neighbour_diffusion) / 2 * (
-                    neighbour['chemokine'] - cell['chemokine'])) / (
-                                  self.parameters['spatial_step'] * self.parameters['spatial_step'])
-
-        # Release of chemokine by bacteria
-        if isinstance(cell['contents'], Bacterium):
-            expression += self.parameters['chemokine_from_bacteria']
-
-        # Release of chemokine by (non-resting) macrophages
-        if isinstance(cell['contents'], Macrophage) and cell['contents'].state != 'resting':
-            expression += self.parameters['chemokine_from_macrophage']
-
-        # Chemokine decay
-        expression -= self.parameters['chemokine_decay'] * cell['chemokine']
-
-        # Calculate new level
-        new_chemokine = cell['chemokine'] + self.parameters['time_step'] * expression
-
-        self.max_chemokine_local = max(self.max_chemokine_local, new_chemokine)
-        return new_chemokine
 
     def set_max_oxygen_global(self, max_oxygen):
         self.max_oxygen_global = max_oxygen
