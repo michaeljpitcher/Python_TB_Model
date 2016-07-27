@@ -932,8 +932,8 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
             for depth in range(1, self.parameters['caseum_distance_to_reduce_diffusion']+1):
                 neighbours = self.neighbours_moore(address, depth)
-                for address in neighbours:
-                    affected_addresses.append(address)
+                for neighbour in neighbours:
+                    affected_addresses.append(neighbour)
 
         counted = Counter(affected_addresses)
 
