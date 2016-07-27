@@ -1153,6 +1153,216 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
 
         self.assertEqual(self.topology.automata[0].work_grid[1, 1]['oxygen'], 10 - 0.001 * (4.8 * 10))
 
+    def test_chemotherapy_diffusion_no_changes(self):
+        """
+        No diffusion, no oxygen from source. Starts zero, stays zero
+        :return:
+        """
+        self.params['blood_vessel_value'] = 1.5  # m[i][j]
+        self.params['spatial_step'] = 0.2  # dx or dy
+        self.params['time_step'] = 0.001  # dt
+
+        self.params['chemotherapy_diffusion'] = 0.0
+        self.params['chemotherapy_from_source'] = 0.0
+        self.params['chemotherapy_decay'] = 0
+
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.atts, self.params, [(2, 2)], [], [], [])
+        self.sort_out_halo()
+
+        self.assertEqual(self.topology.automata[0].grid[1, 2]['chemotherapy'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 1]['chemotherapy'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 2]['chemotherapy'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 3]['chemotherapy'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[3, 2]['chemotherapy'], 0.0)
+
+        self.topology.automata[0].diffusion_pre_process()
+        self.topology.automata[0].diffusion(True)
+
+        self.assertEqual(self.topology.automata[0].work_grid[2, 2]['chemotherapy'], 0.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[1, 2]['chemotherapy'], 0.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[2, 1]['chemotherapy'], 0.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[2, 3]['chemotherapy'], 0.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[3, 2]['chemotherapy'], 0.0)
+
+    def test_chemotherapy_not_in_chemo_window(self):
+        """
+        No chemo when not in window (False passed as argument to diffusion)
+        :return:
+        """
+        self.params['blood_vessel_value'] = 1.5  # m[i][j]
+        self.params['spatial_step'] = 0.2  # dx or dy
+        self.params['time_step'] = 0.001  # dt
+
+        self.params['chemotherapy_diffusion'] = 5.0
+        self.params['chemotherapy_from_source'] = 10.0
+        self.params['chemotherapy_decay'] = 0.0
+
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.atts, self.params, [(2, 2)], [], [], [])
+        self.sort_out_halo()
+
+        self.assertEqual(self.topology.automata[0].grid[1, 2]['chemotherapy'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 1]['chemotherapy'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 2]['chemotherapy'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 3]['chemotherapy'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[3, 2]['chemotherapy'], 0.0)
+
+        self.topology.automata[0].diffusion_pre_process()
+        self.topology.automata[0].diffusion(False)
+
+        self.assertEqual(self.topology.automata[0].work_grid[2, 2]['chemotherapy'], 0.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[1, 2]['chemotherapy'], 0.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[2, 1]['chemotherapy'], 0.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[2, 3]['chemotherapy'], 0.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[3, 2]['chemotherapy'], 0.0)
+
+    def test_chemotherapy_diffusion(self):
+        """
+        Only diffusion (no chemo from source). Place an amount of chemo in cell and check diffusions
+        :return:
+        """
+        self.params['blood_vessel_value'] = 1.5  # m[i][j]
+        self.params['spatial_step'] = 0.2  # dx or dy
+        self.params['time_step'] = 0.001  # dt
+
+        self.params['chemotherapy_diffusion'] = 1.0
+        self.params['chemotherapy_from_source'] = 0.0
+        self.params['chemotherapy_decay'] = 0.0
+
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.atts, self.params, [(2, 2)], [], [], [])
+        self.sort_out_halo()
+
+        self.topology.automata[0].grid[2,2]['chemotherapy'] = 10.0
+
+        self.assertEqual(self.topology.automata[0].grid[1, 2]['chemotherapy'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 1]['chemotherapy'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 2]['chemotherapy'], 10.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 3]['chemotherapy'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[3, 2]['chemotherapy'], 0.0)
+
+        self.topology.automata[0].diffusion_pre_process()
+        self.topology.automata[0].diffusion(True)
+
+        self.assertEqual(self.topology.automata[0].work_grid[2, 2]['chemotherapy'], 9.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[1, 2]['chemotherapy'], 0.25)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[2, 1]['chemotherapy'], 0.25)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[2, 3]['chemotherapy'], 0.25)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[3, 2]['chemotherapy'], 0.25)
+
+        # Double diffusion rate, should double amount diffused
+        self.params['chemotherapy_diffusion'] = 2.0
+
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.atts, self.params, [(2, 2)], [], [], [])
+        self.sort_out_halo()
+
+        self.topology.automata[0].grid[2, 2]['chemotherapy'] = 10.0
+
+        self.assertEqual(self.topology.automata[0].grid[1, 2]['chemotherapy'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 1]['chemotherapy'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 2]['chemotherapy'], 10.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 3]['chemotherapy'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[3, 2]['chemotherapy'], 0.0)
+
+        self.topology.automata[0].diffusion_pre_process()
+        self.topology.automata[0].diffusion(True)
+
+        self.assertEqual(self.topology.automata[0].work_grid[2, 2]['chemotherapy'], 8.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[1, 2]['chemotherapy'], 0.5)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[2, 1]['chemotherapy'], 0.5)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[2, 3]['chemotherapy'], 0.5)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[3, 2]['chemotherapy'], 0.5)
+
+    def test_chemotherapy_from_source(self):
+        """
+        Only chemo is from source, no diffusion
+        """
+        self.params['blood_vessel_value'] = 1.5  # m[i][j]
+        self.params['spatial_step'] = 0.2  # dx or dy
+        self.params['time_step'] = 0.001  # dt
+
+        self.params['chemotherapy_diffusion'] = 0.0
+        self.params['chemotherapy_from_source'] = 10.0
+        self.params['chemotherapy_decay'] = 0.0
+
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.atts, self.params, [(2, 2)], [], [], [])
+        self.sort_out_halo()
+
+        self.assertEqual(self.topology.automata[0].grid[1, 2]['chemotherapy'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 1]['chemotherapy'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 2]['chemotherapy'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 3]['chemotherapy'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[3, 2]['chemotherapy'], 0.0)
+
+        self.topology.automata[0].diffusion_pre_process()
+        self.topology.automata[0].diffusion(True)
+
+        self.assertEqual(self.topology.automata[0].work_grid[2, 2]['chemotherapy'], 1.5 * 10.0 * 0.001)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[1, 2]['chemotherapy'], 0.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[2, 1]['chemotherapy'], 0.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[2, 3]['chemotherapy'], 0.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[3, 2]['chemotherapy'], 0.0)
+
+        # Change value from source
+        self.params['chemotherapy_from_source'] = 3.5
+
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.atts, self.params, [(2, 2)], [], [], [])
+        self.sort_out_halo()
+
+        self.assertEqual(self.topology.automata[0].grid[1, 2]['chemotherapy'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 1]['chemotherapy'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 2]['chemotherapy'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[2, 3]['chemotherapy'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[3, 2]['chemotherapy'], 0.0)
+
+        self.topology.automata[0].diffusion_pre_process()
+        self.topology.automata[0].diffusion(True)
+
+        self.assertEqual(self.topology.automata[0].work_grid[2, 2]['chemotherapy'], 1.5 * 3.5 * 0.001)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[1, 2]['chemotherapy'], 0.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[2, 1]['chemotherapy'], 0.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[2, 3]['chemotherapy'], 0.0)
+        self.assertAlmostEqual(self.topology.automata[0].work_grid[3, 2]['chemotherapy'], 0.0)
+
+    def test_chemotherapy_decay(self):
+        """
+        No diffusion or from source. Initial chemo placed in cell decays
+        """
+        self.params['blood_vessel_value'] = 1.5  # m[i][j]
+        self.params['spatial_step'] = 0.2  # dx or dy
+        self.params['time_step'] = 0.001  # dt
+
+        self.params['chemotherapy_diffusion'] = 0.0
+        self.params['chemotherapy_from_source'] = 0.0
+        self.params['chemotherapy_decay'] = 2.0
+
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.atts, self.params, [(2, 2)], [], [], [])
+        self.sort_out_halo()
+
+        self.topology.automata[0].grid[1,1]['chemotherapy'] = 10.0
+
+        self.assertEqual(self.topology.automata[0].grid[1, 1]['chemotherapy'], 10.0)
+
+        self.topology.automata[0].diffusion_pre_process()
+        self.topology.automata[0].diffusion(True)
+
+        self.assertEqual(self.topology.automata[0].work_grid[1, 1]['chemotherapy'], 10 - 0.001 * (2.0 * 10.0))
+
+        # Change decay value
+        self.params['chemotherapy_decay'] = 8.0
+
+        self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.atts, self.params, [(2, 2)], [], [], [])
+        self.sort_out_halo()
+
+        self.topology.automata[0].grid[1, 1]['chemotherapy'] = 10.0
+
+        self.assertEqual(self.topology.automata[0].grid[1, 1]['chemotherapy'], 10.0)
+
+        self.topology.automata[0].diffusion_pre_process()
+        self.topology.automata[0].diffusion(True)
+
+        self.assertEqual(self.topology.automata[0].work_grid[1, 1]['chemotherapy'], 10 - 0.001 * (8.0 * 10.0))
+
+
+
 
 
 # EVENT TESTING
