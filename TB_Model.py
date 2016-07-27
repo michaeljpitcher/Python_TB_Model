@@ -947,6 +947,12 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 oxygen_diffusion /= self.parameters['oxygen_diffusion_caseum_reduction']
                 chemotherapy_diffusion /= self.parameters['chemotherapy_diffusion_caseum_reduction']
 
+                # Reduce the oxygen from source value
+                if self.get_attribute(address,'blood_vessel','grid') > 0.0:
+                    self.set_attribute_grid(address, 'blood_vessel',
+                                            self.parameters['blood_vessel_value'] / self.parameters[
+                                                'oxygen_diffusion_caseum_reduction'])
+
             # Need to set the values on the current grid
             self.set_attribute_grid(address, 'oxygen_diffusion_rate', oxygen_diffusion)
             self.set_attribute_grid(address, 'chemotherapy_diffusion_rate', chemotherapy_diffusion)
@@ -958,14 +964,18 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 oxygen_diffusion = self.parameters['oxygen_diffusion']
                 chemotherapy_diffusion = self.parameters['chemotherapy_diffusion']
 
+                index = self.halo_addresses.index(halo_address)
+
                 if halo_address in counted and counted[halo_address] >= \
                         self.parameters['caseum_threshold_to_reduce_diffusion']:
                     oxygen_diffusion /= self.parameters['oxygen_diffusion_caseum_reduction']
                     chemotherapy_diffusion /= self.parameters['chemotherapy_diffusion_caseum_reduction']
+                    # Reduce the oxygen from source value
+                    if self.halo_cells[index]['blood_vessel'] > 0.0:
+                        self.halo_cells[index]['blood_vessel'] /= self.parameters[
+                                                    'oxygen_diffusion_caseum_reduction']
 
                 # Need to set the values on the halo
-                index = self.halo_addresses.index(halo_address)
-
                 self.halo_cells[index]['oxygen_diffusion_rate'] = oxygen_diffusion
                 self.halo_cells[index]['chemotherapy_diffusion_rate'] = chemotherapy_diffusion
 
@@ -1087,7 +1097,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     for neighbour_address in neighbours:
                         neighbour = self.get(neighbour_address)
                         if neighbour is not None and neighbour['contents'] == 0.0 and \
-                                        neighbour_address not in self.blood_vessels:
+                                        neighbour['blood_vessel'] == 0.0:
                             free_neighbours.append(neighbour_address)
 
                     if len(free_neighbours) > 0:
