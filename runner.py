@@ -136,6 +136,8 @@ def run_many_parallel(topology, time_limit, json_controller_path):
         import numpy
 
     direct_view.scatter('automaton', topology.automata)
+
+    # Scatter empty lists
     direct_view.scatter('danger_zone', [[], ] * number_tiles)
     direct_view.scatter('max_oxygen_local', [[], ] * number_tiles)
     direct_view.scatter('max_chemotherapy_local', [[], ] * number_tiles)
@@ -195,30 +197,10 @@ def run_many_parallel(topology, time_limit, json_controller_path):
         # 8. PERFORM EVENTS
         direct_view.apply(parallel_process_events())
 
-    automata = direct_view.gather('automaton')
 
+def construct_halos(topology, danger_zone_values):
 
-def construct_halos(topology, danger_zone_addresses, danger_zone_values, halo_addresses):
-
-    number_tiles = len(danger_zone_addresses)
-
-    halos = []
-
-    for tile_id in range(number_tiles):
-        halos.append([])
-
-    for tile_id in range(number_tiles):
-        for local_address in halo_addresses:
-            global_address = topology.local_to_global(tile_id, local_address)
-
-            new_tile_id, new_local_address = topology.global_to_local(global_address)
-            if new_tile_id is not None:
-                index = danger_zone_addresses[new_tile_id].index(new_local_address)
-                halos[tile_id].append(danger_zone_values[new_tile_id][index])
-            else:
-                halos[tile_id].append(None)
-
-    return halos
+    return topology.create_halos(danger_zone_values)
 
 
 def create_view(path):
@@ -271,7 +253,7 @@ def initialise(config, total_shape):
 
     # TODO - only works for 2d
     for a in itertools.product(range(total_shape[0]), range(total_shape[1])):
-        available_addresses.append(list(a))
+        available_addresses.append(a)
 
     # BLOOD_VESSELS
     blood_vessels_method = config.get("InitialiseSection", "blood_vessels")
@@ -280,7 +262,7 @@ def initialise(config, total_shape):
     if blood_vessels_method == 'hard_code':
         bv_list = config.get("InitialiseSection", "blood_vessels_hard_code").split("/")
         for b in bv_list:
-            address = [int(c) for c in b.split(",")]
+            address = tuple(int(c) for c in b.split(","))
             available_addresses.remove(address)
             blood_vessel_addresses.append(address)
     elif blood_vessels_method == 'random':
@@ -299,7 +281,7 @@ def initialise(config, total_shape):
         fast_list = config.get("InitialiseSection", "bacteria_fast_hard_code").split("/")
         assert len(available_addresses) > len(fast_list)
         for a in fast_list:
-            address = [int(c) for c in a.split(",")]
+            address = tuple(int(c) for c in a.split(","))
             if address in available_addresses:
                 fast_addresses.append(address)
                 available_addresses.remove(address)
@@ -310,7 +292,7 @@ def initialise(config, total_shape):
         slow_list = config.get("InitialiseSection", "bacteria_slow_hard_code").split("/")
         assert len(available_addresses) > len(slow_list)
         for a in slow_list:
-            address = [int(c) for c in a.split(",")]
+            address = tuple(int(c) for c in a.split(","))
             if address not in blood_vessel_addresses:
                 slow_addresses.append(address)
                 available_addresses.remove(address)
@@ -362,7 +344,6 @@ def veto_conflicting_events(received_events, topology):
 
     for i in range(total_num_events):
         # Pick a tile at random to pull events from
-        # TODO - COMP - check validity of this approach
         tile_id_of_event = automata_with_events_left[np.random.randint(0, len(automata_with_events_left))]
 
         event = received_events[tile_id_of_event].pop()
