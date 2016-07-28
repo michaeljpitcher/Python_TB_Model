@@ -116,7 +116,8 @@ class TwoDimensionalTopology(Topology):
         # Get a list of every global address needed
         self.global_addresses_required = []
         for automaton in self.automata:
-            for b in automaton.halo_addresses:
+            # for b in automaton.halo_addresses:
+            for b in automaton.halo:
                 address = self.local_to_global(automaton.tile_id, b)
                 if address is not None:
                     self.global_addresses_required.append(address)
@@ -209,15 +210,15 @@ class TwoDimensionalTopology(Topology):
         halos = []
 
         for tile_id in range(self.number_of_tiles):
-            halo = []
+            halo = dict()
             for address_required in self.external_addresses_required:
                 global_address = self.local_to_global(tile_id, address_required)
                 if global_address is None:
-                    halo.append(None)
+                    halo[address_required] = None
                 else:
                     index = self.global_addresses_required.index(global_address)
                     value = global_values_required[index]
-                    halo.append(value)
+                    halo[address_required] = value
             halos.append(halo)
 
         return halos
@@ -254,6 +255,8 @@ class Tile:
             address = np.unravel_index(i, self.grid.shape)
             self.list_addresses.append(address)
             self.address_locations[address] = 'grid'
+
+        self.halo = dict()
 
     def create_grid(self, attributes):
         """
@@ -319,21 +322,26 @@ class Tile:
         return danger_zone
 
     def configure_halo_addresses(self, external_addresses_required, depth1_addresses):
-        self.halo_addresses = external_addresses_required
+
+        #self.halo_addresses = external_addresses_required
         for address in external_addresses_required:
+            self.halo[address] = dict()
             self.address_locations[address] = 'halo'
+
         self.halo_depth1 = depth1_addresses
 
-    def set_halo(self, cells):
+    def set_halo(self, halo):
         """
         Update the halo
         :param cells:
         :return:
         """
 
-        self.halo_cells = []
-        for i in range(len(cells)):
-            self.halo_cells.append(cells[i])
+        self.halo = halo
+
+        # self.halo_cells = []
+        # for i in range(len(cells)):
+        #     self.halo_cells.append(cells[i])
 
     def get(self, address, location='unknown'):
         """
@@ -350,8 +358,8 @@ class Tile:
             return self.grid[address]
         elif location == 'halo':
             try:
-                index = self.halo_addresses.index(address)
-                return self.halo_cells[index]
+                #index = self.halo_addresses.index(address)
+                return self.halo[address]
             except ValueError:
                 raise Exception("Address {0} is not on grid or in halo".format(address))
 
@@ -923,10 +931,14 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         affected_addresses = []
         caseum_addresses = list(self.caseum)
         
-        for index in range(len(self.halo_cells)):
+        # for index in range(len(self.halo_cells)):
+        #
+        #     if self.halo_cells[index] is not None and self.halo_cells[index]['contents'] == 'caseum':
+        #         caseum_addresses.append(self.halo_addresses[index])
 
-            if self.halo_cells[index] is not None and self.halo_cells[index]['contents'] == 'caseum':
-                caseum_addresses.append(self.halo_addresses[index])
+        for address in self.halo:
+            if self.halo[address] is not None and self.halo[address]['contents'] == 'caseum':
+                caseum_addresses.append(address)
 
         for address in caseum_addresses:
 
@@ -964,20 +976,25 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 oxygen_diffusion = self.parameters['oxygen_diffusion']
                 chemotherapy_diffusion = self.parameters['chemotherapy_diffusion']
 
-                index = self.halo_addresses.index(halo_address)
+                # index = self.halo_addresses.index(halo_address)
 
                 if halo_address in counted and counted[halo_address] >= \
                         self.parameters['caseum_threshold_to_reduce_diffusion']:
                     oxygen_diffusion /= self.parameters['oxygen_diffusion_caseum_reduction']
                     chemotherapy_diffusion /= self.parameters['chemotherapy_diffusion_caseum_reduction']
                     # Reduce the oxygen from source value
-                    if self.halo_cells[index]['blood_vessel'] > 0.0:
-                        self.halo_cells[index]['blood_vessel'] /= self.parameters[
-                                                    'oxygen_diffusion_caseum_reduction']
+                    # if self.halo_cells[index]['blood_vessel'] > 0.0:
+                    #     self.halo_cells[index]['blood_vessel'] /= self.parameters[
+                    #                                 'oxygen_diffusion_caseum_reduction']
+                    if self.halo[halo_address]['blood_vessel'] > 0.0:
+                        self.halo[halo_address]['blood_vessel'] /= self.parameters['oxygen_diffusion_caseum_reduction']
+
 
                 # Need to set the values on the halo
-                self.halo_cells[index]['oxygen_diffusion_rate'] = oxygen_diffusion
-                self.halo_cells[index]['chemotherapy_diffusion_rate'] = chemotherapy_diffusion
+                # self.halo_cells[index]['oxygen_diffusion_rate'] = oxygen_diffusion
+                # self.halo_cells[index]['chemotherapy_diffusion_rate'] = chemotherapy_diffusion
+                self.halo[halo_address]['oxygen_diffusion_rate'] = oxygen_diffusion
+                self.halo[halo_address]['chemotherapy_diffusion_rate'] = chemotherapy_diffusion
 
     def diffusion(self, chemo):
 
