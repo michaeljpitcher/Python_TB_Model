@@ -16,8 +16,7 @@ class TileTestCase(unittest.TestCase):
         self.assertEqual(self.tile.size, 20)
 
         # Grid
-        self.assertTrue(isinstance(self.tile.grid, np.ndarray))
-        self.assertSequenceEqual(self.tile.grid.shape, (5,4))
+        self.assertTrue(isinstance(self.tile.grid, dict))
         for x in range(5):
             for y in range(4):
                 self.assertTrue(isinstance(self.tile.grid[x,y], dict))
@@ -27,26 +26,15 @@ class TileTestCase(unittest.TestCase):
                 self.assertEqual(self.tile.grid[x, y]['c'], 0.0)
 
         # List of addresses
-        self.assertEqual(len(self.tile.list_addresses), 20)
+        self.assertEqual(len(self.tile.list_grid_addresses), 20)
 
-        self.assertItemsEqual(self.tile.list_addresses, [(0, 0), (0, 1), (0, 2), (0, 3),
-                                                         (1, 0), (1, 1), (1, 2), (1, 3),
-                                                         (2, 0), (2, 1), (2, 2), (2, 3),
-                                                         (3, 0), (3, 1), (3, 2), (3, 3),
-                                                         (4, 0), (4, 1), (4, 2), (4, 3)
-                                                         ])
+        self.assertItemsEqual(self.tile.list_grid_addresses, [(0, 0), (0, 1), (0, 2), (0, 3),
+                                                              (1, 0), (1, 1), (1, 2), (1, 3),
+                                                              (2, 0), (2, 1), (2, 2), (2, 3),
+                                                              (3, 0), (3, 1), (3, 2), (3, 3),
+                                                              (4, 0), (4, 1), (4, 2), (4, 3)
+                                                              ])
 
-        # Address locations
-        self.assertEqual(len(self.tile.address_locations.keys()), 20)
-        self.assertItemsEqual(self.tile.address_locations.keys(), [(0, 0), (0, 1), (0, 2), (0, 3),
-                                                                   (1, 0), (1, 1), (1, 2), (1, 3),
-                                                                   (2, 0), (2, 1), (2, 2), (2, 3),
-                                                                   (3, 0), (3, 1), (3, 2), (3, 3),
-                                                                   (4, 0), (4, 1), (4, 2), (4, 3)
-                                                                   ])
-        for x in range(5):
-            for y in range(4):
-                self.assertEqual(self.tile.address_locations[(x,y)], 'grid')
 
     def test_create_work_grid(self):
 
@@ -56,8 +44,7 @@ class TileTestCase(unittest.TestCase):
 
         self.tile.create_work_grid()
 
-        self.assertTrue(isinstance(self.tile.work_grid, np.ndarray))
-        self.assertSequenceEqual(self.tile.grid.shape, (5, 4))
+        self.assertTrue(isinstance(self.tile.work_grid, dict))
         for x in range(5):
             for y in range(4):
                 self.assertTrue(isinstance(self.tile.grid[x, y], dict))
@@ -88,8 +75,7 @@ class TileTestCase(unittest.TestCase):
 
         self.tile.swap_grids()
 
-        self.assertTrue(isinstance(self.tile.work_grid, np.ndarray))
-        self.assertSequenceEqual(self.tile.grid.shape, (5, 4))
+        self.assertTrue(isinstance(self.tile.work_grid, dict))
         for x in range(5):
             for y in range(4):
                 self.assertTrue(isinstance(self.tile.grid[x, y], dict))
@@ -142,11 +128,7 @@ class TileTestCase(unittest.TestCase):
                                  (5, 2), (5, 3), (5, 4)]
         self.tile.configure_halo_addresses(halo_addresses, halo_depth1_addresses)
 
-        self.assertItemsEqual(self.tile.halo.keys(), halo_addresses)
-        for i in halo_addresses:
-            self.assertEqual(self.tile.address_locations[tuple(i)], 'halo')
-
-        self.assertEqual(len(self.tile.address_locations.keys()), 20 + len(halo_addresses))
+        self.assertItemsEqual(self.tile.list_halo_addresses, halo_addresses)
 
         self.assertItemsEqual(self.tile.halo_depth1, halo_depth1_addresses)
 
@@ -160,79 +142,10 @@ class TileTestCase(unittest.TestCase):
 
         self.tile.set_halo(halo)
 
-        self.assertEqual(len(self.tile.halo.values()), 4)
-        self.assertItemsEqual(self.tile.halo.keys(), [(0,0), (1,1), (2,2), (3,3)])
-        self.assertEqual(self.tile.halo[(0, 0)]['c'], 0)
-        self.assertEqual(self.tile.halo[(1, 1)]['c'], 1)
-        self.assertEqual(self.tile.halo[(2, 2)]['c'], 4)
-        self.assertEqual(self.tile.halo[(3, 3)]['c'], 9)
-
-    def test_get(self):
-
-        # Not a complete halo but enough for testing
-        halo_addresses = [(-1, -1), (-1, 0), (-1, 1), (-1, 2), (-1, 3), (-1, 4)]
-        halo_depth1_addresses = [(-1, -1), (-1, 0), (-1, 1), (-1, 2), (-1, 3), (-1, 4)]
-        self.tile.configure_halo_addresses(halo_addresses, halo_depth1_addresses)
-
-        halo = dict()
-        for i in range(6):
-            cell = dict(a=i, b=9, c=10)
-            halo[halo_addresses[i]] = cell
-        self.tile.set_halo(halo)
-
-        self.tile.grid[0, 0]['a'] = 77.0
-        self.tile.grid[1, 1]['b'] = 56.0
-
-        # Get from grid
-        self.assertTrue(isinstance(self.tile.get((0, 0), 'grid'), dict))
-        self.assertEqual(self.tile.get((0, 0))['a'], 77.0)
-        self.assertEqual(self.tile.get((0, 0))['b'], 0.0)
-        self.assertEqual(self.tile.get((0, 0))['c'], 0.0)
-
-        # Get from halo
-        self.assertTrue(isinstance(self.tile.get((-1, -1), 'halo'), dict))
-        self.assertEqual(self.tile.get((-1, -1))['a'], 0)
-        self.assertEqual(self.tile.get((-1, -1))['b'], 9)
-        self.assertEqual(self.tile.get((-1, -1))['c'], 10)
-
-        # Get unknown (grid)
-        self.assertTrue(isinstance(self.tile.get((1, 1)), dict))
-        self.assertEqual(self.tile.get((1,1))['a'], 0.0)
-        self.assertEqual(self.tile.get((1,1))['b'], 56.0)
-        self.assertEqual(self.tile.get((1,1))['c'], 0.0)
-
-        # Get unknown (halo)
-        self.assertTrue(isinstance(self.tile.get((-1, 4), 'halo'), dict))
-        self.assertEqual(self.tile.get((-1, 4))['a'], 5)
-        self.assertEqual(self.tile.get((-1, 4))['b'], 9)
-        self.assertEqual(self.tile.get((-1, 4))['c'], 10)
-
-    def test_get_attribute(self):
-        # Not a complete halo but enough for testing
-        halo_addresses = [(-1, -1), (-1, 0), (-1, 1), (-1, 2), (-1, 3), (-1, 4)]
-        halo_depth1_addresses = [(-1, -1), (-1, 0), (-1, 1), (-1, 2), (-1, 3), (-1, 4)]
-        self.tile.configure_halo_addresses(halo_addresses, halo_depth1_addresses)
-
-        halo = dict()
-        for i in range(6):
-            cell = dict(a=i, b=9, c=10)
-            halo[halo_addresses[i]] = cell
-        self.tile.set_halo(halo)
-
-        self.tile.grid[0, 0]['a'] = 77.0
-        self.tile.grid[1, 1]['b'] = 56.0
-
-        # Get from grid
-        self.assertEqual(self.tile.get_attribute((0,0),'a','grid'), 77.0)
-
-        # Get from halo
-        self.assertEqual(self.tile.get_attribute((-1, -1), 'a', 'halo'), 0)
-
-        # Get unknown (grid)
-        self.assertEqual(self.tile.get_attribute((1, 1), 'b'), 56.0)
-
-        # Get unknown (halo)
-        self.assertEqual(self.tile.get_attribute((-1, 4), 'a'), 5)
+        self.assertEqual(self.tile.grid[(0, 0)]['c'], 0)
+        self.assertEqual(self.tile.grid[(1, 1)]['c'], 1)
+        self.assertEqual(self.tile.grid[(2, 2)]['c'], 4)
+        self.assertEqual(self.tile.grid[(3, 3)]['c'], 9)
 
     def test_set_attribute_grid(self):
         self.tile.set_attribute_grid((0,0), 'a', 99.9)
@@ -251,7 +164,7 @@ class NeighbourhoodTestCase(unittest.TestCase):
     def setUp(self):
         # The address list is contained on the Tile mixin class
         self.tile = TB_Model.Tile([5, 5], ['a', 'b', 'c'])
-        self.neighbourhood = TB_Model.Neighbourhood(2, 3, self.tile.list_addresses)
+        self.neighbourhood = TB_Model.Neighbourhood(2, 3, self.tile.list_grid_addresses)
 
     def test_attributes(self):
         self.assertEqual(self.neighbourhood.dimensions, 2)
@@ -446,10 +359,10 @@ class TopologyTestCase(unittest.TestCase):
                      (6, -3), (6, -2), (6, -1), (6, 0), (6, 1), (6, 2), (6, 3), (6, 4), (6, 5), (6, 6), (6, 7), (7, -3),
                      (7, -2),
                      (7, -1), (7, 0), (7, 1), (7, 2), (7, 3), (7, 4), (7, 5), (7, 6), (7, 7)]
-        self.assertItemsEqual(self.topology.automata[0].halo.keys(), addresses)
-        self.assertItemsEqual(self.topology.automata[1].halo.keys(), addresses)
-        self.assertItemsEqual(self.topology.automata[2].halo.keys(), addresses)
-        self.assertItemsEqual(self.topology.automata[3].halo.keys(), addresses)
+        self.assertItemsEqual(self.topology.automata[0].list_halo_addresses, addresses)
+        self.assertItemsEqual(self.topology.automata[1].list_halo_addresses, addresses)
+        self.assertItemsEqual(self.topology.automata[2].list_halo_addresses, addresses)
+        self.assertItemsEqual(self.topology.automata[3].list_halo_addresses, addresses)
         addresses = [(-1, -1), (-1, 0), (-1, 1), (-1, 2), (-1, 3),
                      (0, -1), (1, -1), (2, -1), (3, -1),
                      (-1, 4), (-1, 5), (0, 5), (1, 5), (2, 5), (3, 5),
@@ -718,75 +631,75 @@ class TwoDimensionalTopologyTestCase(unittest.TestCase):
         for index in range(4):
             self.topology.automata[index].set_halo(halos[index])
             if index == 0:
-                self.assertEqual(self.topology.automata[index].get_attribute((0, 3), 'a'), 9)
-                self.assertEqual(self.topology.automata[index].get_attribute((1, 3), 'a'), 12)
-                self.assertEqual(self.topology.automata[index].get_attribute((2, 3), 'a'), 15)
-                self.assertEqual(self.topology.automata[index].get_attribute((3, 0), 'a'), 18)
-                self.assertEqual(self.topology.automata[index].get_attribute((3, 1), 'a'), 19)
-                self.assertEqual(self.topology.automata[index].get_attribute((3, 2), 'a'), 20)
-                self.assertEqual(self.topology.automata[index].get_attribute((3, 3), 'a'), 27)
-                self.assertEqual(self.topology.automata[index].get_attribute((-1, -1), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((-1, 0), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((-1, 1), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((-1, 2), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((-1, 3), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((0, -1), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((1, -1), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((2, -1), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((3, -1), 'a'), None)
+                self.assertEqual(self.topology.automata[index].grid[(0, 3)]['a'], 9)
+                self.assertEqual(self.topology.automata[index].grid[(1, 3)]['a'], 12)
+                self.assertEqual(self.topology.automata[index].grid[(2, 3)]['a'], 15)
+                self.assertEqual(self.topology.automata[index].grid[(3, 0)]['a'], 18)
+                self.assertEqual(self.topology.automata[index].grid[(3, 1)]['a'], 19)
+                self.assertEqual(self.topology.automata[index].grid[(3, 2)]['a'], 20)
+                self.assertEqual(self.topology.automata[index].grid[(3, 3)]['a'], 27)
+                self.assertEqual(self.topology.automata[index].grid[(-1, -1)], None)
+                self.assertEqual(self.topology.automata[index].grid[(-1, 0)], None)
+                self.assertEqual(self.topology.automata[index].grid[(-1, 1)], None)
+                self.assertEqual(self.topology.automata[index].grid[(-1, 2)], None)
+                self.assertEqual(self.topology.automata[index].grid[(-1, 3)], None)
+                self.assertEqual(self.topology.automata[index].grid[(0, -1)], None)
+                self.assertEqual(self.topology.automata[index].grid[(1, -1)], None)
+                self.assertEqual(self.topology.automata[index].grid[(2, -1)], None)
+                self.assertEqual(self.topology.automata[index].grid[(3, -1)], None)
             elif index == 1:
-                self.assertEqual(self.topology.automata[index].get_attribute((0, 3), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((1, 3), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((2, 3), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((3, 0), 'a'), 27)
-                self.assertEqual(self.topology.automata[index].get_attribute((3, 1), 'a'), 28)
-                self.assertEqual(self.topology.automata[index].get_attribute((3, 2), 'a'), 29)
-                self.assertEqual(self.topology.automata[index].get_attribute((3, 3), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((-1, -1), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((-1, 0), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((-1, 1), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((-1, 2), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((-1, 3), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((0, -1), 'a'), 2)
-                self.assertEqual(self.topology.automata[index].get_attribute((1, -1), 'a'), 5)
-                self.assertEqual(self.topology.automata[index].get_attribute((2, -1), 'a'), 8)
-                self.assertEqual(self.topology.automata[index].get_attribute((3, -1), 'a'), 20)
+                self.assertEqual(self.topology.automata[index].grid[(0, 3)], None)
+                self.assertEqual(self.topology.automata[index].grid[(1, 3)], None)
+                self.assertEqual(self.topology.automata[index].grid[(2, 3)], None)
+                self.assertEqual(self.topology.automata[index].grid[(3, 0)]['a'], 27)
+                self.assertEqual(self.topology.automata[index].grid[(3, 1)]['a'], 28)
+                self.assertEqual(self.topology.automata[index].grid[(3, 2)]['a'], 29)
+                self.assertEqual(self.topology.automata[index].grid[(3, 3)], None)
+                self.assertEqual(self.topology.automata[index].grid[(-1, -1)], None)
+                self.assertEqual(self.topology.automata[index].grid[(-1, 0)], None)
+                self.assertEqual(self.topology.automata[index].grid[(-1, 1)], None)
+                self.assertEqual(self.topology.automata[index].grid[(-1, 2)], None)
+                self.assertEqual(self.topology.automata[index].grid[(-1, 3)], None)
+                self.assertEqual(self.topology.automata[index].grid[(0, -1)]['a'], 2)
+                self.assertEqual(self.topology.automata[index].grid[(1, -1)]['a'], 5)
+                self.assertEqual(self.topology.automata[index].grid[(2, -1)]['a'], 8)
+                self.assertEqual(self.topology.automata[index].grid[(3, -1)]['a'], 20)
 
             elif index == 2:
-                self.assertEqual(self.topology.automata[index].get_attribute((0, 3), 'a'), 27)
-                self.assertEqual(self.topology.automata[index].get_attribute((1, 3), 'a'), 30)
-                self.assertEqual(self.topology.automata[index].get_attribute((2, 3), 'a'), 33)
-                self.assertEqual(self.topology.automata[index].get_attribute((3, 0), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((3, 1), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((3, 2), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((3, 3), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((-1, -1), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((-1, 0), 'a'), 6)
-                self.assertEqual(self.topology.automata[index].get_attribute((-1, 1), 'a'), 7)
-                self.assertEqual(self.topology.automata[index].get_attribute((-1, 2), 'a'), 8)
-                self.assertEqual(self.topology.automata[index].get_attribute((-1, 3), 'a'), 15)
-                self.assertEqual(self.topology.automata[index].get_attribute((0, -1), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((1, -1), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((2, -1), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((3, -1), 'a'), None)
+                self.assertEqual(self.topology.automata[index].grid[(0, 3)]['a'], 27)
+                self.assertEqual(self.topology.automata[index].grid[(1, 3)]['a'], 30)
+                self.assertEqual(self.topology.automata[index].grid[(2, 3)]['a'], 33)
+                self.assertEqual(self.topology.automata[index].grid[(3, 0)], None)
+                self.assertEqual(self.topology.automata[index].grid[(3, 1)], None)
+                self.assertEqual(self.topology.automata[index].grid[(3, 2)], None)
+                self.assertEqual(self.topology.automata[index].grid[(3, 3)], None)
+                self.assertEqual(self.topology.automata[index].grid[(-1, -1)], None)
+                self.assertEqual(self.topology.automata[index].grid[(-1, 0)]['a'], 6)
+                self.assertEqual(self.topology.automata[index].grid[(-1, 1)]['a'], 7)
+                self.assertEqual(self.topology.automata[index].grid[(-1, 2)]['a'], 8)
+                self.assertEqual(self.topology.automata[index].grid[(-1, 3)]['a'], 15)
+                self.assertEqual(self.topology.automata[index].grid[(0, -1)], None)
+                self.assertEqual(self.topology.automata[index].grid[(1, -1)], None)
+                self.assertEqual(self.topology.automata[index].grid[(2, -1)], None)
+                self.assertEqual(self.topology.automata[index].grid[(3, -1)], None)
 
             elif index == 3:
-                self.assertEqual(self.topology.automata[index].get_attribute((0, 3), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((1, 3), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((2, 3), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((3, 0), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((3, 1), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((3, 2), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((3, 3), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((-1, -1), 'a'), 8)
-                self.assertEqual(self.topology.automata[index].get_attribute((-1, 0), 'a'), 15)
-                self.assertEqual(self.topology.automata[index].get_attribute((-1, 1), 'a'), 16)
-                self.assertEqual(self.topology.automata[index].get_attribute((-1, 2), 'a'), 17)
-                self.assertEqual(self.topology.automata[index].get_attribute((-1, 3), 'a'), None)
-                self.assertEqual(self.topology.automata[index].get_attribute((0, -1), 'a'), 20)
-                self.assertEqual(self.topology.automata[index].get_attribute((1, -1), 'a'), 23)
-                self.assertEqual(self.topology.automata[index].get_attribute((2, -1), 'a'), 26)
-                self.assertEqual(self.topology.automata[index].get_attribute((3, -1), 'a'), None)
+                self.assertEqual(self.topology.automata[index].grid[(0, 3)], None)
+                self.assertEqual(self.topology.automata[index].grid[(1, 3)], None)
+                self.assertEqual(self.topology.automata[index].grid[(2, 3)], None)
+                self.assertEqual(self.topology.automata[index].grid[(3, 0)], None)
+                self.assertEqual(self.topology.automata[index].grid[(3, 1)], None)
+                self.assertEqual(self.topology.automata[index].grid[(3, 2)], None)
+                self.assertEqual(self.topology.automata[index].grid[(3, 3)], None)
+                self.assertEqual(self.topology.automata[index].grid[(-1, -1)]['a'], 8)
+                self.assertEqual(self.topology.automata[index].grid[(-1, 0)]['a'], 15)
+                self.assertEqual(self.topology.automata[index].grid[(-1, 1)]['a'], 16)
+                self.assertEqual(self.topology.automata[index].grid[(-1, 2)]['a'], 17)
+                self.assertEqual(self.topology.automata[index].grid[(-1, 3)], None)
+                self.assertEqual(self.topology.automata[index].grid[(0, -1)]['a'], 20)
+                self.assertEqual(self.topology.automata[index].grid[(1, -1)]['a'], 23)
+                self.assertEqual(self.topology.automata[index].grid[(2, -1)]['a'], 26)
+                self.assertEqual(self.topology.automata[index].grid[(3, -1)], None)
 
 
 class TBAutomatonScenariosTestCase(unittest.TestCase):
@@ -920,7 +833,7 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
 
         # Create a halo with caseum in [0,7] and [1,7] - which is [0,2] and [1,2] of right neighbour tile
         halo = dict()
-        for a in self.topology.automata[0].halo:
+        for a in self.topology.automata[0].list_halo_addresses:
             x, y = a
             if x < 0 or y < 0:
                 halo[a] = None
@@ -941,20 +854,18 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         # Run the pre process loop
         self.topology.automata[0].diffusion_pre_process()
 
-        halo = self.topology.automata[0].halo
-
-        self.assertEqual(halo[(0, 5)]['oxygen_diffusion_rate'], 1.0 / 1.5)
-        self.assertEqual(halo[(0, 5)]['blood_vessel'], 10.0 / 1.5)
-        self.assertEqual(halo[(1, 5)]['oxygen_diffusion_rate'], 1.0 / 1.5)
-        self.assertEqual(halo[(2, 5)]['oxygen_diffusion_rate'], 1.0 / 1.5)
-        self.assertEqual(halo[(3, 5)]['oxygen_diffusion_rate'], 1.0)
-        self.assertEqual(halo[(4, 5)]['oxygen_diffusion_rate'], 1.0)
-        self.assertEqual(halo[(5, 0)]['oxygen_diffusion_rate'], 1.0)
-        self.assertEqual(halo[(5, 1)]['oxygen_diffusion_rate'], 1.0)
-        self.assertEqual(halo[(5, 2)]['oxygen_diffusion_rate'], 1.0)
-        self.assertEqual(halo[(5, 3)]['oxygen_diffusion_rate'], 1.0)
-        self.assertEqual(halo[(5, 4)]['oxygen_diffusion_rate'], 1.0)
-        self.assertEqual(halo[(5, 5)]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(self.topology.automata[0].grid[(0, 5)]['oxygen_diffusion_rate'], 1.0 / 1.5)
+        self.assertEqual(self.topology.automata[0].grid[(0, 5)]['blood_vessel'], 10.0 / 1.5)
+        self.assertEqual(self.topology.automata[0].grid[(1, 5)]['oxygen_diffusion_rate'], 1.0 / 1.5)
+        self.assertEqual(self.topology.automata[0].grid[(2, 5)]['oxygen_diffusion_rate'], 1.0 / 1.5)
+        self.assertEqual(self.topology.automata[0].grid[(3, 5)]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(self.topology.automata[0].grid[(4, 5)]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(self.topology.automata[0].grid[(5, 0)]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(self.topology.automata[0].grid[(5, 1)]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(self.topology.automata[0].grid[(5, 2)]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(self.topology.automata[0].grid[(5, 3)]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(self.topology.automata[0].grid[(5, 4)]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(self.topology.automata[0].grid[(5, 5)]['oxygen_diffusion_rate'], 1.0)
 
     def test_oxygen_diffusion_no_changes(self):
         """
@@ -1520,7 +1431,7 @@ class BacteriaReplicationTestCase(unittest.TestCase):
         self.topology.automata[0].process_events([event])
 
         self.assertEqual(len(self.topology.automata[0].bacteria), 2)
-        self.assertTrue(isinstance(self.topology.automata[0].get_attribute(event.dependant_addresses[0], 'contents'),
+        self.assertTrue(isinstance(self.topology.automata[0].grid[event.dependant_addresses[0]]['contents'],
                                    TB_Model.Bacterium))
 
         self.assertEqual(self.topology.automata[0].grid[0, 0]['contents'].division_neighbourhood, 'vn')
@@ -1687,9 +1598,9 @@ class TCellRecruitmentTestCase(unittest.TestCase):
             for y in range(5):
                 if x == event.dependant_addresses[0][0] and y == event.dependant_addresses[0][1]:
                     self.assertTrue(
-                        isinstance(self.topology.automata[0].get_attribute((x, y), 'contents'), TB_Model.TCell))
+                        isinstance(self.topology.automata[0].grid[(x, y)]['contents'], TB_Model.TCell))
                 else:
-                    self.assertEqual(self.topology.automata[0].get_attribute((x, y), 'contents'), 0.0)
+                    self.assertEqual(self.topology.automata[0].grid[(x, y)]['contents'], 0.0)
 
     def test_t_cell_recruited_across_boundary(self):
 
@@ -1844,7 +1755,7 @@ class MacrophageRecruitmentTestCase(unittest.TestCase):
         self.topology.automata[0].process_events(events)
 
         self.assertEqual(len(self.topology.automata[0].macrophages), 1)
-        self.assertTrue(isinstance(self.topology.automata[0].get_attribute(events[0].dependant_addresses[0], 'contents'),
+        self.assertTrue(isinstance(self.topology.automata[0].grid[events[0].dependant_addresses[0]]['contents'],
                                    TB_Model.Macrophage))
 
     def test_macrophage_recruited_across_boundary(self):
@@ -4568,6 +4479,7 @@ class OutputWritingTestCase(unittest.TestCase):
         self.assertFalse(os.path.isfile('0_chemotherapy.txt'))
         self.assertFalse(os.path.isfile('0_chemokine.txt'))
 
+        self.sort_out_halos()
         self.topology.automata[0].update()
         self.topology.automata[0].process_events([])
 
