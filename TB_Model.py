@@ -64,7 +64,7 @@ class Topology:
         """
         external_addresses = []
         # Loop through every cell
-        for address in automaton.list_addresses:
+        for address in automaton.list_grid_addresses:
             # Pull the addresses of cells in neighbourhood of this cell
             neighbours = []
             for j in range(1, depth+1):
@@ -117,7 +117,7 @@ class TwoDimensionalTopology(Topology):
         self.global_addresses_required = []
         for automaton in self.automata:
             # for b in automaton.halo_addresses:
-            for b in automaton.halo:
+            for b in automaton.list_halo_addresses:
                 address = self.local_to_global(automaton.tile_id, b)
                 if address is not None:
                     self.global_addresses_required.append(address)
@@ -247,16 +247,17 @@ class Tile:
         self.shape = shape
         self.attributes = attributes
         self.size = reduce(lambda x, y: x * y, shape)
-        self.grid = self.create_grid(attributes)
 
-        self.list_addresses = []
-        self.address_locations = dict()
+        self.list_grid_addresses = []
+        self.list_halo_addresses = []
+
+        self.grid = dict()
         for i in range(self.size):
-            address = np.unravel_index(i, self.grid.shape)
-            self.list_addresses.append(address)
-            self.address_locations[address] = 'grid'
-
-        self.halo = dict()
+            address = np.unravel_index(i, self.shape)
+            self.grid[address] = dict()
+            for a in attributes:
+                self.grid[address][a] = 0.0
+            self.list_grid_addresses.append(address)
 
     def create_grid(self, attributes):
         """
@@ -279,12 +280,12 @@ class Tile:
         Create a working grid placeholder by cloning the current grid
         :return:
         """
-        cells = []
-        for address in self.list_addresses:
+        work_grid = dict()
+        for address in self.list_grid_addresses:
             cell = self.grid[address].copy()
-            cells.append(cell)
+            work_grid[address] = cell
 
-        self.work_grid = np.array(cells).reshape(self.shape)
+        self.work_grid = work_grid
 
     def swap_grids(self):
         """
@@ -324,9 +325,10 @@ class Tile:
     def configure_halo_addresses(self, external_addresses_required, depth1_addresses):
 
         #self.halo_addresses = external_addresses_required
-        for address in external_addresses_required:
-            self.halo[address] = dict()
-            self.address_locations[address] = 'halo'
+        for halo_address in external_addresses_required:
+            self.grid[halo_address] = dict()
+            self.list_halo_addresses.append(halo_address)
+            # self.address_locations[halo_address] = 'halo'
 
         self.halo_depth1 = depth1_addresses
 
@@ -337,45 +339,8 @@ class Tile:
         :return:
         """
 
-        self.halo = halo
-
-        # self.halo_cells = []
-        # for i in range(len(cells)):
-        #     self.halo_cells.append(cells[i])
-
-    def get(self, address, location='unknown'):
-        """
-
-        :param address: Address of cell to return
-        :param location: Optional location value ("grid" or "halo")
-        :return:
-        """
-
-        if location == 'unknown':
-            location = self.address_locations[address]
-
-        if location == 'grid':
-            return self.grid[address]
-        elif location == 'halo':
-            try:
-                #index = self.halo_addresses.index(address)
-                return self.halo[address]
-            except ValueError:
-                raise Exception("Address {0} is not on grid or in halo".format(address))
-
-    def get_attribute(self, address, attribute, location='unknown'):
-        """
-        Get an attribute from a cell on the active grid (or halo)
-        :param address:
-        :param attribute:
-        :param location: Optional location ("grid" or "halo")
-        :return:
-        """
-        cell = self.get(address, location)
-        if cell is None:
-            return None
-        else:
-            return cell[attribute]
+        for h in halo:
+            self.grid[h] = halo[h]
 
     def set_attribute_grid(self, address, attribute, value):
         """
@@ -551,7 +516,7 @@ class EventHandler:
             self.add_bacterium(event.new_bacterium_address, event.new_metabolism)
 
         if self.address_is_on_grid(event.original_bacterium_address):
-            bacterium = self.get_attribute(event.original_bacterium_address, 'contents')
+            bacterium = self.grid[event.original_bacterium_address]['contents']
             bacterium.age = 0.0
             # Swap the division neighbourhood
             if bacterium.division_neighbourhood == 'mo':
@@ -587,7 +552,7 @@ class EventHandler:
         :return:
         """
         print "CHEMO KILL BACTERIUM"
-        bacterium = self.get_attribute(event.address, 'contents')
+        bacterium = self.grid[event.address]['contents']
         self.bacteria.remove(bacterium)
         #self.set_attribute_work_grid(event.address, 'contents', 0.0)
 
@@ -598,7 +563,7 @@ class EventHandler:
         :return:
         """
         print "CHEMO KILL MACROPHAGE"
-        macrophage = self.get_attribute(event.dependant_addresses[0], 'contents')
+        macrophage = self.grid[event.dependant_addresses[0]]['contents']
         self.macrophages.remove(macrophage)
         #self.set_attribute_work_grid(event.macrophage_to_kill.address, 'contents', 0.0)
 
@@ -609,7 +574,7 @@ class EventHandler:
         :return:
         """
         print "T-CELL DEATH"
-        t_cell_to_die = self.get_attribute(event.address, 'contents')
+        t_cell_to_die = self.grid[event.address]['contents']
         #self.set_attribute_work_grid(event.address, 'contents', 0.0)
         self.t_cells.remove(t_cell_to_die)
 
@@ -624,17 +589,13 @@ class EventHandler:
         to_address = event.dependant_addresses[1]
         # T-cell moving between 2 cells in the same tile
         if event.internal:
-            t_cell = self.get_attribute(from_address, 'contents')
+            t_cell = self.grid[from_address]['contents']
             t_cell.address = to_address
-            #self.set_attribute_work_grid(from_address, 'contents', 0.0)
-            #self.set_attribute_work_grid(to_address, 'contents', t_cell)
         elif self.address_is_on_grid(from_address):  # T-cell is moving to a new tile
-            t_cell = self.get_attribute(from_address, 'contents')
-            #self.set_attribute_work_grid(from_address, 'contents', 0.0)
+            t_cell = self.grid[from_address]['contents']
             self.t_cells.remove(t_cell)
         elif self.address_is_on_grid(to_address):  # T-cell has arrived from another tile
             event.t_cell_to_move.address = to_address
-            #self.set_attribute_work_grid(to_address, 'contents', event.t_cell_to_move)
             self.t_cells.append(event.t_cell_to_move)
 
     def process_t_cell_kill_macrophage(self, event):
@@ -643,24 +604,19 @@ class EventHandler:
         to_address = event.dependant_addresses[1]
         if self.address_is_on_grid(to_address):
             # Turn macrophage into caseum
-            macrophage = self.get_attribute(to_address, 'contents')
+            macrophage = self.grid[to_address]['contents']
             self.macrophages.remove(macrophage)
-            # self.set_attribute_work_grid(to_address, 'contents', 'caseum')
             self.caseum.append(to_address)
 
         if self.address_is_on_grid(from_address):
             # Remove t-cell
-            t_cell = self.get_attribute(from_address, 'contents')
+            t_cell = self.grid[from_address]['contents']
             self.t_cells.remove(t_cell)
-            #self.set_attribute_work_grid(from_address, 'contents', 0.0)
 
     def process_macrophage_death(self, event):
         print "MACROPHAGE DEATH"
         # Resting or active die, infected/chronically infected turn to caseum
-        macrophage_to_die = self.get_attribute(event.address, 'contents')
-        #if macrophage_to_die.state == 'resting' or macrophage_to_die.state == 'active':
-        #    self.set_attribute_work_grid(macrophage_to_die.address, 'contents', 0.0)
-        #el
+        macrophage_to_die = self.grid[event.address]['contents']
         if macrophage_to_die.state == 'infected' or macrophage_to_die.state == 'chronically_infected':
             # self.set_attribute_work_grid(macrophage_to_die.address, 'contents', 'caseum')
             self.caseum.append(macrophage_to_die.address)
@@ -673,19 +629,15 @@ class EventHandler:
         to_address = event.dependant_addresses[1]
         # Macrophage moving between 2 cells in the same tile
         if event.internal:
-            macrophage = self.get_attribute(from_address, 'contents')
+            macrophage = self.grid[from_address]['contents']
             macrophage.address = to_address
-            #self.set_attribute_work_grid(from_address, 'contents', 0.0)
-            #self.set_attribute_work_grid(to_address, 'contents', macrophage)
         elif self.address_is_on_grid(from_address):  # Macrophage is moving to a new tile
             # Remove macrophage
-            macrophage = self.get_attribute(from_address, 'contents')
-            #self.set_attribute_work_grid(from_address, 'contents', 0.0)
+            macrophage = self.grid[from_address]['contents']
             self.macrophages.remove(macrophage)
         elif self.address_is_on_grid(to_address):  # Macrophage has arrived from another tile
             # Add macrophage
             event.macrophage_to_move.address = to_address
-            #self.set_attribute_work_grid(to_address, 'contents', event.macrophage_to_move)
             self.macrophages.append(event.macrophage_to_move)
 
     def process_macrophage_kills_bacterium(self, event):
@@ -696,27 +648,23 @@ class EventHandler:
         # Macrophage moving between 2 cells in the same tile
         if event.internal:
             # Move macrophage
-            macrophage = self.get_attribute(from_address, 'contents')
+            macrophage = self.grid[from_address]['contents']
             macrophage.address = to_address
             # Remove bacterium
-            bacterium = self.get_attribute(to_address, 'contents')
+            bacterium = self.grid[to_address]['contents']
             self.bacteria.remove(bacterium)
-            #self.set_attribute_work_grid(from_address, 'contents', 0.0)
-            #self.set_attribute_work_grid(to_address, 'contents', macrophage)
 
             if macrophage.state == 'resting' or macrophage.state == 'infected' or macrophage.state == \
                     'chronically_infected':
                 # Macrophage ingests bacteria, doesn't kill
                 event.macrophage_to_move.intracellular_bacteria += 1
         elif self.address_is_on_grid(from_address):  # Macrophage is moving to a new tile
-            macrophage = self.get_attribute(from_address, 'contents')
-            #self.set_attribute_work_grid(from_address, 'contents', 0.0)
+            macrophage = self.grid[from_address]['contents']
             self.macrophages.remove(macrophage)
         elif self.address_is_on_grid(to_address):  # Macrophage has arrived from another tile
             event.macrophage_to_move.address = to_address
-            bacterium = self.get_attribute(to_address, 'contents')
+            bacterium = self.grid[to_address]['contents']
             self.bacteria.remove(bacterium)
-            #self.set_attribute_work_grid(to_address, 'contents', event.macrophage_to_move)
             self.macrophages.append(event.macrophage_to_move)
 
             if event.macrophage_to_move.state == 'resting' or event.macrophage_to_move.state == 'infected' or \
@@ -727,24 +675,22 @@ class EventHandler:
     def process_macrophage_state_change(self, event):
         print "MACROPHAGE_STATE_CHANGE: to", event.new_state
         # Pulling the macrophage from the grid
-        macrophage = self.get_attribute(event.address, 'contents')
+        macrophage = self.grid[event.address]['contents']
         macrophage.state = event.new_state
-        #self.set_attribute_work_grid(event.address, 'contents', macrophage)
 
     def process_bacterium_state_change(self, event):
         print "BACTERIUM_STATE_CHANGE:", event.type_of_change, " to", event.new_value
         # Pull bacterium from grid
-        bacterium = self.get_attribute(event.address, 'contents')
+        bacterium = self.grid[event.address]['contents']
 
         if event.type_of_change == 'metabolism':
             bacterium.metabolism = event.new_value
         elif event.type_of_change == 'resting':
             bacterium.resting = event.new_value
-        #self.set_attribute_work_grid(event.address, 'contents', bacterium)
 
     def process_macrophage_bursting(self, event):
         print "MACROPHAGE BURSTING"
-        macrophage_to_burst = self.get_attribute(event.macrophage_address, 'contents')
+        macrophage_to_burst = self.grid[event.macrophage_address]['contents']
         self.set_attribute_work_grid(macrophage_to_burst.address, 'contents', 'caseum')
         self.caseum.append(macrophage_to_burst.address)
         self.macrophages.remove(macrophage_to_burst)
@@ -759,7 +705,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
     def __init__(self, shape, tile_id, attributes, parameters, blood_vessels, fast_bacteria=None, slow_bacteria=None,
                  macrophages=None):
         Tile.__init__(self, shape, attributes)
-        Neighbourhood.__init__(self, len(shape), parameters['max_depth'], self.list_addresses)
+        Neighbourhood.__init__(self, len(shape), parameters['max_depth'], self.list_grid_addresses)
         EventHandler.__init__(self)
 
         # Max depth must be +1 or more greater than the caseum distance as we need to work out diffusion rates one
@@ -930,14 +876,9 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
         affected_addresses = []
         caseum_addresses = list(self.caseum)
-        
-        # for index in range(len(self.halo_cells)):
-        #
-        #     if self.halo_cells[index] is not None and self.halo_cells[index]['contents'] == 'caseum':
-        #         caseum_addresses.append(self.halo_addresses[index])
 
-        for address in self.halo:
-            if self.halo[address] is not None and self.halo[address]['contents'] == 'caseum':
+        for address in self.list_halo_addresses:
+            if self.grid[address] is not None and self.grid[address]['contents'] == 'caseum':
                 caseum_addresses.append(address)
 
         for address in caseum_addresses:
@@ -949,7 +890,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
         counted = Counter(affected_addresses)
 
-        for address in self.list_addresses:
+        for address in self.list_grid_addresses:
             # Get initial diffusion rates
             oxygen_diffusion = self.parameters['oxygen_diffusion']
             chemotherapy_diffusion = self.parameters['chemotherapy_diffusion']
@@ -960,7 +901,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 chemotherapy_diffusion /= self.parameters['chemotherapy_diffusion_caseum_reduction']
 
                 # Reduce the oxygen from source value
-                if self.get_attribute(address,'blood_vessel','grid') > 0.0:
+                if self.grid[address]['blood_vessel'] > 0.0:
                     self.set_attribute_grid(address, 'blood_vessel',
                                             self.parameters['blood_vessel_value'] / self.parameters[
                                                 'oxygen_diffusion_caseum_reduction'])
@@ -970,7 +911,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             self.set_attribute_grid(address, 'chemotherapy_diffusion_rate', chemotherapy_diffusion)
 
         for halo_address in self.halo_depth1:
-            if self.get(halo_address, "halo") is not None:
+            if self.grid[halo_address] is not None:
 
                 # Get initial rates
                 oxygen_diffusion = self.parameters['oxygen_diffusion']
@@ -986,26 +927,26 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     # if self.halo_cells[index]['blood_vessel'] > 0.0:
                     #     self.halo_cells[index]['blood_vessel'] /= self.parameters[
                     #                                 'oxygen_diffusion_caseum_reduction']
-                    if self.halo[halo_address]['blood_vessel'] > 0.0:
-                        self.halo[halo_address]['blood_vessel'] /= self.parameters['oxygen_diffusion_caseum_reduction']
+                    if self.grid[halo_address]['blood_vessel'] > 0.0:
+                        self.grid[halo_address]['blood_vessel'] /= self.parameters['oxygen_diffusion_caseum_reduction']
 
 
                 # Need to set the values on the halo
                 # self.halo_cells[index]['oxygen_diffusion_rate'] = oxygen_diffusion
                 # self.halo_cells[index]['chemotherapy_diffusion_rate'] = chemotherapy_diffusion
-                self.halo[halo_address]['oxygen_diffusion_rate'] = oxygen_diffusion
-                self.halo[halo_address]['chemotherapy_diffusion_rate'] = chemotherapy_diffusion
+                self.grid[halo_address]['oxygen_diffusion_rate'] = oxygen_diffusion
+                self.grid[halo_address]['chemotherapy_diffusion_rate'] = chemotherapy_diffusion
 
     def diffusion(self, chemo):
 
-        for address in self.list_addresses:
+        for address in self.list_grid_addresses:
 
-            cell = self.get(address, "grid")
+            cell = self.grid[address]
 
             neighbours = []
             neighbour_addresses = self.neighbours_von_neumann(address, 1)
             for neighbour_address in neighbour_addresses:
-                neighbours.append(self.get(neighbour_address))
+                neighbours.append(self.grid[neighbour_address])
 
             # Get diffusion value for cell
             oxygen_cell_diffusion = cell['oxygen_diffusion_rate']
@@ -1112,7 +1053,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                         neighbours = self.neighbours_von_neumann(bacterium.address, depth)
 
                     for neighbour_address in neighbours:
-                        neighbour = self.get(neighbour_address)
+                        neighbour = self.grid[neighbour_address]
                         if neighbour is not None and neighbour['contents'] == 0.0 and \
                                         neighbour['blood_vessel'] == 0.0:
                             free_neighbours.append(neighbour_address)
@@ -1141,11 +1082,10 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     # Get neighbours which are empty and have a high enough chemokine level
                     free_neighbours = []
                     for neighbour_address in neighbours:
-                        if self.get(neighbour_address) is not None and \
-                                        self.get_attribute(neighbour_address, 'blood_vessel') == 0.0 and \
-                                        self.get_attribute(neighbour_address, 'contents') == 0.0 and \
-                                        self.chemokine_scale(neighbour_address) > self.parameters[
-                                    'chemokine_scale_for_t_cell_recruitment']:
+                        neighbour = self.grid[neighbour_address]
+                        if neighbour is not None and neighbour['blood_vessel'] == 0.0 and neighbour['contents'] == 0.0 \
+                                and self.chemokine_scale(neighbour_address) > \
+                                self.parameters['chemokine_scale_for_t_cell_recruitment']:
                             free_neighbours.append(neighbour_address)
                     # Check there is free space
                     if len(free_neighbours) > 0:
@@ -1162,9 +1102,10 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 neighbours = self.neighbours_von_neumann(bv_address, 1)
                 free_neighbours = []
                 for neighbour_address in neighbours:
-                    if self.get(neighbour_address) is not None and \
-                                    self.get_attribute(neighbour_address, 'blood_vessel') == 0.0 and \
-                                    self.get_attribute(neighbour_address, 'contents') == 0.0 and \
+                    neighbour = self.grid[neighbour_address]
+                    if neighbour is not None and \
+                                    neighbour['blood_vessel'] == 0.0 and \
+                                    neighbour['contents'] == 0.0 and \
                                     self.chemokine_scale(neighbour_address) > self.parameters[
                                 'chemokine_scale_for_macrophage_recruitment']:
                         free_neighbours.append(neighbour_address)
@@ -1219,7 +1160,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     if random_move:
                         possible_neighbours = []
                         for n in neighbours:
-                            if self.get(n) is not None:
+                            if self.grid[n] is not None:
                                 possible_neighbours.append(n)
                         index = np.random.randint(0, len(possible_neighbours))
                         chosen_neighbour_address = possible_neighbours[index]
@@ -1230,12 +1171,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     # Check if leaving the grid
                     internal = self.address_is_on_grid(chosen_neighbour_address)
 
-                    if internal:
-                        location = 'grid'
-                    else:
-                        location = 'halo'
-
-                    neighbour = self.get(chosen_neighbour_address, location)
+                    neighbour = self.grid[chosen_neighbour_address]
 
                     if neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
                         new_event = TCellMovement(t_cell, t_cell.address, chosen_neighbour_address, internal)
@@ -1284,12 +1220,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     # Check if leaving the grid
                     internal = self.address_is_on_grid(chosen_neighbour_address)
 
-                    if internal:
-                        location = 'grid'
-                    else:
-                        location = 'halo'
-
-                    neighbour = self.get(chosen_neighbour_address,location)
+                    neighbour = self.grid[chosen_neighbour_address]
 
                     if neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
                         new_event = MacrophageMovement(macrophage, macrophage.address, chosen_neighbour_address,
@@ -1313,11 +1244,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     chosen_neighbour_address = neighbours[self.find_max_chemokine_neighbour(neighbours)[0]]
 
                     internal = self.address_is_on_grid(chosen_neighbour_address)
-                    if internal:
-                        location = 'grid'
-                    else:
-                        location = 'halo'
-                    neighbour = self.get(chosen_neighbour_address, location)
+                    neighbour = self.grid[chosen_neighbour_address]
 
                     if isinstance(neighbour['contents'], Bacterium):
 
@@ -1352,12 +1279,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
                     internal = self.address_is_on_grid(chosen_neighbour_address)
 
-                    if internal:
-                        location = 'grid'
-                    else:
-                        location = 'halo'
-
-                    neighbour = self.get(chosen_neighbour_address, location)
+                    neighbour = self.grid[chosen_neighbour_address]
 
                     if neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
                         new_event = MacrophageMovement(macrophage, macrophage.address, chosen_neighbour_address,
@@ -1385,13 +1307,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     chosen_neighbour_address = neighbours[self.find_max_chemokine_neighbour(neighbours)[0]]
 
                     internal = self.address_is_on_grid(chosen_neighbour_address)
-
-                    if internal:
-                        location = 'grid'
-                    else:
-                        location = 'halo'
-
-                    neighbour = self.get(chosen_neighbour_address, location)
+                    neighbour = self.grid[chosen_neighbour_address]
 
                     if neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
                         new_event = MacrophageMovement(macrophage, macrophage.address, chosen_neighbour_address,
@@ -1441,8 +1357,8 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                         for n in neighbours:
                             # TODO - COMP - do this (contents and BV) too often.
                             # Could maybe make blood vessel part of contents
-                            if self.get(n) is not None and self.get_attribute(n, 'contents') == 0.0 and \
-                                            self.get_attribute(n, 'blood_vessel') == 0.0:
+                            if self.grid[n] is not None and self.grid[n]['contents'] == 0.0 and \
+                                            self.grid[n]['blood_vessel'] == 0.0:
                                 bacteria_addresses.append(n)
                                 if not self.address_is_on_grid(n):
                                     internal = False
@@ -1473,8 +1389,8 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 for depth in range(1, 4):
                     neighbours = self.neighbours_moore(bacterium.address, depth)
                     for n in neighbours:
-                        if self.get(n) is not None and self.get_attribute(n, 'blood_vessel') == 0.0 and \
-                                        self.get_attribute(n, 'contents') == 0.0:
+                        if self.grid[n] is not None and self.grid[n]['blood_vessel'] == 0.0 and \
+                                        self.grid[n]['contents'] == 0.0:
                             new_event = BacteriumStateChange(bacterium.address, 'resting', False)
                             self.potential_events.append(new_event)
                             space_found = True
@@ -1498,19 +1414,19 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         if self.max_oxygen_global == 0.0:
             return 0.0
         else:
-            return (self.get_attribute(address, 'oxygen') / self.max_oxygen_global) * 100
+            return (self.grid[address]['oxygen'] / self.max_oxygen_global) * 100
 
     def chemotherapy_scale(self, address):
         if self.max_chemotherapy_global == 0.0:
             return 0.0
         else:
-            return (self.get_attribute(address, 'chemotherapy') / self.max_chemotherapy_global) * 100
+            return (self.grid[address]['chemotherapy'] / self.max_chemotherapy_global) * 100
 
     def chemokine_scale(self, address):
         if self.max_chemokine_global == 0.0:
             return 0.0
         else:
-            return (self.get_attribute(address, 'chemokine') / self.max_chemokine_global) * 100.0
+            return (self.grid[address]['chemokine'] / self.max_chemokine_global) * 100.0
 
     def add_bacterium(self, address, metabolism):
         new_bacterium = Bacterium(address, metabolism)
@@ -1546,7 +1462,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         max_chemokine_scale = 0
         highest_indices = []
         for index in range(len(neighbours)):
-            if self.get(neighbours[index]) is not None:
+            if self.grid[neighbours[index]] is not None:
                 chemokine_scale = self.chemokine_scale(neighbours[index])
                 if chemokine_scale > max_chemokine_scale:
                     max_chemokine_scale = chemokine_scale
@@ -1570,8 +1486,8 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         chemotherapy_file = open(self.chemotherapy_file_path, 'a')
         chemokine_file = open(self.chemokine_file_path, 'a')
 
-        for address in self.list_addresses:
-            cell = self.get(address, 'grid')
+        for address in self.list_grid_addresses:
+            cell = self.grid[address]
 
             contents_number = 0.0
 
