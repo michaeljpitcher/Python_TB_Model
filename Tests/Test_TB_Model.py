@@ -142,7 +142,7 @@ class TileTestCase(unittest.TestCase):
                                  (5, 2), (5, 3), (5, 4)]
         self.tile.configure_halo_addresses(halo_addresses, halo_depth1_addresses)
 
-        self.assertItemsEqual(self.tile.halo_addresses, halo_addresses)
+        self.assertItemsEqual(self.tile.halo.keys(), halo_addresses)
         for i in halo_addresses:
             self.assertEqual(self.tile.address_locations[tuple(i)], 'halo')
 
@@ -152,15 +152,20 @@ class TileTestCase(unittest.TestCase):
 
     def test_set_halo(self):
 
-        halo = []
+        halo = dict()
         for i in range(4):
-            cell = dict(a=i,b=9,c=10)
-            halo.append(cell)
+            cell = dict(a=i,b=9,c=i*i)
+            # Use any address
+            halo[(i,i)] = cell
 
         self.tile.set_halo(halo)
 
-        self.assertEqual(len(self.tile.halo_cells), 4)
-        self.assertEqual(self.tile.halo_cells, halo)
+        self.assertEqual(len(self.tile.halo.values()), 4)
+        self.assertItemsEqual(self.tile.halo.keys(), [(0,0), (1,1), (2,2), (3,3)])
+        self.assertEqual(self.tile.halo[(0, 0)]['c'], 0)
+        self.assertEqual(self.tile.halo[(1, 1)]['c'], 1)
+        self.assertEqual(self.tile.halo[(2, 2)]['c'], 4)
+        self.assertEqual(self.tile.halo[(3, 3)]['c'], 9)
 
     def test_get(self):
 
@@ -169,10 +174,10 @@ class TileTestCase(unittest.TestCase):
         halo_depth1_addresses = [(-1, -1), (-1, 0), (-1, 1), (-1, 2), (-1, 3), (-1, 4)]
         self.tile.configure_halo_addresses(halo_addresses, halo_depth1_addresses)
 
-        halo = []
+        halo = dict()
         for i in range(6):
             cell = dict(a=i, b=9, c=10)
-            halo.append(cell)
+            halo[halo_addresses[i]] = cell
         self.tile.set_halo(halo)
 
         self.tile.grid[0, 0]['a'] = 77.0
@@ -208,10 +213,10 @@ class TileTestCase(unittest.TestCase):
         halo_depth1_addresses = [(-1, -1), (-1, 0), (-1, 1), (-1, 2), (-1, 3), (-1, 4)]
         self.tile.configure_halo_addresses(halo_addresses, halo_depth1_addresses)
 
-        halo = []
+        halo = dict()
         for i in range(6):
             cell = dict(a=i, b=9, c=10)
-            halo.append(cell)
+            halo[halo_addresses[i]] = cell
         self.tile.set_halo(halo)
 
         self.tile.grid[0, 0]['a'] = 77.0
@@ -441,10 +446,10 @@ class TopologyTestCase(unittest.TestCase):
                      (6, -3), (6, -2), (6, -1), (6, 0), (6, 1), (6, 2), (6, 3), (6, 4), (6, 5), (6, 6), (6, 7), (7, -3),
                      (7, -2),
                      (7, -1), (7, 0), (7, 1), (7, 2), (7, 3), (7, 4), (7, 5), (7, 6), (7, 7)]
-        self.assertItemsEqual(self.topology.automata[0].halo_addresses, addresses)
-        self.assertItemsEqual(self.topology.automata[1].halo_addresses, addresses)
-        self.assertItemsEqual(self.topology.automata[2].halo_addresses, addresses)
-        self.assertItemsEqual(self.topology.automata[3].halo_addresses, addresses)
+        self.assertItemsEqual(self.topology.automata[0].halo.keys(), addresses)
+        self.assertItemsEqual(self.topology.automata[1].halo.keys(), addresses)
+        self.assertItemsEqual(self.topology.automata[2].halo.keys(), addresses)
+        self.assertItemsEqual(self.topology.automata[3].halo.keys(), addresses)
         addresses = [(-1, -1), (-1, 0), (-1, 1), (-1, 2), (-1, 3),
                      (0, -1), (1, -1), (2, -1), (3, -1),
                      (-1, 4), (-1, 5), (0, 5), (1, 5), (2, 5), (3, 5),
@@ -613,74 +618,73 @@ class TwoDimensionalTopologyTestCase(unittest.TestCase):
         for index in range(4):
             self.assertEqual(len(halos[index]), 16)
             if index == 0:
-                addresses = self.topology.automata[index].halo_addresses
-                self.assertEqual(halos[index][addresses.index((0, 3))]['a'], 9)
-                self.assertEqual(halos[index][addresses.index((1, 3))]['a'], 12)
-                self.assertEqual(halos[index][addresses.index((2, 3))]['a'], 15)
-                self.assertEqual(halos[index][addresses.index((3, 0))]['a'], 18)
-                self.assertEqual(halos[index][addresses.index((3, 1))]['a'], 19)
-                self.assertEqual(halos[index][addresses.index((3, 2))]['a'], 20)
-                self.assertEqual(halos[index][addresses.index((3, 3))]['a'], 27)
-                self.assertEqual(halos[index][addresses.index((-1, -1))], None)
-                self.assertEqual(halos[index][addresses.index((-1, 0))], None)
-                self.assertEqual(halos[index][addresses.index((-1, 1))], None)
-                self.assertEqual(halos[index][addresses.index((-1, 2))], None)
-                self.assertEqual(halos[index][addresses.index((-1, 3))], None)
-                self.assertEqual(halos[index][addresses.index((0, -1))], None)
-                self.assertEqual(halos[index][addresses.index((1, -1))], None)
-                self.assertEqual(halos[index][addresses.index((2, -1))], None)
-                self.assertEqual(halos[index][addresses.index((3, -1))], None)
+                self.assertEqual(halos[index][(0, 3)]['a'], 9)
+                self.assertEqual(halos[index][(1, 3)]['a'], 12)
+                self.assertEqual(halos[index][(2, 3)]['a'], 15)
+                self.assertEqual(halos[index][(3, 0)]['a'], 18)
+                self.assertEqual(halos[index][(3, 1)]['a'], 19)
+                self.assertEqual(halos[index][(3, 2)]['a'], 20)
+                self.assertEqual(halos[index][(3, 3)]['a'], 27)
+                self.assertEqual(halos[index][(-1, -1)], None)
+                self.assertEqual(halos[index][(-1, 0)], None)
+                self.assertEqual(halos[index][(-1, 1)], None)
+                self.assertEqual(halos[index][(-1, 2)], None)
+                self.assertEqual(halos[index][(-1, 3)], None)
+                self.assertEqual(halos[index][(0, -1)], None)
+                self.assertEqual(halos[index][(1, -1)], None)
+                self.assertEqual(halos[index][(2, -1)], None)
+                self.assertEqual(halos[index][(3, -1)], None)
             elif index == 1:
-                self.assertEqual(halos[index][addresses.index((0, 3))], None)
-                self.assertEqual(halos[index][addresses.index((1, 3))], None)
-                self.assertEqual(halos[index][addresses.index((2, 3))], None)
-                self.assertEqual(halos[index][addresses.index((3, 0))]['a'], 27)
-                self.assertEqual(halos[index][addresses.index((3, 1))]['a'], 28)
-                self.assertEqual(halos[index][addresses.index((3, 2))]['a'], 29)
-                self.assertEqual(halos[index][addresses.index((3, 3))], None)
-                self.assertEqual(halos[index][addresses.index((-1, -1))], None)
-                self.assertEqual(halos[index][addresses.index((-1, 0))], None)
-                self.assertEqual(halos[index][addresses.index((-1, 1))], None)
-                self.assertEqual(halos[index][addresses.index((-1, 2))], None)
-                self.assertEqual(halos[index][addresses.index((-1, 3))], None)
-                self.assertEqual(halos[index][addresses.index((0, -1))]['a'], 2)
-                self.assertEqual(halos[index][addresses.index((1, -1))]['a'], 5)
-                self.assertEqual(halos[index][addresses.index((2, -1))]['a'], 8)
-                self.assertEqual(halos[index][addresses.index((3, -1))]['a'], 20)
+                self.assertEqual(halos[index][(0, 3)], None)
+                self.assertEqual(halos[index][(1, 3)], None)
+                self.assertEqual(halos[index][(2, 3)], None)
+                self.assertEqual(halos[index][(3, 0)]['a'], 27)
+                self.assertEqual(halos[index][(3, 1)]['a'], 28)
+                self.assertEqual(halos[index][(3, 2)]['a'], 29)
+                self.assertEqual(halos[index][(3, 3)], None)
+                self.assertEqual(halos[index][(-1, -1)], None)
+                self.assertEqual(halos[index][(-1, 0)], None)
+                self.assertEqual(halos[index][(-1, 1)], None)
+                self.assertEqual(halos[index][(-1, 2)], None)
+                self.assertEqual(halos[index][(-1, 3)], None)
+                self.assertEqual(halos[index][(0, -1)]['a'], 2)
+                self.assertEqual(halos[index][(1, -1)]['a'], 5)
+                self.assertEqual(halos[index][(2, -1)]['a'], 8)
+                self.assertEqual(halos[index][(3, -1)]['a'], 20)
             elif index == 2:
-                self.assertEqual(halos[index][addresses.index((0, 3))]['a'], 27)
-                self.assertEqual(halos[index][addresses.index((1, 3))]['a'], 30)
-                self.assertEqual(halos[index][addresses.index((2, 3))]['a'], 33)
-                self.assertEqual(halos[index][addresses.index((3, 0))], None)
-                self.assertEqual(halos[index][addresses.index((3, 1))], None)
-                self.assertEqual(halos[index][addresses.index((3, 2))], None)
-                self.assertEqual(halos[index][addresses.index((3, 3))], None)
-                self.assertEqual(halos[index][addresses.index((-1, -1))], None)
-                self.assertEqual(halos[index][addresses.index((-1, 0))]['a'], 6)
-                self.assertEqual(halos[index][addresses.index((-1, 1))]['a'], 7)
-                self.assertEqual(halos[index][addresses.index((-1, 2))]['a'], 8)
-                self.assertEqual(halos[index][addresses.index((-1, 3))]['a'], 15)
-                self.assertEqual(halos[index][addresses.index((0, -1))], None)
-                self.assertEqual(halos[index][addresses.index((1, -1))], None)
-                self.assertEqual(halos[index][addresses.index((2, -1))], None)
-                self.assertEqual(halos[index][addresses.index((3, -1))], None)
+                self.assertEqual(halos[index][(0, 3)]['a'], 27)
+                self.assertEqual(halos[index][(1, 3)]['a'], 30)
+                self.assertEqual(halos[index][(2, 3)]['a'], 33)
+                self.assertEqual(halos[index][(3, 0)], None)
+                self.assertEqual(halos[index][(3, 1)], None)
+                self.assertEqual(halos[index][(3, 2)], None)
+                self.assertEqual(halos[index][(3, 3)], None)
+                self.assertEqual(halos[index][(-1, -1)], None)
+                self.assertEqual(halos[index][(-1, 0)]['a'], 6)
+                self.assertEqual(halos[index][(-1, 1)]['a'], 7)
+                self.assertEqual(halos[index][(-1, 2)]['a'], 8)
+                self.assertEqual(halos[index][(-1, 3)]['a'], 15)
+                self.assertEqual(halos[index][(0, -1)], None)
+                self.assertEqual(halos[index][(1, -1)], None)
+                self.assertEqual(halos[index][(2, -1)], None)
+                self.assertEqual(halos[index][(3, -1)], None)
             elif index == 3:
-                self.assertEqual(halos[index][addresses.index((0, 3))], None)
-                self.assertEqual(halos[index][addresses.index((1, 3))], None)
-                self.assertEqual(halos[index][addresses.index((2, 3))], None)
-                self.assertEqual(halos[index][addresses.index((3, 0))], None)
-                self.assertEqual(halos[index][addresses.index((3, 1))], None)
-                self.assertEqual(halos[index][addresses.index((3, 2))], None)
-                self.assertEqual(halos[index][addresses.index((3, 3))], None)
-                self.assertEqual(halos[index][addresses.index((-1, -1))]['a'], 8)
-                self.assertEqual(halos[index][addresses.index((-1, 0))]['a'], 15)
-                self.assertEqual(halos[index][addresses.index((-1, 1))]['a'], 16)
-                self.assertEqual(halos[index][addresses.index((-1, 2))]['a'], 17)
-                self.assertEqual(halos[index][addresses.index((-1, 3))], None)
-                self.assertEqual(halos[index][addresses.index((0, -1))]['a'], 20)
-                self.assertEqual(halos[index][addresses.index((1, -1))]['a'], 23)
-                self.assertEqual(halos[index][addresses.index((2, -1))]['a'], 26)
-                self.assertEqual(halos[index][addresses.index((3, -1))], None)
+                self.assertEqual(halos[index][(0, 3)], None)
+                self.assertEqual(halos[index][(1, 3)], None)
+                self.assertEqual(halos[index][(2, 3)], None)
+                self.assertEqual(halos[index][(3, 0)], None)
+                self.assertEqual(halos[index][(3, 1)], None)
+                self.assertEqual(halos[index][(3, 2)], None)
+                self.assertEqual(halos[index][(3, 3)], None)
+                self.assertEqual(halos[index][(-1, -1)]['a'], 8)
+                self.assertEqual(halos[index][(-1, 0)]['a'], 15)
+                self.assertEqual(halos[index][(-1, 1)]['a'], 16)
+                self.assertEqual(halos[index][(-1, 2)]['a'], 17)
+                self.assertEqual(halos[index][(-1, 3)], None)
+                self.assertEqual(halos[index][(0, -1)]['a'], 20)
+                self.assertEqual(halos[index][(1, -1)]['a'], 23)
+                self.assertEqual(halos[index][(2, -1)]['a'], 26)
+                self.assertEqual(halos[index][(3, -1)], None)
 
     def test_get_external(self):
         self.attributes = ['a', 'blood_vessel', 'oxygen']
@@ -829,23 +833,12 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         self.sort_out_halo()
 
     def sort_out_halo(self):
-        # Create a halo - not needed for tests but needed for code
-        halo = []
-        for a in self.topology.automata[0].halo_addresses:
-            x, y = a
-            if x < 0 or y < 0:
-                halo.append(None)
-            else:
-                cell = dict()
-                cell['blood_vessel'] = 0.0
-                cell['contents'] = 0.0
-                cell['oxygen'] = 0.0
-                cell['chemotherapy'] = 0.0
-                cell['chemokine'] = 0.0
-                cell['oxygen_diffusion_rate'] = 0.0
-                cell['chemotherapy_diffusion_rate'] = 0.0
-                halo.append(cell)
-        self.topology.automata[0].set_halo(halo)
+        dz = []
+        for i in self.topology.automata:
+            dz.append(i.get_danger_zone())
+        halos = self.topology.create_halos(dz)
+        for i in range(4):
+            self.topology.automata[i].set_halo(halos[i])
 
     def test_initialise_no_additions(self):
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], self.atts, self.params, [], [], [], [])
@@ -926,11 +919,11 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         self.topology.automata[0].caseum.append((0, 1))
 
         # Create a halo with caseum in [0,7] and [1,7] - which is [0,2] and [1,2] of right neighbour tile
-        halo = []
-        for a in self.topology.automata[0].halo_addresses:
+        halo = dict()
+        for a in self.topology.automata[0].halo:
             x, y = a
             if x < 0 or y < 0:
-                halo.append(None)
+                halo[a] = None
             else:
                 cell = dict()
                 if x == 0 and y == 5:
@@ -942,27 +935,26 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
                 else:
                     cell['contents'] = 0.0
                 cell['oxygen'] = 0.0
-                halo.append(cell)
+                halo[a] = cell
         self.topology.automata[0].set_halo(halo)
 
         # Run the pre process loop
         self.topology.automata[0].diffusion_pre_process()
 
-        halo_addresses = self.topology.automata[0].halo_addresses
-        halo_cells = self.topology.automata[0].halo_cells
+        halo = self.topology.automata[0].halo
 
-        self.assertEqual(halo_cells[halo_addresses.index((0, 5))]['oxygen_diffusion_rate'], 1.0 / 1.5)
-        self.assertEqual(halo_cells[halo_addresses.index((0, 5))]['blood_vessel'], 10.0 / 1.5)
-        self.assertEqual(halo_cells[halo_addresses.index((1, 5))]['oxygen_diffusion_rate'], 1.0 / 1.5)
-        self.assertEqual(halo_cells[halo_addresses.index((2, 5))]['oxygen_diffusion_rate'], 1.0 / 1.5)
-        self.assertEqual(halo_cells[halo_addresses.index((3, 5))]['oxygen_diffusion_rate'], 1.0)
-        self.assertEqual(halo_cells[halo_addresses.index((4, 5))]['oxygen_diffusion_rate'], 1.0)
-        self.assertEqual(halo_cells[halo_addresses.index((5, 0))]['oxygen_diffusion_rate'], 1.0)
-        self.assertEqual(halo_cells[halo_addresses.index((5, 1))]['oxygen_diffusion_rate'], 1.0)
-        self.assertEqual(halo_cells[halo_addresses.index((5, 2))]['oxygen_diffusion_rate'], 1.0)
-        self.assertEqual(halo_cells[halo_addresses.index((5, 3))]['oxygen_diffusion_rate'], 1.0)
-        self.assertEqual(halo_cells[halo_addresses.index((5, 4))]['oxygen_diffusion_rate'], 1.0)
-        self.assertEqual(halo_cells[halo_addresses.index((5, 5))]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(halo[(0, 5)]['oxygen_diffusion_rate'], 1.0 / 1.5)
+        self.assertEqual(halo[(0, 5)]['blood_vessel'], 10.0 / 1.5)
+        self.assertEqual(halo[(1, 5)]['oxygen_diffusion_rate'], 1.0 / 1.5)
+        self.assertEqual(halo[(2, 5)]['oxygen_diffusion_rate'], 1.0 / 1.5)
+        self.assertEqual(halo[(3, 5)]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(halo[(4, 5)]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(halo[(5, 0)]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(halo[(5, 1)]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(halo[(5, 2)]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(halo[(5, 3)]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(halo[(5, 4)]['oxygen_diffusion_rate'], 1.0)
+        self.assertEqual(halo[(5, 5)]['oxygen_diffusion_rate'], 1.0)
 
     def test_oxygen_diffusion_no_changes(self):
         """
@@ -1342,7 +1334,6 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         self.assertAlmostEqual(self.topology.automata[0].work_grid[2, 3]['chemotherapy'], 0.25)
         self.assertAlmostEqual(self.topology.automata[0].work_grid[3, 2]['chemotherapy'], 0.25)
 
-
     def test_chemotherapy_from_source(self):
         """
         Only chemo is from source, no diffusion
@@ -1432,6 +1423,8 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         self.topology.automata[0].diffusion(True)
 
         self.assertEqual(self.topology.automata[0].work_grid[1, 1]['chemotherapy'], 10 - 0.001 * (8.0 * 10.0))
+
+    # TODO - chemokine tests
 
 
 # EVENT TESTING
