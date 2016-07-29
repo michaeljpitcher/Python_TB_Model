@@ -206,10 +206,8 @@ def run_many_parallel(topology, time_limit, json_controller_path):
         # 3. Send halos & values out to engines
         # ---------------- OUT -----------------------------
         direct_view.scatter('halo', halos)
-        direct_view.push(dict(max_oxygen_global=max_oxygen, max_chemotherapy_global=max_chemotherapy,
-                              max_chemokine_global=max_chemokine, number_bacteria_global=number_bacteria))
         # 4. Calculate cell values
-        direct_view.apply(parallel_run_updates())
+        direct_view.apply(parallel_run_updates(), max_oxygen, max_chemotherapy, max_chemokine, number_bacteria)
         # ---------------- OUT -----------------------------
 
         # ----------------- BACK ----------------------------
@@ -459,7 +457,7 @@ def parallel_update_engine_variables():
 
 def parallel_run_updates():
 
-    def function():
+    def function(max_oxygen_global, max_chemotherapy_global, max_chemokine_global, number_bacteria_global):
         automaton[0].set_halo(halo[0])
         automaton[0].set_max_oxygen_global(max_oxygen_global)
         automaton[0].set_max_chemotherapy_global(max_chemotherapy_global)
