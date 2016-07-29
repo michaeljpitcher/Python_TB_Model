@@ -40,8 +40,6 @@ def run_single(topology, time_limit):
     simulation_end_time = time.time()
     print 'Simulation complete. Time taken:', simulation_end_time-simulation_start_time
 
-
-
 def run_many_serial(topology, time_limit):
 
     print "Method: Many serial"
@@ -180,12 +178,9 @@ def run_many_parallel(topology, time_limit, json_controller_path):
     print 'Automata sent. Time taken:', send_end_time-send_start_time
 
     # Scatter empty lists
-    direct_view.scatter('danger_zone', [[], ] * number_tiles)
-    direct_view.scatter('max_oxygen_local', [[], ] * number_tiles)
-    direct_view.scatter('max_chemotherapy_local', [[], ] * number_tiles)
-    direct_view.scatter('max_chemokine_local', [[], ] * number_tiles)
-    direct_view.scatter('number_bacteria_local', [[], ] * number_tiles)
+    direct_view.scatter('stats', [dict(), ] * number_tiles)
     direct_view.scatter('potential_events', [[], ] * number_tiles)
+    direct_view.apply(parallel_update_engine_variables())
 
     print 'Running simulation'
     simulation_start_time = time.time()
@@ -194,17 +189,18 @@ def run_many_parallel(topology, time_limit, json_controller_path):
 
         # 1. Get values from engines
         # ---------------- BACK -----------------------------
-        direct_view.apply(parallel_update_engine_variables())
-
-        danger_zone_values = direct_view.gather('danger_zone')
-        local_oxygen_maxima = direct_view.gather('max_oxygen_local')
-        max_oxygen = max(local_oxygen_maxima)
-        local_chemotherapy_maxima = direct_view.gather('max_chemotherapy_local')
-        max_chemotherapy = max(local_chemotherapy_maxima)
-        local_chemokine_maxima = direct_view.gather('max_chemokine_local')
-        max_chemokine = max(local_chemokine_maxima)
-        bacteria_counts = direct_view.gather('number_bacteria_local')
-        number_bacteria = sum(bacteria_counts)
+        stats = direct_view.gather('stats')
+        danger_zone_values = []
+        max_oxygen = 0.0
+        max_chemotherapy = 0.0
+        max_chemokine = 0.0
+        number_bacteria = 0
+        for i in stats:
+            danger_zone_values.append(i['danger_zone'])
+            max_oxygen = max(max_oxygen, i['max_oxygen_local'])
+            max_chemotherapy = max(max_chemotherapy, i['max_chemotherapy_local'])
+            max_chemokine = max(max_chemokine, i['max_chemokine_local'])
+            number_bacteria += i['number_bacteria_local']
         # ---------------- BACK -----------------------------
 
         # 2. Construct halos
@@ -455,13 +451,11 @@ def veto_conflicting_events(received_events, topology):
 def parallel_update_engine_variables():
 
     def function():
-        max_oxygen_local[0] = automaton[0].max_oxygen_local
-        max_chemotherapy_local[0] = automaton[0].max_chemotherapy_local
-        max_chemokine_local[0] = automaton[0].max_chemokine_local
-
-        danger_zone[0] = automaton[0].get_danger_zone()
-
-        number_bacteria_local[0] = len(automaton[0].bacteria)
+        stats[0]['danger_zone'] = automaton[0].get_danger_zone()
+        stats[0]['max_oxygen_local'] = automaton[0].max_oxygen_local
+        stats[0]['max_chemotherapy_local'] = automaton[0].max_chemotherapy_local
+        stats[0]['max_chemokine_local'] = automaton[0].max_chemokine_local
+        stats[0]['number_bacteria_local'] = len(automaton[0].bacteria)
 
     return function
 
@@ -485,6 +479,11 @@ def parallel_process_events():
 
     def function():
         automaton[0].process_events(accepted_events[0])
+        stats[0]['danger_zone'] = automaton[0].get_danger_zone()
+        stats[0]['max_oxygen_local'] = automaton[0].max_oxygen_local
+        stats[0]['max_chemotherapy_local'] = automaton[0].max_chemotherapy_local
+        stats[0]['max_chemokine_local'] = automaton[0].max_chemokine_local
+        stats[0]['number_bacteria_local'] = len(automaton[0].bacteria)
 
     return function
 
