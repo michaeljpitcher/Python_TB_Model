@@ -195,20 +195,22 @@ class TwoDimensionalTopology(Topology):
 
     def create_halos(self, danger_zone_values):
         """
-        Get danger zones, turn to halos
+
+        :param danger_zone_values:
         :return:
         """
 
-        global_values_required = []
+        global_cells_required = dict()
 
-        for g in self.global_addresses_required:
-            tile_id, local_address = self.global_to_local(g)
-            index = self.danger_zone_addresses[tile_id].index(local_address)
-            cell = danger_zone_values[tile_id][index]
-            global_values_required.append(cell)
+        # From the lists of danger zone values, turn each into an entry in the global cells required dictionary
+        for tile_id in range(self.number_of_tiles):
+            dz_addresses = self.danger_zone_addresses[tile_id]
+            dz_cells = danger_zone_values[tile_id]
+            for index in range(len(dz_cells)):
+                global_address = self.local_to_global(tile_id, dz_addresses[index])
+                global_cells_required[global_address] = dz_cells[index]
 
         halos = []
-
         for tile_id in range(self.number_of_tiles):
             halo = dict()
             for address_required in self.external_addresses_required:
@@ -216,8 +218,7 @@ class TwoDimensionalTopology(Topology):
                 if global_address is None:
                     halo[address_required] = None
                 else:
-                    index = self.global_addresses_required.index(global_address)
-                    value = global_values_required[index]
+                    value = global_cells_required[global_address]
                     halo[address_required] = value
             halos.append(halo)
 
