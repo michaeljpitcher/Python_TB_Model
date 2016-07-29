@@ -212,14 +212,14 @@ class TwoDimensionalTopology(Topology):
 
         halos = []
         for tile_id in range(self.number_of_tiles):
-            halo = dict()
+            halo = []
             for address_required in self.external_addresses_required:
                 global_address = self.local_to_global(tile_id, address_required)
                 if global_address is None:
-                    halo[address_required] = None
+                    halo.append(None)
                 else:
                     value = global_cells_required[global_address]
-                    halo[address_required] = value
+                    halo.append(value)
             halos.append(halo)
 
         return halos
@@ -328,8 +328,9 @@ class Tile:
         self.halo_depth1 = depth1_addresses
 
     def set_halo(self, halo):
-        for h in halo:
-            self.grid[h] = halo[h]
+        for index in range(len(halo)):
+            address = self.list_halo_addresses[index]
+            self.grid[address] = halo[index]
 
     def set_attribute_grid(self, address, attribute, value):
         """

@@ -134,18 +134,19 @@ class TileTestCase(unittest.TestCase):
 
     def test_set_halo(self):
 
-        halo = dict()
+        halo = []
+        self.tile.configure_halo_addresses([(-1,-1),(-1,0),(-1,1),(-1,2)],[])
         for i in range(4):
             cell = dict(a=i,b=9,c=i*i)
             # Use any address
-            halo[(i,i)] = cell
+            halo.append(cell)
 
         self.tile.set_halo(halo)
 
-        self.assertEqual(self.tile.grid[(0, 0)]['c'], 0)
-        self.assertEqual(self.tile.grid[(1, 1)]['c'], 1)
-        self.assertEqual(self.tile.grid[(2, 2)]['c'], 4)
-        self.assertEqual(self.tile.grid[(3, 3)]['c'], 9)
+        self.assertEqual(self.tile.grid[(-1, -1)]['c'], 0)
+        self.assertEqual(self.tile.grid[(-1, 0)]['c'], 1)
+        self.assertEqual(self.tile.grid[(-1, 1)]['c'], 4)
+        self.assertEqual(self.tile.grid[(-1, 2)]['c'], 9)
 
     def test_set_attribute_grid(self):
         self.tile.set_attribute_grid((0,0), 'a', 99.9)
@@ -531,73 +532,73 @@ class TwoDimensionalTopologyTestCase(unittest.TestCase):
         for index in range(4):
             self.assertEqual(len(halos[index]), 16)
             if index == 0:
-                self.assertEqual(halos[index][(0, 3)]['a'], 9)
-                self.assertEqual(halos[index][(1, 3)]['a'], 12)
-                self.assertEqual(halos[index][(2, 3)]['a'], 15)
-                self.assertEqual(halos[index][(3, 0)]['a'], 18)
-                self.assertEqual(halos[index][(3, 1)]['a'], 19)
-                self.assertEqual(halos[index][(3, 2)]['a'], 20)
-                self.assertEqual(halos[index][(3, 3)]['a'], 27)
-                self.assertEqual(halos[index][(-1, -1)], None)
-                self.assertEqual(halos[index][(-1, 0)], None)
-                self.assertEqual(halos[index][(-1, 1)], None)
-                self.assertEqual(halos[index][(-1, 2)], None)
-                self.assertEqual(halos[index][(-1, 3)], None)
-                self.assertEqual(halos[index][(0, -1)], None)
-                self.assertEqual(halos[index][(1, -1)], None)
-                self.assertEqual(halos[index][(2, -1)], None)
-                self.assertEqual(halos[index][(3, -1)], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((0, 3))]['a'], 9)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((1, 3))]['a'], 12)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((2, 3))]['a'], 15)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((3, 0))]['a'], 18)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((3, 1))]['a'], 19)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((3, 2))]['a'], 20)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((3, 3))]['a'], 27)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((-1, -1))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((-1, 0))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((-1, 1))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((-1, 2))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((-1, 3))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((0, -1))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((1, -1))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((2, -1))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((3, -1))], None)
             elif index == 1:
-                self.assertEqual(halos[index][(0, 3)], None)
-                self.assertEqual(halos[index][(1, 3)], None)
-                self.assertEqual(halos[index][(2, 3)], None)
-                self.assertEqual(halos[index][(3, 0)]['a'], 27)
-                self.assertEqual(halos[index][(3, 1)]['a'], 28)
-                self.assertEqual(halos[index][(3, 2)]['a'], 29)
-                self.assertEqual(halos[index][(3, 3)], None)
-                self.assertEqual(halos[index][(-1, -1)], None)
-                self.assertEqual(halos[index][(-1, 0)], None)
-                self.assertEqual(halos[index][(-1, 1)], None)
-                self.assertEqual(halos[index][(-1, 2)], None)
-                self.assertEqual(halos[index][(-1, 3)], None)
-                self.assertEqual(halos[index][(0, -1)]['a'], 2)
-                self.assertEqual(halos[index][(1, -1)]['a'], 5)
-                self.assertEqual(halos[index][(2, -1)]['a'], 8)
-                self.assertEqual(halos[index][(3, -1)]['a'], 20)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((0, 3))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((1, 3))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((2, 3))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((3, 0))]['a'], 27)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((3, 1))]['a'], 28)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((3, 2))]['a'], 29)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((3, 3))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((-1, -1))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((-1, 0))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((-1, 1))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((-1, 2))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((-1, 3))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((0, -1))]['a'], 2)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((1, -1))]['a'], 5)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((2, -1))]['a'], 8)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((3, -1))]['a'], 20)
             elif index == 2:
-                self.assertEqual(halos[index][(0, 3)]['a'], 27)
-                self.assertEqual(halos[index][(1, 3)]['a'], 30)
-                self.assertEqual(halos[index][(2, 3)]['a'], 33)
-                self.assertEqual(halos[index][(3, 0)], None)
-                self.assertEqual(halos[index][(3, 1)], None)
-                self.assertEqual(halos[index][(3, 2)], None)
-                self.assertEqual(halos[index][(3, 3)], None)
-                self.assertEqual(halos[index][(-1, -1)], None)
-                self.assertEqual(halos[index][(-1, 0)]['a'], 6)
-                self.assertEqual(halos[index][(-1, 1)]['a'], 7)
-                self.assertEqual(halos[index][(-1, 2)]['a'], 8)
-                self.assertEqual(halos[index][(-1, 3)]['a'], 15)
-                self.assertEqual(halos[index][(0, -1)], None)
-                self.assertEqual(halos[index][(1, -1)], None)
-                self.assertEqual(halos[index][(2, -1)], None)
-                self.assertEqual(halos[index][(3, -1)], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((0, 3))]['a'], 27)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((1, 3))]['a'], 30)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((2, 3))]['a'], 33)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((3, 0))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((3, 1))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((3, 2))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((3, 3))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((-1, -1))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((-1, 0))]['a'], 6)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((-1, 1))]['a'], 7)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((-1, 2))]['a'], 8)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((-1, 3))]['a'], 15)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((0, -1))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((1, -1))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((2, -1))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((3, -1))], None)
             elif index == 3:
-                self.assertEqual(halos[index][(0, 3)], None)
-                self.assertEqual(halos[index][(1, 3)], None)
-                self.assertEqual(halos[index][(2, 3)], None)
-                self.assertEqual(halos[index][(3, 0)], None)
-                self.assertEqual(halos[index][(3, 1)], None)
-                self.assertEqual(halos[index][(3, 2)], None)
-                self.assertEqual(halos[index][(3, 3)], None)
-                self.assertEqual(halos[index][(-1, -1)]['a'], 8)
-                self.assertEqual(halos[index][(-1, 0)]['a'], 15)
-                self.assertEqual(halos[index][(-1, 1)]['a'], 16)
-                self.assertEqual(halos[index][(-1, 2)]['a'], 17)
-                self.assertEqual(halos[index][(-1, 3)], None)
-                self.assertEqual(halos[index][(0, -1)]['a'], 20)
-                self.assertEqual(halos[index][(1, -1)]['a'], 23)
-                self.assertEqual(halos[index][(2, -1)]['a'], 26)
-                self.assertEqual(halos[index][(3, -1)], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((0, 3))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((1, 3))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((2, 3))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((3, 0))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((3, 1))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((3, 2))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((3, 3))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((-1, -1))]['a'], 8)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((-1, 0))]['a'], 15)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((-1, 1))]['a'], 16)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((-1, 2))]['a'], 17)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((-1, 3))], None)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((0, -1))]['a'], 20)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((1, -1))]['a'], 23)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((2, -1))]['a'], 26)
+                self.assertEqual(halos[index][self.topology.external_addresses_required.index((3, -1))], None)
 
     def test_get_external(self):
         self.attributes = ['a', 'blood_vessel', 'oxygen']
@@ -832,11 +833,11 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         self.topology.automata[0].caseum.append((0, 1))
 
         # Create a halo with caseum in [0,7] and [1,7] - which is [0,2] and [1,2] of right neighbour tile
-        halo = dict()
+        halo = []
         for a in self.topology.automata[0].list_halo_addresses:
             x, y = a
             if x < 0 or y < 0:
-                halo[a] = None
+                halo.append(None)
             else:
                 cell = dict()
                 if x == 0 and y == 5:
@@ -848,7 +849,7 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
                 else:
                     cell['contents'] = 0.0
                 cell['oxygen'] = 0.0
-                halo[a] = cell
+                halo.append(cell)
         self.topology.automata[0].set_halo(halo)
 
         # Run the pre process loop

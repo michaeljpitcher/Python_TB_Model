@@ -40,6 +40,7 @@ def run_single(topology, time_limit):
     simulation_end_time = time.time()
     print 'Simulation complete. Time taken:', simulation_end_time-simulation_start_time
 
+
 def run_many_serial(topology, time_limit):
 
     print "Method: Many serial"
@@ -50,8 +51,6 @@ def run_many_serial(topology, time_limit):
     dz_addresses = []
     for tile_id_of_event in range(number_tiles):
         dz_addresses.append(topology.automata[tile_id_of_event].danger_zone_addresses)
-
-    halo_addresses = topology.external_addresses_required
 
     danger_zone_values = []
     received_events = dict()
@@ -145,8 +144,6 @@ def run_many_parallel(topology, time_limit, json_controller_path):
     dz_addresses = []
     for tile_id_of_event in range(number_tiles):
         dz_addresses.append(topology.automata[tile_id_of_event].danger_zone_addresses)
-
-    halo_addresses = topology.external_addresses_required
 
     received_events = dict()
     events_to_return = dict()
