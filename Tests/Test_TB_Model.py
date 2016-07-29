@@ -380,7 +380,7 @@ class TopologyTestCase(unittest.TestCase):
                      (4, -1), (4, 5),
                      (5, -1), (5, 0), (5, 1), (5, 2), (5, 3), (5, 4), (5, 5)
                      ]
-        gear = self.topology.get_external_addresses_required(self.topology.automata[0], 1)
+        gear = self.topology.get_external_addresses_required(1)
         self.assertItemsEqual(addresses, gear)
 
         addresses = [(-3, -3), (-3, -2), (-3, -1), (-3, 0), (-3, 1), (-3, 2), (-3, 3), (-2, -3), (-2, -2), (-2, -1),
@@ -399,7 +399,7 @@ class TopologyTestCase(unittest.TestCase):
                      (7, -2),
                      (7, -1), (7, 0), (7, 1), (7, 2), (7, 3), (7, 4), (7, 5), (7, 6), (7, 7)]
 
-        gear = self.topology.get_external_addresses_required(self.topology.automata[0], 3)
+        gear = self.topology.get_external_addresses_required(3)
         self.assertItemsEqual(addresses, gear)
 
 
