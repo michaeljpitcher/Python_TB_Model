@@ -1,18 +1,51 @@
-import TB_Model
 import ConfigParser
 import itertools
 import numpy as np
 import time
 from ipyparallel import Client
 
+#import pyximport; pyximport.install(pyimport=True)
+import TB_Model
+
 
 def run_single(topology, time_limit):
     pass
+
+    print "Method: Single"
+
+    halo_addresses = topology.external_addresses_required
+
+    empty_halo = dict()
+    for a in halo_addresses:
+        empty_halo[a] = None
+
+    print 'Running simulation...'
+    simulation_start_time = time.time()
+    for t in range(1, time_limit + 1):
+        topology.automata[0].set_halo(empty_halo)
+        print "TIME-STEP:", t
+        automaton = topology.automata[0]
+        automaton.set_max_oxygen_global(automaton.max_oxygen_local)
+        automaton.set_max_chemotherapy_global(automaton.max_chemotherapy_local)
+        automaton.set_max_chemokine_global(automaton.max_chemokine_local)
+        automaton.set_global_bacteria_number(len(automaton.bacteria))
+
+        automaton.update()
+
+        events = [automaton.potential_events]
+
+        events_to_return = veto_conflicting_events(events, topology)
+
+        automaton.process_events(events_to_return[0])
+    simulation_end_time = time.time()
+    print 'Simulation complete. Time taken:', simulation_end_time-simulation_start_time
+
 
 
 def run_many_serial(topology, time_limit):
 
     print "Method: Many serial"
+
     number_tiles = len(topology.automata)
 
     # HALOS
@@ -32,6 +65,8 @@ def run_many_serial(topology, time_limit):
         events_to_return[a] = []
         addresses_processed[a] = []
 
+    print 'Running simulation...'
+    simulation_start_time = time.time()
     for t in range(1, time_limit+1):
         print "TIME-STEP:", t
 
@@ -53,7 +88,7 @@ def run_many_serial(topology, time_limit):
             # ---------------- BACK -----------------------------
 
         # 2. Construct halos
-        halos = construct_halos(topology, dz_addresses, danger_zone_values, halo_addresses)
+        halos = construct_halos(topology, danger_zone_values)
 
         # Reset values
         danger_zone_values = []
@@ -98,7 +133,9 @@ def run_many_serial(topology, time_limit):
             # 7 & 8. Send events, perform events
             automaton.process_events(events_to_return[tile_id_of_event])
             # ------------------- OUT ----------------------------
-            # print automaton.grid
+
+    simulation_end_time = time.time()
+    print 'Simulation complete. Time taken:', simulation_end_time - simulation_start_time
 
 
 def run_many_parallel(topology, time_limit, json_controller_path):
@@ -130,12 +167,17 @@ def run_many_parallel(topology, time_limit, json_controller_path):
             .format(len(direct_view), number_tiles)
 
     import TB_Model
+    print 'Send code to engines'
     send_module(direct_view, TB_Model)
     with direct_view.sync_imports():
         import csv
         import numpy
 
+    print 'Sending automata to engines'
+    send_start_time = time.time()
     direct_view.scatter('automaton', topology.automata)
+    send_end_time = time.time()
+    print 'Automata sent. Time taken:', send_end_time-send_start_time
 
     # Scatter empty lists
     direct_view.scatter('danger_zone', [[], ] * number_tiles)
@@ -145,6 +187,8 @@ def run_many_parallel(topology, time_limit, json_controller_path):
     direct_view.scatter('number_bacteria_local', [[], ] * number_tiles)
     direct_view.scatter('potential_events', [[], ] * number_tiles)
 
+    print 'Running simulation'
+    simulation_start_time = time.time()
     for t in range(1, time_limit + 1):
         print "TIME-STEP:", t
 
@@ -164,7 +208,7 @@ def run_many_parallel(topology, time_limit, json_controller_path):
         # ---------------- BACK -----------------------------
 
         # 2. Construct halos
-        halos = construct_halos(topology, dz_addresses, danger_zone_values, halo_addresses)
+        halos = construct_halos(topology, danger_zone_values)
 
         # 3. Send halos & values out to engines
         # ---------------- OUT -----------------------------
@@ -196,6 +240,9 @@ def run_many_parallel(topology, time_limit, json_controller_path):
         direct_view.scatter('accepted_events', events_to_return.values())
         # 8. PERFORM EVENTS
         direct_view.apply(parallel_process_events())
+
+    simulation_end_time = time.time()
+    print 'Simulation complete. Time taken:', simulation_end_time-simulation_start_time
 
 
 def construct_halos(topology, danger_zone_values):
@@ -444,6 +491,12 @@ def parallel_process_events():
 
 def main():
 
+    print '------------------------'
+    print 'TB Simulation Automaton'
+    print '------------------------'
+
+    whole_start_time = time.time()
+
     # LOAD CONFIG
     config = ConfigParser.RawConfigParser()
     if not config.read('config.properties'):
@@ -472,10 +525,12 @@ def main():
     # LOAD INITIALISATION
     blood_vessels, fast_bacteria, slow_bacteria, macrophages = initialise(config, total_shape)
 
+    print 'Constructing topology...'
+    construction_start_time = time.time()
     topology = TB_Model.TwoDimensionalTopology(tile_arrangement, total_shape, attributes, parameters, blood_vessels,
                                                fast_bacteria, slow_bacteria, macrophages)
-
-    start_time = time.time()
+    construction_end_time = time.time()
+    print 'Complete. Time taken for construction: ', construction_end_time-construction_start_time
 
     if method == 'single':
         run_single(topology, time_limit)
@@ -488,10 +543,9 @@ def main():
     else:
         raise Exception("Invalid method")
 
-    elapsed_time = time.time() - start_time
+    whole_end_time = time.time()
 
-    print "TIME TAKEN:", elapsed_time, "seconds"
-
+    print 'Whole process time:', whole_end_time-whole_start_time
 
 if __name__ == '__main__':
     main()
