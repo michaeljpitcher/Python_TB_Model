@@ -46,23 +46,23 @@ class Topology:
 
         # Get a list of addresses (relative to tile) that are required by tile but outside of it
         # Will be the same for all tiles (as they're same shape) so just pull from one
-        self.external_addresses_required = self.get_external_addresses_required(self.automata[0],
-                                                                                parameters['max_depth'])
+        self.external_addresses_required = self.get_external_addresses_required(parameters['max_depth'])
         # Halo of depth 1 - needed for calculating diffusion rates
         # TODO - COMP - is there a better way of doing this?
-        depth1_addresses = self.get_external_addresses_required(self.automata[0], 1)
+        depth1_addresses = self.get_external_addresses_required(1)
 
         # Set the halo address and halo of depth 1 address
         for automaton in self.automata:
             automaton.configure_halo_addresses(self.external_addresses_required, depth1_addresses)
             automaton.configure_neighbourhood_for_halo(self.external_addresses_required)
 
-    def get_external_addresses_required(self, automaton, depth):
+    def get_external_addresses_required(self, depth):
         """
         The addresses of cells within the overall neighbourhood which don't belong to the given automaton
         :return:
         """
         external_addresses = []
+        automaton = self.automata[0]
         # Loop through every cell
         for address in automaton.list_grid_addresses:
             # Pull the addresses of cells in neighbourhood of this cell
@@ -145,7 +145,7 @@ class TwoDimensionalTopology(Topology):
         x, y = address
         if x < 0 or x >= self.total_shape[0] or y < 0 or y >= self.total_shape[1]:
             return None
-        return (x, y)
+        return x, y
 
     def global_to_local(self, global_address):
         """
@@ -154,7 +154,7 @@ class TwoDimensionalTopology(Topology):
         :return:
         """
         if global_address is None:
-            return (None, None)
+            return None, None
 
         x, y = global_address
         tile_rows, tile_cols = self.tile_shape
@@ -191,7 +191,7 @@ class TwoDimensionalTopology(Topology):
         """
         global_address = self.local_to_global(original_tile_id, local_address)
         origin_x, origin_y = self.origins[new_tile_id]
-        return (global_address[0] - origin_x, global_address[1] - origin_y)
+        return global_address[0] - origin_x, global_address[1] - origin_y
 
     def create_halos(self, danger_zone_values):
         """
@@ -252,12 +252,16 @@ class Tile:
         self.list_halo_addresses = []
 
         self.grid = dict()
+        self.work_grid = dict()
         for i in range(self.size):
             address = np.unravel_index(i, self.shape)
             self.grid[address] = dict()
             for a in attributes:
                 self.grid[address][a] = 0.0
             self.list_grid_addresses.append(address)
+
+        self.danger_zone_addresses = []
+        self.halo_depth1 = []
 
     def create_grid(self, attributes):
         """
@@ -295,7 +299,6 @@ class Tile:
         self.grid, self.work_grid = self.work_grid, self.grid
 
     def address_is_on_grid(self, address):
-        # TODO - replace with checking dictionary (remove here, alter calls to here)
         """
         Check if address is within the boundaries
         :param address:
@@ -315,30 +318,15 @@ class Tile:
         Get the cell values of cells in the danger zone
         :return:
         """
-        danger_zone = []
-        for address in self.danger_zone_addresses:
-            # Get cell from the work grid
-            danger_zone.append(self.grid[address])
-
-        return danger_zone
+        return [self.grid[address] for address in self.danger_zone_addresses]
 
     def configure_halo_addresses(self, external_addresses_required, depth1_addresses):
-
-        #self.halo_addresses = external_addresses_required
         for halo_address in external_addresses_required:
             self.grid[halo_address] = dict()
             self.list_halo_addresses.append(halo_address)
-            # self.address_locations[halo_address] = 'halo'
-
         self.halo_depth1 = depth1_addresses
 
     def set_halo(self, halo):
-        """
-        Update the halo
-        :param cells:
-        :return:
-        """
-
         for h in halo:
             self.grid[h] = halo[h]
 
@@ -378,6 +366,8 @@ class Neighbourhood:
         self.moore_neighbours = dict()
         self.von_neumann_neighbours = dict()
 
+        self.moore_relative = []
+        self.von_neumann_relative = []
         self.populate_neighbour_tables(list_addresses)
 
     def populate_neighbour_tables(self, list_addresses):
@@ -397,9 +387,10 @@ class Neighbourhood:
             reduced_row_moore = []
             self.von_neumann_relative[depth] = []
             for neighbour in row:
-                # Calculate Manhattan distance and add to appropraite von Neumann table row
+                # Calculate Manhattan distance and add to appropriate von Neumann table row
                 manhattan_distance = int(sum([math.fabs(x) for x in neighbour]))
-                if manhattan_distance <= self.max_depth and neighbour not in self.von_neumann_relative[manhattan_distance]:
+                if manhattan_distance <= self.max_depth and neighbour not in \
+                        self.von_neumann_relative[manhattan_distance]:
                     self.von_neumann_relative[manhattan_distance].append(neighbour)
                 # Check if one of coordinates = depth, if so then use for moore at this depth
                 for x in neighbour:
@@ -415,20 +406,12 @@ class Neighbourhood:
 
             for depth in range(1, self.max_depth+1):
 
-                output = []
                 table = self.moore_relative[depth]
-                for i in range(len(table)):
-                    # Build new neighbour
-                    new_address = tuple(address[j] + table[i][j] for j in range(len(address)))
-                    output.append(new_address)
+                output = [tuple(address[j] + table[i][j] for j in range(len(address))) for i in range(len(table))]
                 self.moore_neighbours[address][depth] = output
 
-                output = []
                 table = self.von_neumann_relative[depth]
-                for i in range(len(table)):
-                    # Build new neighbour
-                    new_address = tuple(address[j] + table[i][j] for j in range(len(address)))
-                    output.append(new_address)
+                output = [tuple(address[j] + table[i][j] for j in range(len(address))) for i in range(len(table))]
                 self.von_neumann_neighbours[address][depth] = output
 
     def configure_neighbourhood_for_halo(self, halo_addresses):
@@ -439,20 +422,12 @@ class Neighbourhood:
 
             for depth in range(1, self.max_depth + 1):
 
-                output = []
                 table = self.moore_relative[depth]
-                for i in range(len(table)):
-                    # Build new neighbour
-                    new_address = tuple(address[j] + table[i][j] for j in range(len(address)))
-                    output.append(new_address)
+                output = [tuple(address[j] + table[i][j] for j in range(len(address))) for i in range(len(table))]
                 self.moore_neighbours[address][depth] = output
 
-                output = []
                 table = self.von_neumann_relative[depth]
-                for i in range(len(table)):
-                    # Build new neighbour
-                    new_address = tuple(address[j] + table[i][j] for j in range(len(address)))
-                    output.append(new_address)
+                output = [tuple(address[j] + table[i][j] for j in range(len(address))) for i in range(len(table))]
                 self.von_neumann_neighbours[address][depth] = output
 
     def neighbours_moore(self, address, depth=1):
@@ -502,7 +477,7 @@ class EventHandler:
         elif isinstance(event, MacrophageBursting):
             self.process_macrophage_bursting(event)
         else:
-            raise Exception("Event ", type(event), "not handled")
+            raise Exception('Event ', type(event), 'not handled')
 
     def process_bacterium_replication(self, event):
         """
@@ -510,7 +485,6 @@ class EventHandler:
         :param event:
         :return:
         """
-        print "BACTERIUM REPLICATION"
         # Only process if the new bacterium address is on the grid
         if self.address_is_on_grid(event.new_bacterium_address):
             self.add_bacterium(event.new_bacterium_address, event.new_metabolism)
@@ -530,7 +504,6 @@ class EventHandler:
         :param event:
         :return:
         """
-        print "T CELL RECRUITMENT"
         # Only process if address is on the grid
         if self.address_is_on_grid(event.t_cell_address):
             self.add_t_cell(event.t_cell_address)
@@ -541,7 +514,6 @@ class EventHandler:
         :param event:
         :return:
         """
-        print "MACROPHAGE RECRUITMENT"
         if self.address_is_on_grid(event.macrophage_address):
             self.add_macrophage(event.macrophage_address, "resting")
 
@@ -551,10 +523,8 @@ class EventHandler:
         :param event:
         :return:
         """
-        print "CHEMO KILL BACTERIUM"
         bacterium = self.grid[event.address]['contents']
         self.bacteria.remove(bacterium)
-        #self.set_attribute_work_grid(event.address, 'contents', 0.0)
 
     def process_chemo_kill_macrophage(self, event):
         """
@@ -562,10 +532,8 @@ class EventHandler:
         :param event:
         :return:
         """
-        print "CHEMO KILL MACROPHAGE"
         macrophage = self.grid[event.dependant_addresses[0]]['contents']
         self.macrophages.remove(macrophage)
-        #self.set_attribute_work_grid(event.macrophage_to_kill.address, 'contents', 0.0)
 
     def process_t_cell_death(self, event):
         """
@@ -573,9 +541,7 @@ class EventHandler:
         :param event:
         :return:
         """
-        print "T-CELL DEATH"
         t_cell_to_die = self.grid[event.address]['contents']
-        #self.set_attribute_work_grid(event.address, 'contents', 0.0)
         self.t_cells.remove(t_cell_to_die)
 
     def process_t_cell_movement(self, event):
@@ -584,7 +550,6 @@ class EventHandler:
         :param event:
         :return:
         """
-        print "T-CELL MOVEMENT"
         from_address = event.dependant_addresses[0]
         to_address = event.dependant_addresses[1]
         # T-cell moving between 2 cells in the same tile
@@ -599,7 +564,6 @@ class EventHandler:
             self.t_cells.append(event.t_cell_to_move)
 
     def process_t_cell_kill_macrophage(self, event):
-        print "T-CELL KILLS MACROPHAGE"
         from_address = event.dependant_addresses[0]
         to_address = event.dependant_addresses[1]
         if self.address_is_on_grid(to_address):
@@ -614,17 +578,14 @@ class EventHandler:
             self.t_cells.remove(t_cell)
 
     def process_macrophage_death(self, event):
-        print "MACROPHAGE DEATH"
         # Resting or active die, infected/chronically infected turn to caseum
         macrophage_to_die = self.grid[event.address]['contents']
         if macrophage_to_die.state == 'infected' or macrophage_to_die.state == 'chronically_infected':
-            # self.set_attribute_work_grid(macrophage_to_die.address, 'contents', 'caseum')
             self.caseum.append(macrophage_to_die.address)
         # Remove macrophage
         self.macrophages.remove(macrophage_to_die)
 
     def process_macrophage_movement(self, event):
-        print "MACROPHAGE MOVEMENT"
         from_address = event.dependant_addresses[0]
         to_address = event.dependant_addresses[1]
         # Macrophage moving between 2 cells in the same tile
@@ -641,7 +602,6 @@ class EventHandler:
             self.macrophages.append(event.macrophage_to_move)
 
     def process_macrophage_kills_bacterium(self, event):
-        print "MACROPHAGE_KILLS_BACTERIUM"
         from_address = event.dependant_addresses[0]
         to_address = event.dependant_addresses[1]
 
@@ -673,13 +633,11 @@ class EventHandler:
                 event.macrophage_to_move.intracellular_bacteria += 1
 
     def process_macrophage_state_change(self, event):
-        print "MACROPHAGE_STATE_CHANGE: to", event.new_state
         # Pulling the macrophage from the grid
         macrophage = self.grid[event.address]['contents']
         macrophage.state = event.new_state
 
     def process_bacterium_state_change(self, event):
-        print "BACTERIUM_STATE_CHANGE:", event.type_of_change, " to", event.new_value
         # Pull bacterium from grid
         bacterium = self.grid[event.address]['contents']
 
@@ -689,7 +647,6 @@ class EventHandler:
             bacterium.resting = event.new_value
 
     def process_macrophage_bursting(self, event):
-        print "MACROPHAGE BURSTING"
         macrophage_to_burst = self.grid[event.macrophage_address]['contents']
         self.set_attribute_work_grid(macrophage_to_burst.address, 'contents', 'caseum')
         self.caseum.append(macrophage_to_burst.address)
@@ -767,13 +724,13 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
     def initialise_bacteria(self, fast_bacteria, slow_bacteria):
         for address in fast_bacteria:
-            self.add_bacterium(address, "fast")
+            self.add_bacterium(address, 'fast')
         for address in slow_bacteria:
-            self.add_bacterium(address, "slow")
+            self.add_bacterium(address, 'slow')
 
     def initialise_macrophages(self, addresses):
         for address in addresses:
-            self.add_macrophage(address, "resting")
+            self.add_macrophage(address, 'resting')
 
     def initialise_oxygen_levels(self):
         for address in self.blood_vessels:
@@ -798,8 +755,8 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         self.diffusion_pre_process()
         # In chemo window?
         chemo = (self.parameters['chemotherapy_schedule1_start'] / self.parameters['time_step']) <= self.time < \
-                (self.parameters['chemotherapy_schedule1_end'] / self.parameters['time_step']) or \
-                self.parameters['chemotherapy_schedule2_start'] / self.parameters['time_step'] <= self.time
+            (self.parameters['chemotherapy_schedule1_end'] / self.parameters['time_step']) or \
+            self.parameters['chemotherapy_schedule2_start'] / self.parameters['time_step'] <= self.time
 
         # Reset local maximum values
         self.max_oxygen_local = 0.0
@@ -917,23 +874,15 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 oxygen_diffusion = self.parameters['oxygen_diffusion']
                 chemotherapy_diffusion = self.parameters['chemotherapy_diffusion']
 
-                # index = self.halo_addresses.index(halo_address)
-
                 if halo_address in counted and counted[halo_address] >= \
                         self.parameters['caseum_threshold_to_reduce_diffusion']:
                     oxygen_diffusion /= self.parameters['oxygen_diffusion_caseum_reduction']
                     chemotherapy_diffusion /= self.parameters['chemotherapy_diffusion_caseum_reduction']
                     # Reduce the oxygen from source value
-                    # if self.halo_cells[index]['blood_vessel'] > 0.0:
-                    #     self.halo_cells[index]['blood_vessel'] /= self.parameters[
-                    #                                 'oxygen_diffusion_caseum_reduction']
                     if self.grid[halo_address]['blood_vessel'] > 0.0:
                         self.grid[halo_address]['blood_vessel'] /= self.parameters['oxygen_diffusion_caseum_reduction']
 
-
                 # Need to set the values on the halo
-                # self.halo_cells[index]['oxygen_diffusion_rate'] = oxygen_diffusion
-                # self.halo_cells[index]['chemotherapy_diffusion_rate'] = chemotherapy_diffusion
                 self.grid[halo_address]['oxygen_diffusion_rate'] = oxygen_diffusion
                 self.grid[halo_address]['chemotherapy_diffusion_rate'] = chemotherapy_diffusion
 
@@ -943,10 +892,8 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
             cell = self.grid[address]
 
-            neighbours = []
             neighbour_addresses = self.neighbours_von_neumann(address, 1)
-            for neighbour_address in neighbour_addresses:
-                neighbours.append(self.grid[neighbour_address])
+            neighbours = [self.grid[neighbour_address] for neighbour_address in neighbour_addresses]
 
             # Get diffusion value for cell
             oxygen_cell_diffusion = cell['oxygen_diffusion_rate']
@@ -965,12 +912,12 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     oxygen_neighbour_diffusion = neighbour['oxygen_diffusion_rate']
                     oxygen_expression += ((oxygen_cell_diffusion + oxygen_neighbour_diffusion) / 2 * (
                         neighbour['oxygen'] - cell['oxygen'])) / (
-                                         self.parameters['spatial_step'] * self.parameters['spatial_step'])
+                                         self.parameters['spatial_step']**2)
                     if chemo:
                         chemotherapy_neighbour_diffusion = neighbour['chemotherapy_diffusion_rate']
                         chemotherapy_expression += ((chemotherapy_cell_diffusion + chemotherapy_neighbour_diffusion) / 2 * (
                             neighbour['chemotherapy'] - cell['chemotherapy'])) / (
-                                                   self.parameters['spatial_step'] * self.parameters['spatial_step'])
+                                                   self.parameters['spatial_step']**2)
 
                     chemokine_neighbour_diffusion = self.parameters['chemokine_diffusion']
                     chemokine_expression += ((chemokine_cell_diffusion + chemokine_neighbour_diffusion) / 2 * (
@@ -1005,7 +952,6 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 self.max_chemotherapy_local = 0.0
                 new_chemotherapy = 0.0
             self.set_attribute_work_grid(address, 'chemotherapy', new_chemotherapy)
-
 
             # CHEMOKINE
 
@@ -1054,8 +1000,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
                     for neighbour_address in neighbours:
                         neighbour = self.grid[neighbour_address]
-                        if neighbour is not None and neighbour['contents'] == 0.0 and \
-                                        neighbour['blood_vessel'] == 0.0:
+                        if neighbour is not None and neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
                             free_neighbours.append(neighbour_address)
 
                     if len(free_neighbours) > 0:
@@ -1103,11 +1048,9 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 free_neighbours = []
                 for neighbour_address in neighbours:
                     neighbour = self.grid[neighbour_address]
-                    if neighbour is not None and \
-                                    neighbour['blood_vessel'] == 0.0 and \
-                                    neighbour['contents'] == 0.0 and \
-                                    self.chemokine_scale(neighbour_address) > self.parameters[
-                                'chemokine_scale_for_macrophage_recruitment']:
+                    if neighbour is not None and neighbour['blood_vessel'] == 0.0 and neighbour['contents'] == 0.0 and \
+                            self.chemokine_scale(neighbour_address) > \
+                            self.parameters['chemokine_scale_for_macrophage_recruitment']:
                         free_neighbours.append(neighbour_address)
 
                 if len(free_neighbours) > 0:
@@ -1132,7 +1075,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         for m in self.macrophages:
             chemo_scale = self.chemotherapy_scale(m.address)
             if ((m.state == 'infected' or m.state == 'chronically_infected') and chemo_scale >
-                self.parameters['chemotherapy_scale_for_kill_macrophage']):
+                    self.parameters['chemotherapy_scale_for_kill_macrophage']):
                 new_event = ChemoKillMacrophage(m.address)
                 self.potential_events.append(new_event)
 
@@ -1179,8 +1122,8 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     elif isinstance(neighbour['contents'], Macrophage) and (neighbour['contents'].state == 'infected'
                                                                             or neighbour[
                             'contents'].state == 'chronically_infected'):
-                        prob_tcell_killing = np.random.randint(1, 101)
-                        if prob_tcell_killing <= self.parameters['t_cell_kills_macrophage_probability']:
+                        prob_t_cell_killing = np.random.randint(1, 101)
+                        if prob_t_cell_killing <= self.parameters['t_cell_kills_macrophage_probability']:
                             new_event = TCellKillsMacrophage(t_cell, t_cell.address, chosen_neighbour_address, internal)
                             self.potential_events.append(new_event)
 
@@ -1209,7 +1152,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     random_move = False
                     if prob_random_move <= self.parameters['prob_resting_macrophage_random_move'] \
                             or max_chemokine_scale <= \
-                                    self.parameters['minimum_chemokine_for_resting_macrophage_movement']:
+                            self.parameters['minimum_chemokine_for_resting_macrophage_movement']:
                         random_move = True
 
                     if random_move:
@@ -1250,10 +1193,9 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
                         prob_macrophage_kill = np.random.randint(1, 101)
                         if (neighbour['contents'].metabolism == 'fast' and prob_macrophage_kill <= self.parameters[
-                            'prob_active_macrophage_kill_fast_bacteria']) or (
-                                        neighbour['contents'].metabolism == 'slow' and prob_macrophage_kill <=
-                                    self.parameters[
-                                        'prob_active_macrophage_kill_slow_bacteria']):
+                                'prob_active_macrophage_kill_fast_bacteria']) or (
+                                neighbour['contents'].metabolism == 'slow' and prob_macrophage_kill <=
+                                self.parameters['prob_active_macrophage_kill_slow_bacteria']):
                             new_event = MacrophageKillsBacterium(macrophage, macrophage.address,
                                                                  chosen_neighbour_address, internal)
                             self.potential_events.append(new_event)
@@ -1325,25 +1267,24 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             if macrophage.state == 'resting':
                 # Resting to active
                 if self.chemokine_scale(macrophage.address) > \
-                        self.parameters['chemokine_scale_for_macrophage_activation'] and \
-                                macrophage.intracellular_bacteria == 0:
-
-                    new_event = MacrophageChangesState(macrophage.address, "active")
+                        self.parameters['chemokine_scale_for_macrophage_activation'] \
+                        and macrophage.intracellular_bacteria == 0:
+                    new_event = MacrophageChangesState(macrophage.address, 'active')
                     self.potential_events.append(new_event)
                 # Resting to infected
                 elif macrophage.intracellular_bacteria == 1:
-                    new_event = MacrophageChangesState(macrophage.address, "infected")
+                    new_event = MacrophageChangesState(macrophage.address, 'infected')
                     self.potential_events.append(new_event)
             elif macrophage.state == 'active':
                 # Active to resting
                 if self.chemokine_scale(macrophage.address) < \
                         self.parameters['chemokine_scale_for_macrophage_deactivation']:
-                    new_event = MacrophageChangesState(macrophage.address, "resting")
+                    new_event = MacrophageChangesState(macrophage.address, 'resting')
                     self.potential_events.append(new_event)
             elif macrophage.state == 'infected':
                 # Infected to Chronically Infected
                 if macrophage.intracellular_bacteria > self.parameters['bacteria_to_turn_chronically_infected']:
-                    new_event = MacrophageChangesState(macrophage.address, "chronically_infected")
+                    new_event = MacrophageChangesState(macrophage.address, 'chronically_infected')
                     self.potential_events.append(new_event)
             elif macrophage.state == 'chronically_infected':
                 # MACROPHAGE BURSTING
@@ -1355,8 +1296,6 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                         # Shuffle the neighbours so we don't give priority
                         np.random.shuffle(neighbours)
                         for n in neighbours:
-                            # TODO - COMP - do this (contents and BV) too often.
-                            # Could maybe make blood vessel part of contents
                             if self.grid[n] is not None and self.grid[n]['contents'] == 0.0 and \
                                             self.grid[n]['blood_vessel'] == 0.0:
                                 bacteria_addresses.append(n)
@@ -1376,11 +1315,11 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             if self.time > 2 / self.parameters['time_step']:
 
                 if bacterium.metabolism == 'fast' and self.oxygen_scale(bacterium.address) <= self.parameters[
-                    'oxygen_scale_for_metabolism_change_to_slow']:
+                        'oxygen_scale_for_metabolism_change_to_slow']:
                     new_event = BacteriumStateChange(bacterium.address, 'metabolism', 'slow')
                     self.potential_events.append(new_event)
                 elif bacterium.metabolism == 'slow' and self.oxygen_scale(bacterium.address) > self.parameters[
-                    'oxygen_scale_for_metabolism_change_to_fast']:
+                        'oxygen_scale_for_metabolism_change_to_fast']:
                     new_event = BacteriumStateChange(bacterium.address, 'metabolism', 'fast')
                     self.potential_events.append(new_event)
 
@@ -1576,7 +1515,6 @@ class TCell(Agent):
 # ------------------------------
 
 class Event(object):
-    # TODO - store type as attribute?
     def __init__(self, dependant_addresses, impacted_addresses, internal):
         self.dependant_addresses = dependant_addresses
         self.impacted_addresses_potential = impacted_addresses
