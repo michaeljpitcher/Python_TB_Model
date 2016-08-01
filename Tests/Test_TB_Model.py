@@ -277,6 +277,8 @@ class AutomatonTestCase(unittest.TestCase):
         params = dict()
         params['max_depth'] = 3
         params['caseum_distance_to_reduce_diffusion'] = 1
+        params['chemotherapy_schedule1_start_lower'] = 99
+        params['chemotherapy_schedule1_start_upper'] = 100
         atts = ['a', 'contents', 'chemokine']
         self.automaton = TB_Model.Automaton([5, 5], 1, atts, params, [], [], [], [])
 
@@ -326,6 +328,8 @@ class TopologyTestCase(unittest.TestCase):
         params['initial_oxygen'] = 1.0
         params['blood_vessel_value'] = 1.5
         params['caseum_distance_to_reduce_diffusion'] = 0
+        params['chemotherapy_schedule1_start_lower'] = 99
+        params['chemotherapy_schedule1_start_upper'] = 100
         atts = ['a', 'b', 'c', 'blood_vessel', 'contents', 'oxygen']
 
         bv = [[(1, 1)], [], [], []]
@@ -412,6 +416,8 @@ class TwoDimensionalTopologyTestCase(unittest.TestCase):
         params['initial_oxygen'] = 1.0
         params['blood_vessel_value'] = 1.5
         params['caseum_distance_to_reduce_diffusion'] = 0
+        params['chemotherapy_schedule1_start_lower'] = 99
+        params['chemotherapy_schedule1_start_upper'] = 100
         atts = ['a', 'b', 'c', 'blood_vessel', 'contents', 'oxygen']
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, [(3, 3)], [(1, 1)], [(9, 9)],
                                                         [(7, 1)])
@@ -486,6 +492,8 @@ class TwoDimensionalTopologyTestCase(unittest.TestCase):
         self.parameters['initial_oxygen'] = 1.0
         self.parameters['blood_vessel_value'] = 1.5
         self.parameters['caseum_distance_to_reduce_diffusion'] = 0
+        self.parameters['chemotherapy_schedule1_start_lower'] = 99
+        self.parameters['chemotherapy_schedule1_start_upper'] = 100
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [6, 6], self.attributes, self.parameters, [[3, 3]], [],
                                                         [], [])
 
@@ -507,6 +515,8 @@ class TwoDimensionalTopologyTestCase(unittest.TestCase):
         self.parameters['initial_oxygen'] = 1.0
         self.parameters['blood_vessel_value'] = 1.5
         self.parameters['caseum_distance_to_reduce_diffusion'] = 0
+        self.parameters['chemotherapy_schedule1_start_lower'] = 99
+        self.parameters['chemotherapy_schedule1_start_upper'] = 100
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [6, 6], self.attributes, self.parameters, [(3, 3)], [],
                                                         [], [])
 
@@ -607,6 +617,8 @@ class TwoDimensionalTopologyTestCase(unittest.TestCase):
         self.parameters['initial_oxygen'] = 1.0
         self.parameters['blood_vessel_value'] = 1.5
         self.parameters['caseum_distance_to_reduce_diffusion'] = 0
+        self.parameters['chemotherapy_schedule1_start_lower'] = 99
+        self.parameters['chemotherapy_schedule1_start_upper'] = 100
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [6, 6], self.attributes, self.parameters, [(3, 3)], [],
                                                         [], [])
 
@@ -712,6 +724,8 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         params['blood_vessel_value'] = 15
         params['oxygen_diffusion'] = 1.0
         params['chemotherapy_diffusion'] = 0.75
+        params['chemotherapy_schedule1_start_lower'] = 99
+        params['chemotherapy_schedule1_start_upper'] = 100
 
         params['caseum_distance_to_reduce_diffusion'] = 2
         params['caseum_threshold_to_reduce_diffusion'] = 2
@@ -1364,7 +1378,8 @@ class BacteriaReplicationTestCase(unittest.TestCase):
         params['chemokine_from_bacteria'] = 0.5
         params['chemokine_from_macrophages'] = 1
         params['chemokine_decay'] = 0.347
-        params['chemotherapy_schedule1_start'] = 100
+        params['chemotherapy_schedule1_start_lower'] = 99
+        params['chemotherapy_schedule1_start_upper'] = 100
         params['chemotherapy_schedule2_start'] = 200
         params['interval_to_record_results'] = 1000
 
@@ -1540,7 +1555,8 @@ class TCellRecruitmentTestCase(unittest.TestCase):
         params['time_step'] = 0.001
         params['chemokine_diffusion'] = 0.05
         params['chemokine_decay'] = 0.347
-        params['chemotherapy_schedule1_start'] = 100
+        params['chemotherapy_schedule1_start_lower'] = 99
+        params['chemotherapy_schedule1_start_upper'] = 100
         params['chemotherapy_schedule2_start'] = 200
         params['macrophage_recruitment_probability'] = 0
         params['t_cell_movement_time'] = 1
@@ -1619,7 +1635,8 @@ class TCellRecruitmentTestCase(unittest.TestCase):
         params['time_step'] = 0.001
         params['chemokine_diffusion'] = 0.05
         params['chemokine_decay'] = 0.347
-        params['chemotherapy_schedule1_start'] = 100
+        params['chemotherapy_schedule1_start_lower'] = 99
+        params['chemotherapy_schedule1_start_upper'] = 100
         params['chemotherapy_schedule2_start'] = 200
         params['macrophage_recruitment_probability'] = 0
         params['t_cell_movement_time'] = 1
@@ -1707,7 +1724,8 @@ class MacrophageRecruitmentTestCase(unittest.TestCase):
         params['time_step'] = 0.001
         params['chemokine_diffusion'] = 0.05
         params['chemokine_decay'] = 0.347
-        params['chemotherapy_schedule1_start'] = 100
+        params['chemotherapy_schedule1_start_lower'] = 99
+        params['chemotherapy_schedule1_start_upper'] = 100
         params['chemotherapy_schedule2_start'] = 200
         params['t_cell_movement_time'] = 1
         params['bacteria_threshold_for_t_cells'] = 1000
@@ -1774,7 +1792,8 @@ class MacrophageRecruitmentTestCase(unittest.TestCase):
         params['time_step'] = 0.001
         params['chemokine_diffusion'] = 0.05
         params['chemokine_decay'] = 0.347
-        params['chemotherapy_schedule1_start'] = 100
+        params['chemotherapy_schedule1_start_lower'] = 99
+        params['chemotherapy_schedule1_start_upper'] = 100
         params['chemotherapy_schedule2_start'] = 200
         params['t_cell_movement_time'] = 1
         params['bacteria_threshold_for_t_cells'] = 1000
@@ -1867,7 +1886,8 @@ class ChemotherapyKillsBacteriaTestCase(unittest.TestCase):
         params['chemotherapy_scale_for_kill_fast_bacteria'] = 0
         params['chemotherapy_scale_for_kill_slow_bacteria'] = 0
         # No chemo - will manually add chemotherapy to necessary squares
-        params['chemotherapy_schedule1_start'] = 99
+        params['chemotherapy_schedule1_start_lower'] = 99
+        params['chemotherapy_schedule1_start_upper'] = 100
         params['chemotherapy_schedule1_end'] = 100
         params['chemotherapy_schedule2_start'] = 200
 
@@ -2026,7 +2046,8 @@ class ChemotherapyKillsMacrophageTestCase(unittest.TestCase):
 
         params['chemotherapy_scale_for_kill_macrophage'] = 0
 
-        params['chemotherapy_schedule1_start'] = 99
+        params['chemotherapy_schedule1_start_lower'] = 99
+        params['chemotherapy_schedule1_start_upper'] = 100
         params['chemotherapy_schedule2_start'] = 200
 
         atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
@@ -2185,7 +2206,8 @@ class TCellDeathTestCase(unittest.TestCase):
         params['chemotherapy_diffusion'] = 0.0
         params['caseum_distance_to_reduce_diffusion'] = 2
         params['spatial_step'] = 0.2
-        params['chemotherapy_schedule1_start'] = 99
+        params['chemotherapy_schedule1_start_lower'] = 99
+        params['chemotherapy_schedule1_start_upper'] = 100
         params['chemotherapy_schedule2_start'] = 200
         params['oxygen_from_source'] = 0.0
         params['chemokine_diffusion'] = 0.0
@@ -2317,7 +2339,8 @@ class TCellMovementTestCase(unittest.TestCase):
         params['chemotherapy_diffusion'] = 0.0
         params['caseum_distance_to_reduce_diffusion'] = 2
         params['spatial_step'] = 0.2
-        params['chemotherapy_schedule1_start'] = 99
+        params['chemotherapy_schedule1_start_lower'] = 99
+        params['chemotherapy_schedule1_start_upper'] = 100
         params['chemotherapy_schedule2_start'] = 200
         params['oxygen_from_source'] = 0.0
         params['chemokine_diffusion'] = 0.0
@@ -2503,7 +2526,8 @@ class TCellKillsMacrophageTestCase(unittest.TestCase):
         params['chemotherapy_diffusion'] = 0.0
         params['caseum_distance_to_reduce_diffusion'] = 2
         params['spatial_step'] = 0.2
-        params['chemotherapy_schedule1_start'] = 99
+        params['chemotherapy_schedule1_start_lower'] = 99
+        params['chemotherapy_schedule1_start_upper'] = 100
         params['chemotherapy_schedule2_start'] = 200
         params['oxygen_from_source'] = 0.0
         params['chemokine_diffusion'] = 0.0
@@ -2683,7 +2707,8 @@ class TCellKillsMacrophageTestCase(unittest.TestCase):
         params['chemotherapy_diffusion'] = 0.0
         params['caseum_distance_to_reduce_diffusion'] = 2
         params['spatial_step'] = 0.2
-        params['chemotherapy_schedule1_start'] = 99
+        params['chemotherapy_schedule1_start_lower'] = 99
+        params['chemotherapy_schedule1_start_upper'] = 100
         params['chemotherapy_schedule2_start'] = 200
         params['oxygen_from_source'] = 0.0
         params['chemokine_diffusion'] = 0.0
@@ -2773,7 +2798,8 @@ class MacrophageDeathTestCase(unittest.TestCase):
         params['chemotherapy_diffusion'] = 0.0
         params['caseum_distance_to_reduce_diffusion'] = 2
         params['spatial_step'] = 0.2
-        params['chemotherapy_schedule1_start'] = 99
+        params['chemotherapy_schedule1_start_lower'] = 99
+        params['chemotherapy_schedule1_start_upper'] = 100
         params['chemotherapy_schedule2_start'] = 200
         params['oxygen_from_source'] = 0.0
         params['chemokine_diffusion'] = 0.0
@@ -2987,7 +3013,8 @@ class MacrophageMovementTestCase(unittest.TestCase):
         params['chemotherapy_diffusion'] = 0.0
         params['caseum_distance_to_reduce_diffusion'] = 2
         params['spatial_step'] = 0.2
-        params['chemotherapy_schedule1_start'] = 99
+        params['chemotherapy_schedule1_start_lower'] = 99
+        params['chemotherapy_schedule1_start_upper'] = 100
         params['chemotherapy_schedule2_start'] = 200
         params['oxygen_from_source'] = 0.0
         params['chemokine_diffusion'] = 0.0
@@ -3353,7 +3380,8 @@ class MacrophageKillsBacteria(unittest.TestCase):
         params['chemotherapy_diffusion'] = 0.0
         params['caseum_distance_to_reduce_diffusion'] = 2
         params['spatial_step'] = 0.2
-        params['chemotherapy_schedule1_start'] = 99
+        params['chemotherapy_schedule1_start_lower'] = 99
+        params['chemotherapy_schedule1_start_upper'] = 100
         params['chemotherapy_schedule2_start'] = 200
         params['oxygen_from_source'] = 0.0
         params['chemokine_diffusion'] = 0.0
@@ -3736,7 +3764,8 @@ class MacrophageChangesState(unittest.TestCase):
         params['chemotherapy_diffusion'] = 0.0
         params['caseum_distance_to_reduce_diffusion'] = 2
         params['spatial_step'] = 0.2
-        params['chemotherapy_schedule1_start'] = 99
+        params['chemotherapy_schedule1_start_lower'] = 99
+        params['chemotherapy_schedule1_start_upper'] = 100
         params['chemotherapy_schedule2_start'] = 200
         params['oxygen_from_source'] = 0.0
         params['chemokine_diffusion'] = 0.0
@@ -3897,7 +3926,8 @@ class BacteriaStateChangeTestCase(unittest.TestCase):
         params['chemotherapy_diffusion'] = 0.0
         params['caseum_distance_to_reduce_diffusion'] = 2
         params['spatial_step'] = 0.2
-        params['chemotherapy_schedule1_start'] = 99
+        params['chemotherapy_schedule1_start_lower'] = 99
+        params['chemotherapy_schedule1_start_upper'] = 100
         params['chemotherapy_schedule2_start'] = 200
         params['oxygen_from_source'] = 0.0
         params['chemokine_diffusion'] = 0.0
@@ -4135,7 +4165,8 @@ class MacrophageBurstingTestCase(unittest.TestCase):
         params['chemotherapy_diffusion'] = 0.0
         params['caseum_distance_to_reduce_diffusion'] = 2
         params['spatial_step'] = 0.2
-        params['chemotherapy_schedule1_start'] = 99
+        params['chemotherapy_schedule1_start_lower'] = 99
+        params['chemotherapy_schedule1_start_upper'] = 100
         params['chemotherapy_schedule2_start'] = 200
         params['oxygen_from_source'] = 0.0
         params['chemokine_diffusion'] = 0.0
@@ -4335,7 +4366,8 @@ class OutputWritingTestCase(unittest.TestCase):
         params['chemotherapy_diffusion'] = 0.0
         params['caseum_distance_to_reduce_diffusion'] = 2
         params['spatial_step'] = 0.2
-        params['chemotherapy_schedule1_start'] = 99
+        params['chemotherapy_schedule1_start_lower'] = 99
+        params['chemotherapy_schedule1_start_upper'] = 100
         params['chemotherapy_schedule2_start'] = 200
         params['oxygen_from_source'] = 0.0
         params['chemokine_diffusion'] = 0.0
