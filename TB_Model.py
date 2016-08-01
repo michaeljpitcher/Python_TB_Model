@@ -85,6 +85,12 @@ class TwoDimensionalTopology(Topology):
 
     def __init__(self, tile_arrangement, total_shape, attributes, parameters, blood_vessel_global,
                  fast_bacteria_global, slow_bacteria_global, macrophages_global):
+
+        for i in range(len(total_shape)):
+            if total_shape[i] % tile_arrangement[i] != 0:
+                raise Exception("Dimension {0} does not divide evenly by tile arrangement {1}".format(total_shape[i],
+                                                                                                      tile_arrangement[
+                                                                                                          i]))
         # Check it's two dimensions
         assert len(total_shape) == 2
         self.number_of_tiles = reduce(lambda a, q: a * q, tile_arrangement)
@@ -756,6 +762,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         # Pre-processing (calculating diffusion rates)
         self.diffusion_pre_process()
         # In chemo window?
+        # TODO - COMP - chemo schedule should be a random number
         chemo = (self.parameters['chemotherapy_schedule1_start'] / self.parameters['time_step']) <= self.time < \
             (self.parameters['chemotherapy_schedule1_end'] / self.parameters['time_step']) or \
             self.parameters['chemotherapy_schedule2_start'] / self.parameters['time_step'] <= self.time
