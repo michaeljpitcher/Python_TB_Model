@@ -702,6 +702,10 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         self.initialise_blood_vessels(blood_vessels)
         self.initialise_oxygen_levels()
 
+        # CHEMO SCHEDULE
+        self.chemo_schedule1_start = np.random.randint(self.parameters['chemotherapy_schedule1_start_lower'],
+                                                       self.parameters['chemotherapy_schedule1_start_upper'])
+
         # COPY GRID TO WORK GRID
         self.create_work_grid()
 
@@ -762,8 +766,8 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         # Pre-processing (calculating diffusion rates)
         self.diffusion_pre_process()
         # In chemo window?
-        # TODO - COMP - chemo schedule should be a random number
-        chemo = (self.parameters['chemotherapy_schedule1_start'] / self.parameters['time_step']) <= self.time < \
+        # TODO - MED - chemo schedule ends at a set time, should this be a set duration after the start?
+        chemo = (self.chemo_schedule1_start / self.parameters['time_step']) <= self.time < \
             (self.parameters['chemotherapy_schedule1_end'] / self.parameters['time_step']) or \
             self.parameters['chemotherapy_schedule2_start'] / self.parameters['time_step'] <= self.time
 
