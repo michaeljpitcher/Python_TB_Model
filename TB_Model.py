@@ -850,10 +850,10 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         for address in self.list_halo_addresses:
             if self.grid[address] is not None and self.grid[address]['contents'] == 'caseum':
                 caseum_addresses.append(address)
-
+        # Loop addresses
         for address in caseum_addresses:
 
-            for depth in range(1, self.parameters['caseum_distance_to_reduce_diffusion']+1):
+            for depth in range(1, int(self.parameters['caseum_distance_to_reduce_diffusion']+1)):
                 neighbours = self.neighbours_moore(address, depth)
                 for neighbour in neighbours:
                     affected_addresses.append(neighbour)
