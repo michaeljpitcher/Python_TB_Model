@@ -766,7 +766,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         # Pre-processing (calculating diffusion rates)
         self.diffusion_pre_process()
         # In chemo window?
-        # TODO - MED - chemo schedule ends at a set time, should this be a set duration after the start?
+        # TODO - COMP - chemo should be a duration
         chemo = (self.chemo_schedule1_start / self.parameters['time_step']) <= self.time < \
             (self.parameters['chemotherapy_schedule1_end'] / self.parameters['time_step']) or \
             self.parameters['chemotherapy_schedule2_start'] / self.parameters['time_step'] <= self.time
@@ -1093,7 +1093,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 self.potential_events.append(new_event)
 
     def t_cell_processes(self):
-        # TODO - MED - does this make sense - e.g. t-cell death is dependent on the bacteria number and movement time
+        # TODO - COMP - remove reliance on bacteria
         if self.number_of_bacteria_global >= self.parameters['bacteria_threshold_for_t_cells'] and \
                                 self.time % self.parameters['t_cell_movement_time'] == 0:
 
@@ -1146,7 +1146,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
             if macrophage.state == 'resting':
 
-                # TODO - COMP/MED - can't do 0 as get division errors
+                # TODO - COMP - should be > not %
                 random_macrophage_age = np.random.randint(1, self.parameters['resting_macrophage_age_limit'])
 
                 if macrophage.age % random_macrophage_age == 0:
@@ -1158,7 +1158,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 # TODO - MED - movement based on time not age
                 if self.time % self.parameters['resting_macrophage_movement_time'] == 0:
 
-                    neighbours = self.neighbours_moore(macrophage.address, 1)
+                    neighbours = [n for n in self.neighbours_moore(macrophage.address, 1) if self.grid[n] is not None]
                     chosen_index, max_chemokine_scale = self.find_max_chemokine_neighbour(neighbours)
 
                     prob_random_move = np.random.randint(1, 101)
@@ -1188,7 +1188,6 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                         self.potential_events.append(new_event)
 
             elif macrophage.state == 'active':
-                # TODO - MED - death is based on age > limit, no prob
                 if macrophage.age > self.parameters['active_macrophage_age_limit']:
                     new_event = MacrophageDeath(macrophage.address)
                     self.potential_events.append(new_event)
@@ -1196,7 +1195,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     continue
 
                 if self.time % self.parameters['active_macrophage_movement_time'] == 0:
-                    neighbours = self.neighbours_moore(macrophage.address, 1)
+                    neighbours = [n for n in self.neighbours_moore(macrophage.address, 1) if self.grid[n] is not None]
                     chosen_neighbour_address = neighbours[self.find_max_chemokine_neighbour(neighbours)[0]]
 
                     internal = self.address_is_on_grid(chosen_neighbour_address)
@@ -1229,7 +1228,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     continue
 
                 if self.time % self.parameters['infected_macrophage_movement_time'] == 0:
-                    neighbours = self.neighbours_moore(macrophage.address, 1)
+                    neighbours = [n for n in self.neighbours_moore(macrophage.address, 1) if self.grid[n] is not None]
                     chosen_neighbour_address = neighbours[self.find_max_chemokine_neighbour(neighbours)[0]]
 
                     internal = self.address_is_on_grid(chosen_neighbour_address)
@@ -1258,7 +1257,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     continue
 
                 if self.time % self.parameters['chronically_infected_macrophage_movement_time'] == 0:
-                    neighbours = self.neighbours_moore(macrophage.address, 1)
+                    neighbours = [n for n in self.neighbours_moore(macrophage.address, 1) if self.grid[n] is not None]
                     chosen_neighbour_address = neighbours[self.find_max_chemokine_neighbour(neighbours)[0]]
 
                     internal = self.address_is_on_grid(chosen_neighbour_address)
