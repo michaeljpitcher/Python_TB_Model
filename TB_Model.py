@@ -1254,10 +1254,9 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
             if macrophage.state == 'resting':
 
-                # TODO - COMP - should be > not %
-                random_macrophage_age = np.random.randint(1, self.parameters['resting_macrophage_age_limit'])
+                random_macrophage_age = np.random.randint(0, self.parameters['resting_macrophage_age_limit'])
 
-                if macrophage.age % random_macrophage_age == 0:
+                if macrophage.age >= random_macrophage_age == 0:
                     new_event = MacrophageDeath(macrophage.address)
                     self.potential_events.append(new_event)
                     # Progress to the next macrophage
@@ -1326,10 +1325,10 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                         self.potential_events.append(new_event)
 
             elif macrophage.state == 'infected':
-                # TODO - COMP/MED - can't do 0 as get division errors
-                random_macrophage_age = np.random.randint(1, self.parameters['infected_macrophage_age_limit'])
 
-                if macrophage.age % random_macrophage_age == 0:
+                random_macrophage_age = np.random.randint(0, self.parameters['infected_macrophage_age_limit'])
+
+                if macrophage.age >= random_macrophage_age == 0:
                     new_event = MacrophageDeath(macrophage.address)
                     self.potential_events.append(new_event)
                     # Progress to the next macrophage
@@ -1353,12 +1352,10 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                         self.potential_events.append(new_event)
 
             elif macrophage.state == 'chronically_infected':
-                # TODO - COMP/MED - can't do 0 as get division errors
-
-                random_macrophage_age = np.random.randint(1,
+                random_macrophage_age = np.random.randint(0,
                                                           self.parameters['chronically_infected_macrophage_age_limit'])
 
-                if macrophage.age % random_macrophage_age == 0:
+                if macrophage.age >= random_macrophage_age == 0:
                     new_event = MacrophageDeath(macrophage.address)
                     self.potential_events.append(new_event)
                     # Progress to the next macrophage
