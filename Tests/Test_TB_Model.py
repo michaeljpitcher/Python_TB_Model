@@ -2819,10 +2819,10 @@ class MacrophageDeathTestCase(unittest.TestCase):
         params['interval_to_record_results'] = 1000
 
         params['time_step'] = 1
-        params['resting_macrophage_age_limit'] = 2
-        params['active_macrophage_age_limit'] = 4
-        params['infected_macrophage_age_limit'] = 2
-        params['chronically_infected_macrophage_age_limit'] = 2
+        params['resting_macrophage_age_limit'] = 1
+        params['active_macrophage_age_limit'] = 1
+        params['infected_macrophage_age_limit'] = 1
+        params['chronically_infected_macrophage_age_limit'] = 1
 
         atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
                 'chemotherapy', 'chemokine']
