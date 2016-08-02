@@ -3,6 +3,7 @@ import math
 import itertools
 from collections import Counter
 import os
+import logging
 
 '''
 Tuberculosis Automaton Model
@@ -668,10 +669,18 @@ class EventHandler:
 class Automaton(Tile, Neighbourhood, EventHandler):
 
     def __init__(self, shape, tile_id, attributes, parameters, blood_vessels, fast_bacteria=None, slow_bacteria=None,
-                 macrophages=None):
+                 macrophages=None, log_level='error'):
         Tile.__init__(self, shape, attributes)
         Neighbourhood.__init__(self, len(shape), parameters['max_depth'], self.list_grid_addresses)
         EventHandler.__init__(self)
+
+        # Setup logging facility for outputting to logs. Will write to automaton#.log, where # = tile ID
+        self.logger = logging.getLogger(str(tile_id))
+        formatter = logging.Formatter('%(asctime)s : %(levelname)s : %(message)s')
+        file_handler = logging.FileHandler('automaton' + str(tile_id) + '.log', mode='w')
+        file_handler.setFormatter(formatter)
+        self.logger.addHandler(file_handler)
+        self.logger.setLevel(log_level.upper())
 
         # Max depth must be +1 or more greater than the caseum distance as we need to work out diffusion rates one
         # cell deep into the halo
