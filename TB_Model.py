@@ -865,6 +865,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         """
 
         self.time += 1
+        self.logger.debug('Timestep: {0}'.format(self.time))
 
         # ----------------------------
         # CONTINUOUS (Diffusion)
