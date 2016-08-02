@@ -12,3 +12,7 @@ Tests/0_chemotherapy.txt
 Tests/0_contents.txt
 
 Tests/0_oxygen.txt
+
+*.log
+
+*.txt
