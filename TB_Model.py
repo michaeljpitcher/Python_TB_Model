@@ -533,7 +533,7 @@ class EventHandler:
             self.logger.debug('MACROPHAGE RECRUITMENT')
             self.add_macrophage(event.macrophage_address, "resting")
             self.logger.debug('Added macrophage to {0}'.format(event.macrophage_address))
-            self.logger.debug('Macrophage list: {0]'.format(self.get_macrophage_addresses()))
+            self.logger.debug('Macrophage list: {0}'.format(self.get_macrophage_addresses()))
 
     def process_chemo_kill_bacterium(self, event):
         """
@@ -559,7 +559,6 @@ class EventHandler:
         self.logger.debug('Macrophage ay {0} removed'.format(event.dependant_addresses[0]))
         self.macrophages.remove(macrophage)
         self.logger.debug('Macrophage list: {0}'.format(self.get_macrophage_addresses()))
-        self.grid[event.dependant_addresses[0]]['contents'] = 'caseum'
         self.caseum.append(event.dependant_addresses[0])
         self.logger.debug('Caseum added to: {0}'.format(event.dependant_addresses[0]))
         self.logger.debug('Caseum list: {0}'.format(self.caseum))
@@ -610,63 +609,94 @@ class EventHandler:
         if self.address_is_on_grid(to_address):
             # Turn macrophage into caseum
             macrophage = self.grid[to_address]['contents']
+            self.logger.debug('Macrophage at {0} removed'.format(to_address))
             self.macrophages.remove(macrophage)
+            self.logger.debug('Macrophage list: '.format(self.get_macrophage_addresses()))
+            self.logger.debug('Caseum added to {0}'.format(to_address))
             self.caseum.append(to_address)
+            self.logger.debug('Caseum list: {0}'.format(self.caseum))
 
         if self.address_is_on_grid(from_address):
             # Remove t-cell
             t_cell = self.grid[from_address]['contents']
+            self.logger.debug('T-cell at {0} removed'.format(from_address))
             self.t_cells.remove(t_cell)
+            self.logger.debug('T-Cell list: {0}'.format(self.get_t_cell_addresses()))
 
     def process_macrophage_death(self, event):
         # Resting or active die, infected/chronically infected turn to caseum
+        self.logger.debug('MACROPHAGE DEATH')
         macrophage_to_die = self.grid[event.address]['contents']
+        self.logger.debug('Macrophage at {0} removed'.format(event.address))
         if macrophage_to_die.state == 'infected' or macrophage_to_die.state == 'chronically_infected':
             self.caseum.append(macrophage_to_die.address)
+            self.logger.debug('Caseum added at {0}'.format(event.address))
+            self.logger.debug('Caseum list: {0}'.format(self.caseum))
         # Remove macrophage
         self.macrophages.remove(macrophage_to_die)
+        self.logger.debug('Macrophage list: {0}'.format(self.get_macrophage_addresses()))
 
     def process_macrophage_movement(self, event):
         from_address = event.dependant_addresses[0]
         to_address = event.dependant_addresses[1]
         # Macrophage moving between 2 cells in the same tile
+        self.logger.debug('MACROPHAGE MOVEMENT')
         if event.internal:
             macrophage = self.grid[from_address]['contents']
+            self.logger.debug('Macrophage moved from {0} to {1}'.format(from_address, to_address))
             macrophage.address = to_address
+            self.logger.debug('Macrophage list: {0}'.format(self.get_macrophage_addresses()))
         elif self.address_is_on_grid(from_address):  # Macrophage is moving to a new tile
             # Remove macrophage
             macrophage = self.grid[from_address]['contents']
+            self.logger.debug('Macrophage moved from {0}'.format(from_address))
             self.macrophages.remove(macrophage)
+            self.logger.debug('Macrophage list: {0}'.format(self.get_macrophage_addresses()))
         elif self.address_is_on_grid(to_address):  # Macrophage has arrived from another tile
             # Add macrophage
             event.macrophage_to_move.address = to_address
+            self.logger.debug('Macrophage moved to {0}'.format(to_address))
             self.macrophages.append(event.macrophage_to_move)
+            self.logger.debug('Macrophage list: {0}'.format(self.get_macrophage_addresses()))
 
     def process_macrophage_kills_bacterium(self, event):
         from_address = event.dependant_addresses[0]
         to_address = event.dependant_addresses[1]
+
+        self.logger.debug('MACROPHAGE KILLS BACTERIUM')
 
         # Macrophage moving between 2 cells in the same tile
         if event.internal:
             # Move macrophage
             macrophage = self.grid[from_address]['contents']
             macrophage.address = to_address
+            self.logger.debug('Macrophage moved from {0} to {1}'.format(from_address, to_address))
+            self.logger.debug('Macrophage list: {0}'.format(self.get_macrophage_addresses()))
             # Remove bacterium
             bacterium = self.grid[to_address]['contents']
+            self.logger.debug('Bacteria removed from {0}'.format(to_address))
             self.bacteria.remove(bacterium)
+            self.logger.debug('Bacteria list: {0}'.format(self.get_bacteria_addresses()))
 
             if macrophage.state == 'resting' or macrophage.state == 'infected' or macrophage.state == \
                     'chronically_infected':
                 # Macrophage ingests bacteria, doesn't kill
                 event.macrophage_to_move.intracellular_bacteria += 1
+
         elif self.address_is_on_grid(from_address):  # Macrophage is moving to a new tile
             macrophage = self.grid[from_address]['contents']
+            self.logger.debug('Macrophage moved from {0}'.format(from_address))
             self.macrophages.remove(macrophage)
+            self.logger.debug('Macrophage list: {0}'.format(self.get_macrophage_addresses()))
         elif self.address_is_on_grid(to_address):  # Macrophage has arrived from another tile
             event.macrophage_to_move.address = to_address
-            bacterium = self.grid[to_address]['contents']
-            self.bacteria.remove(bacterium)
+            self.logger.debug('Macrophage added to {0}'.format(to_address))
             self.macrophages.append(event.macrophage_to_move)
+            self.logger.debug('Macrophage list: {0}'.format(self.get_macrophage_addresses()))
+            bacterium = self.grid[to_address]['contents']
+            self.logger.debug('Bacterium removed from {0}'.format(to_address))
+            self.bacteria.remove(bacterium)
+            self.logger.debug('Bacteria list: {0}'.format(self.get_bacteria_addresses()))
 
             if event.macrophage_to_move.state == 'resting' or event.macrophage_to_move.state == 'infected' or \
                     event.macrophage_to_move.state == 'chronically_infected':
@@ -675,27 +705,40 @@ class EventHandler:
 
     def process_macrophage_state_change(self, event):
         # Pulling the macrophage from the grid
+        self.logger.debug('MACROPHAGE STATE CHANGE')
         macrophage = self.grid[event.address]['contents']
         macrophage.state = event.new_state
+        self.logger.debug('Macrophage at {0} changes to {1}'.format(event.address, event.new_state))
 
     def process_bacterium_state_change(self, event):
         # Pull bacterium from grid
         bacterium = self.grid[event.address]['contents']
 
+        self.logger.debug('BACTERIUM STATE CHANGE')
+
         if event.type_of_change == 'metabolism':
             bacterium.metabolism = event.new_value
+            self.logger.debug('Bacterium at {0} changes metabolism to {1}'.format(event.address, event.new_value))
         elif event.type_of_change == 'resting':
             bacterium.resting = event.new_value
+            self.logger.debug('Bacterium at {0} changes resting to {1}'.format(event.address, event.new_value))
 
     def process_macrophage_bursting(self, event):
-        macrophage_to_burst = self.grid[event.macrophage_address]['contents']
-        self.set_attribute_work_grid(macrophage_to_burst.address, 'contents', 'caseum')
-        self.caseum.append(macrophage_to_burst.address)
-        self.macrophages.remove(macrophage_to_burst)
+        self.logger.debug('MACROPHAGE BURSTS')
+
+        if self.address_is_on_grid(event.macrophage_address):
+            macrophage_to_burst = self.grid[event.macrophage_address]['contents']
+            self.logger.debug('Macrophage at {0} removed'.format(event.macrophage_address))
+            self.macrophages.remove(macrophage_to_burst)
+            self.logger.debug('Macrophage list: {0}'.format(self.get_macrophage_addresses()))
+            self.caseum.append(macrophage_to_burst.address)
+            self.logger.debug('Caseum list: {0}'.format(self.caseum))
 
         for i in event.bacteria_addresses:
             if i in event.impacted_addresses_allowed and self.address_is_on_grid(i):
                     self.add_bacterium(i, 'slow')
+                    self.logger.debug('Bacteria added to {0}'.format(i))
+                    self.logger.debug('Bacteria list: {0}'.format(self.get_bacteria_addresses()))
 
     def get_bacteria_addresses(self):
         addresses = []
