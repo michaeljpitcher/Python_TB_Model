@@ -494,9 +494,12 @@ class EventHandler:
         :param event:
         :return:
         """
+        self.logger.debug('BACTERIA REPLICATION')
         # Only process if the new bacterium address is on the grid
         if self.address_is_on_grid(event.new_bacterium_address):
             self.add_bacterium(event.new_bacterium_address, event.new_metabolism)
+            self.logger.debug('Added bacteria to {0}'.format(event.new_bacterium_address))
+            self.logger.debug('Bacteria list: {0}'.format(self.get_bacteria_addresses()))
 
         if self.address_is_on_grid(event.original_bacterium_address):
             bacterium = self.grid[event.original_bacterium_address]['contents']
@@ -515,7 +518,10 @@ class EventHandler:
         """
         # Only process if address is on the grid
         if self.address_is_on_grid(event.t_cell_address):
+            self.logger.debug('T-CELL RECRUITMENT')
             self.add_t_cell(event.t_cell_address)
+            self.logger.debug('Added t-cell to {0}'.format(event.t_cell_address))
+            self.logger.debug('T-cell list: {0}'.format(self.get_t_cell_addresses()))
 
     def process_macrophage_recruitment(self, event):
         """
@@ -524,7 +530,10 @@ class EventHandler:
         :return:
         """
         if self.address_is_on_grid(event.macrophage_address):
+            self.logger.debug('MACROPHAGE RECRUITMENT')
             self.add_macrophage(event.macrophage_address, "resting")
+            self.logger.debug('Added macrophage to {0}'.format(event.macrophage_address))
+            self.logger.debug('Macrophage list: {0]'.format(self.get_macrophage_addresses()))
 
     def process_chemo_kill_bacterium(self, event):
         """
@@ -532,8 +541,12 @@ class EventHandler:
         :param event:
         :return:
         """
+        self.logger.debug('CHEMO KILLS BACTERIUM')
         bacterium = self.grid[event.address]['contents']
+        self.logger.debug('Bacterium at {0} removed'.format(event.address))
         self.bacteria.remove(bacterium)
+        self.logger.debug('Bacteria list: {0}'.format(self.get_bacteria_addresses()))
+
 
     def process_chemo_kill_macrophage(self, event):
         """
@@ -541,8 +554,16 @@ class EventHandler:
         :param event:
         :return:
         """
+        self.logger.debug('CHEMO KILLS MACROPHAGE')
         macrophage = self.grid[event.dependant_addresses[0]]['contents']
+        self.logger.debug('Macrophage ay {0} removed'.format(event.dependant_addresses[0]))
         self.macrophages.remove(macrophage)
+        self.logger.debug('Macrophage list: {0}'.format(self.get_macrophage_addresses()))
+        self.grid[event.dependant_addresses[0]]['contents'] = 'caseum'
+        self.caseum.append(event.dependant_addresses[0])
+        self.logger.debug('Caseum added to: {0}'.format(event.dependant_addresses[0]))
+        self.logger.debug('Caseum list: {0}'.format(self.caseum))
+
 
     def process_t_cell_death(self, event):
         """
@@ -550,8 +571,11 @@ class EventHandler:
         :param event:
         :return:
         """
+        self.logger.debug('T-CELL DEATH')
         t_cell_to_die = self.grid[event.address]['contents']
+        self.logger.debug('T-cell at {0} removed'.format(event.address))
         self.t_cells.remove(t_cell_to_die)
+        self.logger.debug('T-cell list: {0}'.format(self.get_t_cell_addresses()))
 
     def process_t_cell_movement(self, event):
         """
@@ -561,20 +585,28 @@ class EventHandler:
         """
         from_address = event.dependant_addresses[0]
         to_address = event.dependant_addresses[1]
+        self.logger.debug('T-CELL MOVEMENT')
         # T-cell moving between 2 cells in the same tile
         if event.internal:
             t_cell = self.grid[from_address]['contents']
             t_cell.address = to_address
+            self.logger.debug('T-cell moved from {0} to {1}'.format(from_address, to_address))
+            self.logger.debug('T-cell list: {0}'.format(self.get_t_cell_addresses()))
         elif self.address_is_on_grid(from_address):  # T-cell is moving to a new tile
             t_cell = self.grid[from_address]['contents']
             self.t_cells.remove(t_cell)
+            self.logger.debug('T-cell moved from {0}'.format(from_address))
+            self.logger.debug('T-cell list: {0}'.format(self.get_t_cell_addresses()))
         elif self.address_is_on_grid(to_address):  # T-cell has arrived from another tile
             event.t_cell_to_move.address = to_address
+            self.logger.debug('T-cell moved to {0}'.format(to_address))
             self.t_cells.append(event.t_cell_to_move)
+            self.logger.debug('T-cell list: {0}'.format(self.get_t_cell_addresses()))
 
     def process_t_cell_kill_macrophage(self, event):
         from_address = event.dependant_addresses[0]
         to_address = event.dependant_addresses[1]
+        self.logger.debug('T-CELL KILLS MACROPHAGE')
         if self.address_is_on_grid(to_address):
             # Turn macrophage into caseum
             macrophage = self.grid[to_address]['contents']
@@ -665,11 +697,29 @@ class EventHandler:
             if i in event.impacted_addresses_allowed and self.address_is_on_grid(i):
                     self.add_bacterium(i, 'slow')
 
+    def get_bacteria_addresses(self):
+        addresses = []
+        for b in self.bacteria:
+            addresses.append(b.address)
+        return addresses
+
+    def get_macrophage_addresses(self):
+        addresses = []
+        for m in self.macrophages:
+            addresses.append(m.address)
+        return addresses
+
+    def get_t_cell_addresses(self):
+        addresses = []
+        for t in self.t_cells:
+            addresses.append(t.address)
+        return addresses
+
 
 class Automaton(Tile, Neighbourhood, EventHandler):
 
     def __init__(self, shape, tile_id, attributes, parameters, blood_vessels, fast_bacteria=None, slow_bacteria=None,
-                 macrophages=None, log_level='error'):
+                 macrophages=None, log_level='debug'):
         Tile.__init__(self, shape, attributes)
         Neighbourhood.__init__(self, len(shape), parameters['max_depth'], self.list_grid_addresses)
         EventHandler.__init__(self)
@@ -721,6 +771,11 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         # INITIAL AGENTS
         self.initialise_bacteria(fast_bacteria, slow_bacteria)
         self.initialise_macrophages(macrophages)
+
+        self.logger.debug('Begin simulation')
+        self.logger.debug('Bacteria list: {0}'.format(self.get_bacteria_addresses()))
+        self.logger.debug('Macrophage list: {0}'.format(self.get_macrophage_addresses()))
+        self.logger.debug('T-cell list: {0}'.format(self.get_t_cell_addresses()))
 
         self.contents_file_path = str(self.tile_id) + '_contents.txt'
         self.oxygen_file_path = str(self.tile_id) + '_oxygen.txt'
