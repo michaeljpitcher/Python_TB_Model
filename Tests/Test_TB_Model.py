@@ -2139,7 +2139,8 @@ class ChemotherapyKillsMacrophageTestCase(unittest.TestCase):
         # Now process
         self.topology.automata[0].process_events([event])
         self.assertEqual(len(self.topology.automata[0].macrophages), 0)
-        self.assertEqual(self.topology.automata[0].grid[1, 1]['contents'], 0.0)
+        self.assertEqual(self.topology.automata[0].grid[1, 1]['contents'], 'caseum')
+        self.assertItemsEqual(self.topology.automata[0].caseum, [(1,1)])
 
     def test_chemokillmacrophage_negative_resting(self):
 
