@@ -1011,6 +1011,9 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
         for address in self.list_grid_addresses:
 
+            # Clear the work grid - agents will be added as they are processed
+            self.work_grid[address]['contents'] = 0.0
+
             cell = self.grid[address]
 
             neighbour_addresses = self.neighbours_von_neumann(address, 1)

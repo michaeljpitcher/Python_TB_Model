@@ -1,0 +1,692 @@
+2016-08-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+2016-08-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+2016-08-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+2016-08-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+2016-08-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+2016-08-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+2016-08-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+2016-08-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+2016-08-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+2016-08-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+2016-08-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+8-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+2016-08-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+2016-08-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+2016-08-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+2016-08-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+2016-08-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+2016-08-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
+2016-08-02 13:37:35,678 : DEBUG : Begin simulation
+2016-08-02 13:37:35,681 : DEBUG : Bacteria list: []
+2016-08-02 13:37:35,684 : DEBUG : Macrophage list: [(2, 1)]
+2016-08-02 13:37:35,687 : DEBUG : T-cell list: []
