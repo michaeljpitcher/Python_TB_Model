@@ -556,7 +556,7 @@ class EventHandler:
         """
         self.logger.debug('CHEMO KILLS MACROPHAGE')
         macrophage = self.grid[event.dependant_addresses[0]]['contents']
-        self.logger.debug('Macrophage ay {0} removed'.format(event.dependant_addresses[0]))
+        self.logger.debug('Macrophage at {0} removed'.format(event.dependant_addresses[0]))
         self.macrophages.remove(macrophage)
         self.logger.debug('Macrophage list: {0}'.format(self.get_macrophage_addresses()))
         self.caseum.append(event.dependant_addresses[0])
@@ -611,7 +611,7 @@ class EventHandler:
             macrophage = self.grid[to_address]['contents']
             self.logger.debug('Macrophage at {0} removed'.format(to_address))
             self.macrophages.remove(macrophage)
-            self.logger.debug('Macrophage list: '.format(self.get_macrophage_addresses()))
+            self.logger.debug('Macrophage list: {0}'.format(self.get_macrophage_addresses()))
             self.logger.debug('Caseum added to {0}'.format(to_address))
             self.caseum.append(to_address)
             self.logger.debug('Caseum list: {0}'.format(self.caseum))
@@ -770,7 +770,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         # Setup logging facility for outputting to logs. Will write to automaton#.log, where # = tile ID
         self.logger = logging.getLogger(str(tile_id))
         formatter = logging.Formatter('%(asctime)s : %(levelname)s : %(message)s')
-        file_handler = logging.FileHandler('automaton' + str(tile_id) + '.log', mode='w')
+        file_handler = logging.FileHandler('logs/automaton' + str(tile_id) + '.log', mode='w')
         file_handler.setFormatter(formatter)
         self.logger.addHandler(file_handler)
         self.logger.setLevel(log_level.upper())
