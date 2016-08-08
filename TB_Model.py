@@ -3,7 +3,6 @@ import math
 import itertools
 from collections import Counter
 import os
-import logging
 
 '''
 Tuberculosis Automaton Model
@@ -28,6 +27,10 @@ Danger Zone - the cells in a tile which will be required by other tiles (i.e. ar
 
 
 class Topology:
+    """
+    Class that handles data transfer between a set of distinct automata. Determines what cells each tile needs from
+    other tiles and constructs the halos that are passed between
+    """
 
     def __init__(self, tile_arrangement, total_shape, attributes, parameters, blood_vessel_local,
                  fast_bacteria_local, slow_bacteria_local, macrophages_local):
@@ -37,6 +40,7 @@ class Topology:
         self.tile_shape = self.total_shape / tile_arrangement
         self.tile_arrangement = tile_arrangement
 
+        # List of automata - each tile acts as it's own automata and runs updates independently of other tiles
         self.automata = []
 
         # Create automata
@@ -96,6 +100,7 @@ class TwoDimensionalTopology(Topology):
         assert len(total_shape) == 2
         self.number_of_tiles = reduce(lambda a, q: a * q, tile_arrangement)
         self.total_shape = np.array(total_shape)
+        # Calculate each tile shape by dividing total shape by tile arrangement
         self.tile_shape = self.total_shape / tile_arrangement
         self.tile_arrangement = tile_arrangement
 
@@ -120,7 +125,7 @@ class TwoDimensionalTopology(Topology):
                 y = 0
                 x += self.tile_shape[0]
 
-        # Get a list of every global address needed
+        # Get a list of every global address needed - every address that's on one tile but needed by another tile
         self.global_addresses_required = []
         for automaton in self.automata:
             # for b in automaton.halo_addresses:
@@ -130,9 +135,12 @@ class TwoDimensionalTopology(Topology):
                     self.global_addresses_required.append(address)
 
         # Use required global addresses to create danger zones on tiles
+        # Danger zones are addresses on a tile that are required by other tiles
         self.danger_zone_addresses = dict()
+        # Set up empty lists
         for tile_id in range(self.number_of_tiles):
             self.danger_zone_addresses[tile_id] = []
+        # Loop through each of the global addresses required, convert them into local coordinates
         for global_address in self.global_addresses_required:
             tile_id, local_address = self.global_to_local(global_address)
             if local_address not in self.danger_zone_addresses[tile_id]:
@@ -144,7 +152,7 @@ class TwoDimensionalTopology(Topology):
 
     def normalise_address(self, address):
         """
-        Normalise the address
+        Normalise the address - converts addresses outside the boundary into required values
         :param address:
         :return: None if outside the global boundary, else the address
         """
@@ -202,33 +210,38 @@ class TwoDimensionalTopology(Topology):
 
     def create_halos(self, danger_zone_values):
         """
-
-        :param danger_zone_values:
+        Turn the danger zone cell values into halo values. Uses the pre-determined addresses.
+        :param danger_zone_values: The values of cells in danger zone.
         :return:
         """
-
         global_cells_required = dict()
 
         # From the lists of danger zone values, turn each into an entry in the global cells required dictionary
+        # Check DZ cells for each tile
         for tile_id in range(self.number_of_tiles):
+            # Get the addresses for this tile
             dz_addresses = self.danger_zone_addresses[tile_id]
             dz_cells = danger_zone_values[tile_id]
             for index in range(len(dz_cells)):
+                # Convert to a global coordinate and store
                 global_address = self.local_to_global(tile_id, dz_addresses[index])
                 global_cells_required[global_address] = dz_cells[index]
 
+        # Now have a list of global addresses and their cell values. Turn these into the halos
         halos = []
         for tile_id in range(self.number_of_tiles):
             halo = []
+            # Loop through each required halo address
             for address_required in self.external_addresses_required:
+                # Find it's global entry and store
                 global_address = self.local_to_global(tile_id, address_required)
+                # Store none if off the grid
                 if global_address is None:
                     halo.append(None)
                 else:
                     value = global_cells_required[global_address]
                     halo.append(value)
             halos.append(halo)
-
         return halos
 
     def get_local_addresses(self, global_addresses):
@@ -250,42 +263,34 @@ class TwoDimensionalTopology(Topology):
 
 
 class Tile:
+    """
+    The data storage of the automata. Contains the grid where values and events are calculated from, the work grid where
+    new values are entered into
+    """
 
     def __init__(self, shape, attributes):
         self.shape = shape
         self.attributes = attributes
         self.size = reduce(lambda x, y: x * y, shape)
 
+        # List of addresses - stored to allow easy iteration through every cell
         self.list_grid_addresses = []
         self.list_halo_addresses = []
 
+        # Grids are dictionaries, keys are coordinates as tuples e.g. (0,0) and values are dictionaries of attributes
         self.grid = dict()
         self.work_grid = dict()
+        # Populate address list and grid
         for i in range(self.size):
+            # Turn integer value into address tuple
             address = np.unravel_index(i, self.shape)
+            # Cell value is a dictionary, where each key is an attribute
             self.grid[address] = dict()
             for a in attributes:
                 self.grid[address][a] = 0.0
             self.list_grid_addresses.append(address)
-
         self.danger_zone_addresses = []
         self.halo_depth1 = []
-
-    def create_grid(self, attributes):
-        """
-        Create a grid where cells are dictionaries of given attributes
-        :param attributes:
-        :return:
-        """
-
-        cells = []
-        for i in range(self.size):
-            cell = dict()
-            for att in attributes:
-                cell[att] = 0.0
-            cells.append(cell)
-        # Turn flat list into the necessary dimensional array
-        return np.array(cells).reshape(self.shape)
 
     def create_work_grid(self):
         """
@@ -294,9 +299,9 @@ class Tile:
         """
         work_grid = dict()
         for address in self.list_grid_addresses:
+            # Need to copy() else just points to original grid
             cell = self.grid[address].copy()
             work_grid[address] = cell
-
         self.work_grid = work_grid
 
     def swap_grids(self):
@@ -308,14 +313,14 @@ class Tile:
 
     def address_is_on_grid(self, address):
         """
-        Check if address is within the boundaries
+        Check if address is within the boundaries of the tile
         :param address:
         :return:
         """
+        # Compare each coordinate against the shape, if any one is outside return False
         for i in range(len(address)):
             if address[i] < 0 or address[i] >= self.shape[i]:
                 return False
-
         return True
 
     def set_addresses_for_danger_zone(self, addresses):
@@ -326,15 +331,31 @@ class Tile:
         Get the cell values of cells in the danger zone
         :return:
         """
+        # Pull each address in stored danger zone addresses and get its value from grid
         return [self.grid[address] for address in self.danger_zone_addresses]
 
     def configure_halo_addresses(self, external_addresses_required, depth1_addresses):
+        """
+        Given halo addresses, add them to the grid structure for easy reference
+        :param external_addresses_required:
+        :param depth1_addresses:
+        :return:
+        """
+        # By adding halo to the grid, means don't need to check for where a cell is (i.e. if its on tile or in halo)
+        # For each halo address, add an empty cell to grid and add address to list
         for halo_address in external_addresses_required:
             self.grid[halo_address] = dict()
             self.list_halo_addresses.append(halo_address)
+        # Store the depth 1 halo
         self.halo_depth1 = depth1_addresses
 
     def set_halo(self, halo):
+        """
+        Given a set of halo cells, assign the cells to the grid in correct locations
+        :param halo:
+        :return:
+        """
+        # Use the already stored list_halo_addresses as guide for where to store each cell value
         for index in range(len(halo)):
             address = self.list_halo_addresses[index]
             self.grid[address] = halo[index]
@@ -347,7 +368,8 @@ class Tile:
         :param value:
         :return:
         """
-        if attribute in self.grid[address].keys():
+        # Check that the attribute exists, if so, then set the value to given cell
+        if attribute in self.attributes:
             self.grid[address][attribute] = value
         else:  # Specified attribute hasn't been set as a possibility
             raise Exception('Attribute {0} does not exist'.format(attribute))
@@ -360,6 +382,7 @@ class Tile:
         :param value:
         :return:
         """
+        # Check that the attribute exists, if so, then set the value to given cell
         if attribute in self.attributes:
             self.work_grid[address][attribute] = value
         else:  # Specified attribute hasn't been set as a possibility
@@ -367,32 +390,55 @@ class Tile:
 
 
 class Neighbourhood:
+    """
+    Data structure to calculate addresses. Upon initialisation, loops through every cell and calculates all neighbours
+    that may be needed and stores them in a dictionary for future lookup.
+    """
 
     def __init__(self, dimensions, max_depth, list_addresses):
         self.max_depth = max_depth
         self.dimensions = dimensions
 
+        # Dictionaries of neighbour addresses. Keys are addresses of cells, values are dictionaries - these have keys
+        # 1 to max_depth and values are lists of neighbours
+        # e.g. Moore neighbours of address (1,1) to a depth of 2 would be self.moore_neighbours[(1,1)][2]
+        # Functions neighbours_moore and neighbours_von_neumann obfuscates this
+        # THESE ARE NON-INCLUSIVE (to save data size and make searching for space at succesive levels easier), so a full
+        # moore neighbourhood of depth 2 needs to look at depth 1 and then depth 2
         self.moore_neighbours = dict()
         self.von_neumann_neighbours = dict()
 
+        # Lists of relative neighbour address (i.e. neighbours of (0,0)) which are used to calculate actual neighbours
+        # through addition of coordinate values
         self.moore_relative = []
         self.von_neumann_relative = []
         self.populate_neighbour_tables(list_addresses)
 
     def populate_neighbour_tables(self, list_addresses):
+        """
+        Populates the full neighbour tables. First calculates the neighbour values relative to (0,0), then uses these
+        against the actual addresses to create the lists
+        e.g. von_neumann_relative[1] = [(-1,0), (0,-1), (0,1), (1,0)]
+          then for, say, address (1,1) each value is added to (1,1) in turn to get
+          [(0,1), (1,0), (1,2), (2,1)]
+        :param list_addresses:
+        :return:
+        """
+        # Initialise empty dictionaries
         self.moore_relative = dict()
         self.von_neumann_relative = dict()
-
+        # Add an entry for each depth
         for d in range(1, self.max_depth + 1):
             self.von_neumann_relative[d] = []
 
-        for d in range(self.max_depth):
-            depth = d + 1
-            # Get truth table values
+        for depth in range(1, self.max_depth+1):
+            # Get truth table values (e.g. depth 2 gives [-2,-1,0,1,2] for range_)
             range_ = range(-depth, depth + 1)
+            # Use product to find all combinations for given depth and number of dimensions
             row = list(itertools.product(range_, repeat=self.dimensions))
-            # Remove the (0,0) entry
+            # Remove the 0 entry e.g. (0,0) for 2 dimensions
             row.remove((0,) * self.dimensions)
+
             reduced_row_moore = []
             self.von_neumann_relative[depth] = []
             for neighbour in row:
@@ -408,45 +454,79 @@ class Neighbourhood:
                         break
             self.moore_relative[depth] = reduced_row_moore
 
+        # Having calculated the relative Moore and VN addresses, apply these to every address to get a list of neighbour
+        # addresses at varying depths for each address
         for address in list_addresses:
-
             self.moore_neighbours[address] = dict()
             self.von_neumann_neighbours[address] = dict()
-
+            # Loop through each depth
             for depth in range(1, self.max_depth+1):
-
+                # Apply the Moore neighbours and write to dictionary
                 table = self.moore_relative[depth]
                 output = [tuple(address[j] + table[i][j] for j in range(len(address))) for i in range(len(table))]
                 self.moore_neighbours[address][depth] = output
-
+                # Apply the Von neumann neighbours and write to dictionary
                 table = self.von_neumann_relative[depth]
                 output = [tuple(address[j] + table[i][j] for j in range(len(address))) for i in range(len(table))]
                 self.von_neumann_neighbours[address][depth] = output
 
     def configure_neighbourhood_for_halo(self, halo_addresses):
+        """
+        Apply the neighbour calculation to the addresses in the halo (needed for calculation of caseum in neighbourhoods
+        to reduce diffusion
+        :param halo_addresses:
+        :return:
+        """
+        # Loop through each halo address
         for address in halo_addresses:
-
+            # Initially empty lists
             self.moore_neighbours[address] = dict()
             self.von_neumann_neighbours[address] = dict()
-
+            # Loop through each depth up to max depth
             for depth in range(1, self.max_depth + 1):
-
+                # Apply the Moore neighbours and write to dictionary
                 table = self.moore_relative[depth]
                 output = [tuple(address[j] + table[i][j] for j in range(len(address))) for i in range(len(table))]
                 self.moore_neighbours[address][depth] = output
-
+                # Apply the VN neighbours and write to dictionary
                 table = self.von_neumann_relative[depth]
                 output = [tuple(address[j] + table[i][j] for j in range(len(address))) for i in range(len(table))]
                 self.von_neumann_neighbours[address][depth] = output
 
     def neighbours_moore(self, address, depth=1):
+        """
+        Get the Moore neighbours at given depth for given address
+        :param address:
+        :param depth: Defaults to 1
+        :return:
+        """
         return self.moore_neighbours[address][depth]
 
     def neighbours_von_neumann(self, address, depth=1):
+        """
+        Get the von Neumann neighbours at given depth for given address
+        :param address:
+        :param depth: Defaults to 1
+        :return:
+        """
         return self.von_neumann_neighbours[address][depth]
 
 
+# TODO - COMP - not too keen on having this as a separate class, could just as easily be in the automaton class
 class EventHandler:
+    """
+    Receives events (which have been deemed acceptable to perform) and performs them, altering agent values, adding and
+    deleting where appropriate. The agents will be then be persisted onto the work grid.
+    Because events can cross boundaries, need to check where each event affects. So check that the addresses affected
+    lie on the grid.
+    e.g. A macrophage moving from (a) to (b). (a) is on tile 0, (b) is on tile 1. When processed, the event is split
+    into 2 events - the removal of macrophage from (a) on tile 0 and the addition of macrophage to (b) on tile 1. So
+    event handler needs to ensure it only completes the actions of the event that relate to its tile (by checking
+    self.address_is_on_grid where necessary)
+    Also, where possible, pull agents from the grid not the event - passing events back and forth may change where
+    they're stored in memory. So if an agent moves from (a) to (b) use the reference that exists in cell (a) to locate
+    the agent
+    """
 
     def __init__(self):
         pass
@@ -494,15 +574,16 @@ class EventHandler:
         :param event:
         :return:
         """
-        self.logger.debug('BACTERIA REPLICATION')
-        # Only process if the new bacterium address is on the grid
+        # TODO - comments from here
+        # Is the new bacterium address on the grid
         if self.address_is_on_grid(event.new_bacterium_address):
+            # Add new bacterium to grid
             self.add_bacterium(event.new_bacterium_address, event.new_metabolism)
-            self.logger.debug('Added bacteria to {0}'.format(event.new_bacterium_address))
-            self.logger.debug('Bacteria list: {0}'.format(self.get_bacteria_addresses()))
-
+        # Is the original bacteria address on the grid
         if self.address_is_on_grid(event.original_bacterium_address):
+            # Pull the bacterium from the grid
             bacterium = self.grid[event.original_bacterium_address]['contents']
+            # Reset age
             bacterium.age = 0.0
             # Swap the division neighbourhood
             if bacterium.division_neighbourhood == 'mo':
@@ -518,10 +599,7 @@ class EventHandler:
         """
         # Only process if address is on the grid
         if self.address_is_on_grid(event.t_cell_address):
-            self.logger.debug('T-CELL RECRUITMENT')
             self.add_t_cell(event.t_cell_address)
-            self.logger.debug('Added t-cell to {0}'.format(event.t_cell_address))
-            self.logger.debug('T-cell list: {0}'.format(self.get_t_cell_addresses()))
 
     def process_macrophage_recruitment(self, event):
         """
@@ -530,10 +608,7 @@ class EventHandler:
         :return:
         """
         if self.address_is_on_grid(event.macrophage_address):
-            self.logger.debug('MACROPHAGE RECRUITMENT')
             self.add_macrophage(event.macrophage_address, "resting")
-            self.logger.debug('Added macrophage to {0}'.format(event.macrophage_address))
-            self.logger.debug('Macrophage list: {0}'.format(self.get_macrophage_addresses()))
 
     def process_chemo_kill_bacterium(self, event):
         """
@@ -541,12 +616,8 @@ class EventHandler:
         :param event:
         :return:
         """
-        self.logger.debug('CHEMO KILLS BACTERIUM')
         bacterium = self.grid[event.address]['contents']
-        self.logger.debug('Bacterium at {0} removed'.format(event.address))
         self.bacteria.remove(bacterium)
-        self.logger.debug('Bacteria list: {0}'.format(self.get_bacteria_addresses()))
-
 
     def process_chemo_kill_macrophage(self, event):
         """
@@ -554,14 +625,9 @@ class EventHandler:
         :param event:
         :return:
         """
-        self.logger.debug('CHEMO KILLS MACROPHAGE')
         macrophage = self.grid[event.dependant_addresses[0]]['contents']
-        self.logger.debug('Macrophage at {0} removed'.format(event.dependant_addresses[0]))
         self.macrophages.remove(macrophage)
-        self.logger.debug('Macrophage list: {0}'.format(self.get_macrophage_addresses()))
         self.caseum.append(event.dependant_addresses[0])
-        self.logger.debug('Caseum added to: {0}'.format(event.dependant_addresses[0]))
-        self.logger.debug('Caseum list: {0}'.format(self.caseum))
 
 
     def process_t_cell_death(self, event):
@@ -570,11 +636,8 @@ class EventHandler:
         :param event:
         :return:
         """
-        self.logger.debug('T-CELL DEATH')
         t_cell_to_die = self.grid[event.address]['contents']
-        self.logger.debug('T-cell at {0} removed'.format(event.address))
         self.t_cells.remove(t_cell_to_die)
-        self.logger.debug('T-cell list: {0}'.format(self.get_t_cell_addresses()))
 
     def process_t_cell_movement(self, event):
         """
@@ -584,99 +647,67 @@ class EventHandler:
         """
         from_address = event.dependant_addresses[0]
         to_address = event.dependant_addresses[1]
-        self.logger.debug('T-CELL MOVEMENT')
         # T-cell moving between 2 cells in the same tile
         if event.internal:
             t_cell = self.grid[from_address]['contents']
             t_cell.address = to_address
-            self.logger.debug('T-cell moved from {0} to {1}'.format(from_address, to_address))
-            self.logger.debug('T-cell list: {0}'.format(self.get_t_cell_addresses()))
         elif self.address_is_on_grid(from_address):  # T-cell is moving to a new tile
             t_cell = self.grid[from_address]['contents']
             self.t_cells.remove(t_cell)
-            self.logger.debug('T-cell moved from {0}'.format(from_address))
-            self.logger.debug('T-cell list: {0}'.format(self.get_t_cell_addresses()))
         elif self.address_is_on_grid(to_address):  # T-cell has arrived from another tile
             event.t_cell_to_move.address = to_address
-            self.logger.debug('T-cell moved to {0}'.format(to_address))
             self.t_cells.append(event.t_cell_to_move)
-            self.logger.debug('T-cell list: {0}'.format(self.get_t_cell_addresses()))
 
     def process_t_cell_kill_macrophage(self, event):
         from_address = event.dependant_addresses[0]
         to_address = event.dependant_addresses[1]
-        self.logger.debug('T-CELL KILLS MACROPHAGE')
         if self.address_is_on_grid(to_address):
             # Turn macrophage into caseum
             macrophage = self.grid[to_address]['contents']
-            self.logger.debug('Macrophage at {0} removed'.format(to_address))
             self.macrophages.remove(macrophage)
-            self.logger.debug('Macrophage list: {0}'.format(self.get_macrophage_addresses()))
-            self.logger.debug('Caseum added to {0}'.format(to_address))
             self.caseum.append(to_address)
-            self.logger.debug('Caseum list: {0}'.format(self.caseum))
 
         if self.address_is_on_grid(from_address):
             # Remove t-cell
             t_cell = self.grid[from_address]['contents']
-            self.logger.debug('T-cell at {0} removed'.format(from_address))
             self.t_cells.remove(t_cell)
-            self.logger.debug('T-Cell list: {0}'.format(self.get_t_cell_addresses()))
 
     def process_macrophage_death(self, event):
         # Resting or active die, infected/chronically infected turn to caseum
-        self.logger.debug('MACROPHAGE DEATH')
         macrophage_to_die = self.grid[event.address]['contents']
-        self.logger.debug('Macrophage at {0} removed'.format(event.address))
         if macrophage_to_die.state == 'infected' or macrophage_to_die.state == 'chronically_infected':
             self.caseum.append(macrophage_to_die.address)
-            self.logger.debug('Caseum added at {0}'.format(event.address))
-            self.logger.debug('Caseum list: {0}'.format(self.caseum))
         # Remove macrophage
         self.macrophages.remove(macrophage_to_die)
-        self.logger.debug('Macrophage list: {0}'.format(self.get_macrophage_addresses()))
 
     def process_macrophage_movement(self, event):
         from_address = event.dependant_addresses[0]
         to_address = event.dependant_addresses[1]
         # Macrophage moving between 2 cells in the same tile
-        self.logger.debug('MACROPHAGE MOVEMENT')
         if event.internal:
             macrophage = self.grid[from_address]['contents']
-            self.logger.debug('Macrophage moved from {0} to {1}'.format(from_address, to_address))
             macrophage.address = to_address
-            self.logger.debug('Macrophage list: {0}'.format(self.get_macrophage_addresses()))
         elif self.address_is_on_grid(from_address):  # Macrophage is moving to a new tile
             # Remove macrophage
             macrophage = self.grid[from_address]['contents']
-            self.logger.debug('Macrophage moved from {0}'.format(from_address))
             self.macrophages.remove(macrophage)
-            self.logger.debug('Macrophage list: {0}'.format(self.get_macrophage_addresses()))
         elif self.address_is_on_grid(to_address):  # Macrophage has arrived from another tile
             # Add macrophage
             event.macrophage_to_move.address = to_address
-            self.logger.debug('Macrophage moved to {0}'.format(to_address))
             self.macrophages.append(event.macrophage_to_move)
-            self.logger.debug('Macrophage list: {0}'.format(self.get_macrophage_addresses()))
 
     def process_macrophage_kills_bacterium(self, event):
         from_address = event.dependant_addresses[0]
         to_address = event.dependant_addresses[1]
-
-        self.logger.debug('MACROPHAGE KILLS BACTERIUM')
 
         # Macrophage moving between 2 cells in the same tile
         if event.internal:
             # Move macrophage
             macrophage = self.grid[from_address]['contents']
             macrophage.address = to_address
-            self.logger.debug('Macrophage moved from {0} to {1}'.format(from_address, to_address))
-            self.logger.debug('Macrophage list: {0}'.format(self.get_macrophage_addresses()))
             # Remove bacterium
             bacterium = self.grid[to_address]['contents']
-            self.logger.debug('Bacteria removed from {0}'.format(to_address))
             self.bacteria.remove(bacterium)
-            self.logger.debug('Bacteria list: {0}'.format(self.get_bacteria_addresses()))
 
             if macrophage.state == 'resting' or macrophage.state == 'infected' or macrophage.state == \
                     'chronically_infected':
@@ -685,18 +716,12 @@ class EventHandler:
 
         elif self.address_is_on_grid(from_address):  # Macrophage is moving to a new tile
             macrophage = self.grid[from_address]['contents']
-            self.logger.debug('Macrophage moved from {0}'.format(from_address))
             self.macrophages.remove(macrophage)
-            self.logger.debug('Macrophage list: {0}'.format(self.get_macrophage_addresses()))
         elif self.address_is_on_grid(to_address):  # Macrophage has arrived from another tile
             event.macrophage_to_move.address = to_address
-            self.logger.debug('Macrophage added to {0}'.format(to_address))
             self.macrophages.append(event.macrophage_to_move)
-            self.logger.debug('Macrophage list: {0}'.format(self.get_macrophage_addresses()))
             bacterium = self.grid[to_address]['contents']
-            self.logger.debug('Bacterium removed from {0}'.format(to_address))
             self.bacteria.remove(bacterium)
-            self.logger.debug('Bacteria list: {0}'.format(self.get_bacteria_addresses()))
 
             if event.macrophage_to_move.state == 'resting' or event.macrophage_to_move.state == 'infected' or \
                     event.macrophage_to_move.state == 'chronically_infected':
@@ -705,40 +730,28 @@ class EventHandler:
 
     def process_macrophage_state_change(self, event):
         # Pulling the macrophage from the grid
-        self.logger.debug('MACROPHAGE STATE CHANGE')
         macrophage = self.grid[event.address]['contents']
         macrophage.state = event.new_state
-        self.logger.debug('Macrophage at {0} changes to {1}'.format(event.address, event.new_state))
 
     def process_bacterium_state_change(self, event):
         # Pull bacterium from grid
         bacterium = self.grid[event.address]['contents']
 
-        self.logger.debug('BACTERIUM STATE CHANGE')
-
         if event.type_of_change == 'metabolism':
             bacterium.metabolism = event.new_value
-            self.logger.debug('Bacterium at {0} changes metabolism to {1}'.format(event.address, event.new_value))
         elif event.type_of_change == 'resting':
             bacterium.resting = event.new_value
-            self.logger.debug('Bacterium at {0} changes resting to {1}'.format(event.address, event.new_value))
 
     def process_macrophage_bursting(self, event):
-        self.logger.debug('MACROPHAGE BURSTS')
 
         if self.address_is_on_grid(event.macrophage_address):
             macrophage_to_burst = self.grid[event.macrophage_address]['contents']
-            self.logger.debug('Macrophage at {0} removed'.format(event.macrophage_address))
             self.macrophages.remove(macrophage_to_burst)
-            self.logger.debug('Macrophage list: {0}'.format(self.get_macrophage_addresses()))
             self.caseum.append(macrophage_to_burst.address)
-            self.logger.debug('Caseum list: {0}'.format(self.caseum))
 
         for i in event.bacteria_addresses:
             if i in event.impacted_addresses_allowed and self.address_is_on_grid(i):
                     self.add_bacterium(i, 'slow')
-                    self.logger.debug('Bacteria added to {0}'.format(i))
-                    self.logger.debug('Bacteria list: {0}'.format(self.get_bacteria_addresses()))
 
     def get_bacteria_addresses(self):
         addresses = []
@@ -766,14 +779,6 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         Tile.__init__(self, shape, attributes)
         Neighbourhood.__init__(self, len(shape), parameters['max_depth'], self.list_grid_addresses)
         EventHandler.__init__(self)
-
-        # Setup logging facility for outputting to logs. Will write to automaton#.log, where # = tile ID
-        self.logger = logging.getLogger(str(tile_id))
-        formatter = logging.Formatter('%(asctime)s : %(levelname)s : %(message)s')
-        file_handler = logging.FileHandler('logs/automaton' + str(tile_id) + '.log', mode='w')
-        file_handler.setFormatter(formatter)
-        self.logger.addHandler(file_handler)
-        self.logger.setLevel(log_level.upper())
 
         # Max depth must be +1 or more greater than the caseum distance as we need to work out diffusion rates one
         # cell deep into the halo
@@ -814,11 +819,6 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         # INITIAL AGENTS
         self.initialise_bacteria(fast_bacteria, slow_bacteria)
         self.initialise_macrophages(macrophages)
-
-        self.logger.debug('Begin simulation')
-        self.logger.debug('Bacteria list: {0}'.format(self.get_bacteria_addresses()))
-        self.logger.debug('Macrophage list: {0}'.format(self.get_macrophage_addresses()))
-        self.logger.debug('T-cell list: {0}'.format(self.get_t_cell_addresses()))
 
         self.contents_file_path = str(self.tile_id) + '_contents.txt'
         self.oxygen_file_path = str(self.tile_id) + '_oxygen.txt'
@@ -865,7 +865,6 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         """
 
         self.time += 1
-        self.logger.debug('Timestep: {0}'.format(self.time))
 
         # ----------------------------
         # CONTINUOUS (Diffusion)
@@ -927,28 +926,6 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
         # Reorder events
         self.reorder_events()
-
-    def reorder_events(self):
-        # TODO - COMP - other methods - currently just random
-        np.random.shuffle(self.potential_events)
-
-    def process_events(self, events):
-        """
-        Given a list of acceptable addresses, pass to the Event Handler to update the grid
-        :param events:
-        :return:
-        """
-        for event in events:
-            self.handle_event(event)
-
-        # Ensure all agents are put onto the work grid
-        self.persist_agents()
-        # Swap work grid with main grid
-        self.swap_grids()
-
-        # Record state
-        if self.time % self.parameters['interval_to_record_results'] == 0.0:
-            self.record_state()
 
     def diffusion_pre_process(self):
 
@@ -1456,6 +1433,28 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                             break
                     if space_found:
                         break
+
+    def reorder_events(self):
+        # TODO - COMP - other methods - currently just random
+        np.random.shuffle(self.potential_events)
+
+    def process_events(self, events):
+        """
+        Given a list of acceptable addresses, pass to the Event Handler to update the grid
+        :param events:
+        :return:
+        """
+        for event in events:
+            self.handle_event(event)
+
+        # Ensure all agents are put onto the work grid
+        self.persist_agents()
+        # Swap work grid with main grid
+        self.swap_grids()
+
+        # Record state
+        if self.time % self.parameters['interval_to_record_results'] == 0.0:
+            self.record_state()
 
     def set_max_oxygen_global(self, max_oxygen):
         self.max_oxygen_global = max_oxygen
