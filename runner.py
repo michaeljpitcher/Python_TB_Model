@@ -15,9 +15,9 @@ def run_single(topology, time_limit):
 
     halo_addresses = topology.external_addresses_required
 
-    empty_halo = dict()
+    empty_halo = []
     for a in halo_addresses:
-        empty_halo[a] = None
+        empty_halo.append(None)
 
     print 'Running simulation...'
     simulation_start_time = time.time()
@@ -46,6 +46,7 @@ def run_many_serial(topology, time_limit):
     print "Method: Many serial"
 
     number_tiles = len(topology.automata)
+    dt = topology.automata[0].parameters['time_step']
 
     # HALOS
     dz_addresses = []
@@ -65,7 +66,7 @@ def run_many_serial(topology, time_limit):
     print 'Running simulation...'
     simulation_start_time = time.time()
     for t in range(1, time_limit+1):
-        print "TIME-STEP:", t
+        print "TIME-STEP:", t*dt
 
         max_oxygen = 0.0
         max_chemotherapy = 0.0
@@ -140,6 +141,8 @@ def run_many_parallel(topology, time_limit, json_controller_path):
     print "Method: Many parallel"
     number_tiles = len(topology.automata)
 
+    dt = topology.automata[0].parameters['time_step']
+
     # HALOS
     dz_addresses = []
     for tile_id_of_event in range(number_tiles):
@@ -182,7 +185,7 @@ def run_many_parallel(topology, time_limit, json_controller_path):
     print 'Running simulation'
     simulation_start_time = time.time()
     for t in range(1, time_limit + 1):
-        print "TIME-STEP:", t
+        print "TIME-STEP:", t*dt
 
         # 1. Get values from engines
         # ---------------- BACK -----------------------------
@@ -298,11 +301,17 @@ def initialise(config, total_shape):
     blood_vessel_addresses = []
 
     if blood_vessels_method == 'hard_code':
-        bv_list = config.get("InitialiseSection", "blood_vessels_hard_code").split("/")
+        bv_list = config.get("InitialiseSection", 'blood_vessels_hard_code').split('/')
         for b in bv_list:
             address = tuple(int(c) for c in b.split(","))
             available_addresses.remove(address)
             blood_vessel_addresses.append(address)
+    elif blood_vessels_method == 'from_file':
+        # TODO - file
+        path = config.get("InitialiseSection", 'blood_vessels_from_file')
+        # Add the values to the list
+        list_of_vessels = [line.rstrip('\n') for line in open(path)]
+        print list_of_vessels
     elif blood_vessels_method == 'random':
         number = config.getint("InitialiseSection", "blood_vessels_random_number")
         assert len(available_addresses) > number
@@ -513,7 +522,7 @@ def main():
     attributes = config.get("CellSection", "attributes").split(",")
 
     # LOAD RUN PARAMETERS
-    time_limit = config.getint("RunParametersSection", "time_limit")
+    time_limit = int(config.getint("RunParametersSection", "time_limit") / parameters['time_step'])
     method = config.get("RunParametersSection", "method")
 
     # LOAD INITIALISATION
