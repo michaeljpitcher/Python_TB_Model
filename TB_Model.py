@@ -1589,6 +1589,77 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             chemokine_file.write(str(self.chemokine_scale(address)))
             chemokine_file.write('\n')
 
+        # Files for counts
+        bacteria_count = len(self.bacteria)
+        # Write fast bacteria numbers to file
+        type1_count = len([n for n in self.bacteria if n.metabolism == 'fast'])
+        type1 = open(str(self.tile_id) + '_type1.txt', 'a')
+        type1.write(str(type1_count))
+        type1.write('\n')
+
+        # Write fast resting bacteria numbers to file
+        type1_r_count = len([n for n in self.bacteria if n.metabolism == 'fast' and n.resting])
+        type1_r = open(str(self.tile_id) + '_type1_r.txt', 'a')
+        type1_r.write(str(type1_r_count))
+        type1_r.write('\n')
+
+        type2_count = len([n for n in self.bacteria if n.metabolism == 'slow'])
+        type2 = open(str(self.tile_id) + '_type2.txt', 'a')
+        type2.write(str(type2_count))
+        type2.write('\n')
+
+        type2_r_count = len([n for n in self.bacteria if n.metabolism == 'slow' and n.resting])
+        type2_r = open(str(self.tile_id) + '_type2_r.txt', 'a')
+        type2_r.write(str(type2_r_count))
+        type2_r.write('\n')
+
+        t_cell_count = len(self.t_cells)
+        type3 = open(str(self.tile_id) + '_type3.txt', 'a')
+        type3.write(str(t_cell_count))
+        type3.write('\n')
+
+        macrophage_count = len(self.macrophages)
+
+        activemac_count = 0
+        restingmac_count = 0
+        infectedmac_count = 0
+        chroninfectedmac_count = 0
+        for m in self.macrophages:
+            if m.state == 'active':
+                activemac_count += 1
+            elif m.state == 'resting':
+                restingmac_count += 1
+            elif m.state == 'infected':
+                infectedmac_count += 1
+            elif m.state == 'chroninfected':
+                chroninfectedmac_count += 1
+        activemac = open(str(self.tile_id) + '_activemac.txt', 'a')
+        activemac.write(str(activemac_count))
+        activemac.write('\n')
+        restingmac = open(str(self.tile_id) + '_restingmac.txt', 'a')
+        restingmac.write(str(restingmac_count))
+        restingmac.write('\n')
+        infectedmac = open(str(self.tile_id) + '_infectedmac.txt', 'a')
+        infectedmac.write(str(infectedmac_count))
+        infectedmac.write('\n')
+        chroninfectedmac = open(str(self.tile_id) + '_chroninfectedmac.txt', 'a')
+        chroninfectedmac.write(str(chroninfectedmac_count))
+        chroninfectedmac.write('\n')
+
+        caseation_count = len(self.caseum)
+        caseation = open(str(self.tile_id) + '_caseation.txt', 'a')
+        caseation.write(str(caseation_count))
+        caseation.write('\n')
+
+        total_count = bacteria_count + macrophage_count + t_cell_count + caseation_count
+        total = open(str(self.tile_id) + '_total.txt', 'a')
+        total.write(str(total_count))
+        total.write('\n')
+
+        intra_bac = open(str(self.tile_id) + '_intra_bac.txt', 'a')
+        intra_bac_count = sum([m.intracellular_bacteria for m in self.macrophages])
+        intra_bac.write(str(intra_bac_count))
+        intra_bac.write('\n')
 
 # ------------------------------
 # AGENTS
