@@ -1181,9 +1181,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 self.potential_events.append(new_event)
 
     def t_cell_processes(self):
-        # TODO - COMP - remove reliance on bacteria
-        if self.number_of_bacteria_global >= self.parameters['bacteria_threshold_for_t_cells'] and \
-                                self.time % self.parameters['t_cell_movement_time'] == 0:
+        if self.time % self.parameters['t_cell_movement_time'] == 0:
 
             for t_cell in self.t_cells:
                 t_cell.age += self.parameters['time_step']
@@ -1242,7 +1240,6 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     # Progress to the next macrophage
                     continue
 
-                # TODO - MED - movement based on time not age
                 if self.time % self.parameters['resting_macrophage_movement_time'] == 0:
 
                     neighbours = [n for n in self.neighbours_moore(macrophage.address, 1) if self.grid[n] is not None]
