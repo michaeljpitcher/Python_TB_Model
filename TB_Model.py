@@ -1453,6 +1453,8 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         if self.time % self.parameters['interval_to_record_results'] == 0.0:
             self.record_state()
 
+        self.record_counts()
+
     def set_max_oxygen_global(self, max_oxygen):
         self.max_oxygen_global = max_oxygen
 
@@ -1588,6 +1590,8 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             # Record chemokine
             chemokine_file.write(str(self.chemokine_scale(address)))
             chemokine_file.write('\n')
+
+    def record_counts(self):
 
         # Files for counts
         bacteria_count = len(self.bacteria)
