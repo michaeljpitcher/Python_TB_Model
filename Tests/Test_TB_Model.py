@@ -1382,6 +1382,7 @@ class BacteriaReplicationTestCase(unittest.TestCase):
         params['chemotherapy_schedule1_start_upper'] = 100
         params['chemotherapy_schedule2_start'] = 200
         params['interval_to_record_results'] = 1000
+        params['t_cell_movement_time'] = 1000
 
         # Set the limits to 1 and 2 - forces random number to be 1 and thus always replicates each step
         params['bacteria_replication_fast_upper'] = 2
@@ -1881,6 +1882,7 @@ class ChemotherapyKillsBacteriaTestCase(unittest.TestCase):
         params['bacteria_replication_slow_upper'] = 99999
         params['bacteria_replication_slow_lower'] = 99998
         params['interval_to_record_results'] = 1000
+        params['t_cell_movement_time'] = 1000
 
         # Scale = 0, so any chemo will kill bacteria (will change later for negative tests)
         params['chemotherapy_scale_for_kill_fast_bacteria'] = 0
@@ -2043,6 +2045,7 @@ class ChemotherapyKillsMacrophageTestCase(unittest.TestCase):
         params['bacteria_to_turn_chronically_infected'] = 99
         params['bacteria_to_burst_macrophage'] = 99
         params['interval_to_record_results'] = 1000
+        params['t_cell_movement_time'] = 1000
 
         params['chemotherapy_scale_for_kill_macrophage'] = 0
 
@@ -2274,22 +2277,6 @@ class TCellDeathTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].t_cells), 0)
         self.assertEqual(self.topology.automata[0].grid[1, 1]['contents'], 0.0)
 
-    def test_tcell_death_negative_bacteria_threshold(self):
-        # Don't think this makes sense, but based on Ruth's code (i.e. why does number of bacteria stop/cause
-        # t-cell death)
-
-        for i in self.topology.automata:
-            i.parameters['bacteria_threshold_for_t_cells'] = 1
-
-        t_cell = TB_Model.TCell([1, 1])
-        self.topology.automata[0].grid[1, 1]['contents'] = t_cell
-        self.topology.automata[0].t_cells.append(t_cell)
-
-        self.sort_out_halos()
-        self.topology.automata[0].update()
-
-        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
-
     def test_tcell_death_negative_movement_time(self):
         # Don't think this makes sense, but based on Ruth's code (i.e. why does movement time for t-cells stop/cause
         # t-cell death)
@@ -2486,20 +2473,6 @@ class TCellMovementTestCase(unittest.TestCase):
 
         self.topology.automata[1].process_events([new_event])
         self.assertTrue(isinstance(self.topology.automata[1].grid[4, 0]['contents'], TB_Model.TCell))
-
-    def test_t_cell_movement_negative_number_bacteria(self):
-
-        for i in self.topology.automata:
-            i.parameters['bacteria_threshold_for_t_cells'] = 1
-
-        t_cell = TB_Model.TCell((1, 1))
-        self.topology.automata[0].grid[1, 1]['contents'] = t_cell
-        self.topology.automata[0].t_cells.append(t_cell)
-
-        self.sort_out_halos()
-        self.topology.automata[0].update()
-
-        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
 
     def test_t_cell_movement_negative_movement_time(self):
 
@@ -2817,6 +2790,7 @@ class MacrophageDeathTestCase(unittest.TestCase):
         params['bacteria_to_turn_chronically_infected'] = 99
         params['bacteria_to_burst_macrophage'] = 99
         params['interval_to_record_results'] = 1000
+        params['t_cell_movement_time'] = 1000
 
         params['time_step'] = 1
         params['resting_macrophage_age_limit'] = 1
@@ -3028,6 +3002,7 @@ class MacrophageMovementTestCase(unittest.TestCase):
         params['bacteria_to_turn_chronically_infected'] = 99
         params['bacteria_to_burst_macrophage'] = 99
         params['interval_to_record_results'] = 1000
+        params['t_cell_movement_time'] = 1000
 
         params['time_step'] = 1
         params['resting_macrophage_age_limit'] = 999
@@ -3403,6 +3378,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
         params['bacteria_to_turn_chronically_infected'] = 99
         params['bacteria_to_burst_macrophage'] = 99
         params['interval_to_record_results'] = 1000
+        params['t_cell_movement_time'] = 1000
 
         params['time_step'] = 1
         params['resting_macrophage_age_limit'] = 999
@@ -3794,6 +3770,7 @@ class MacrophageChangesState(unittest.TestCase):
         params['minimum_chemokine_for_resting_macrophage_movement'] = 0
         params['bacteria_to_turn_chronically_infected'] = 10
         params['interval_to_record_results'] = 1000
+        params['t_cell_movement_time'] = 1000
 
         params['chemokine_scale_for_macrophage_activation'] = 0
         params['chemokine_scale_for_macrophage_deactivation'] = 100
@@ -3959,6 +3936,7 @@ class BacteriaStateChangeTestCase(unittest.TestCase):
         params['chemokine_scale_for_macrophage_deactivation'] = 100
         params['caseum_threshold_to_reduce_diffusion'] = 100
         params['interval_to_record_results'] = 1000
+        params['t_cell_movement_time'] = 1000
 
         params['time_step'] = 4
         params['oxygen_scale_for_metabolism_change_to_slow'] = 100
@@ -4200,6 +4178,7 @@ class MacrophageBurstingTestCase(unittest.TestCase):
         params['oxygen_scale_for_metabolism_change_to_slow'] = 100
         params['oxygen_scale_for_metabolism_change_to_fast'] = 0
         params['interval_to_record_results'] = 1000
+        params['t_cell_movement_time'] = 1000
 
         params['bacteria_to_burst_macrophage'] = 20
 
@@ -4403,6 +4382,7 @@ class OutputWritingTestCase(unittest.TestCase):
         params['interval_to_record_results'] = 1000
         params['bacteria_to_burst_macrophage'] = 20
         params['macrophage_recruitment_probability'] = 0
+        params['t_cell_movement_time'] = 1000
 
         atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
                 'chemotherapy', 'chemokine']
