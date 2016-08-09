@@ -307,11 +307,13 @@ def initialise(config, total_shape):
             available_addresses.remove(address)
             blood_vessel_addresses.append(address)
     elif blood_vessels_method == 'from_file':
-        # TODO - file
         path = config.get("InitialiseSection", 'blood_vessels_from_file')
         # Add the values to the list
         list_of_vessels = [line.rstrip('\n') for line in open(path)]
-        print list_of_vessels
+        for index in range(len(list_of_vessels)):
+            if int(list_of_vessels[index]) > 0.0:
+                address = np.unravel_index(index, total_shape)
+                blood_vessel_addresses.append(address)
     elif blood_vessels_method == 'random':
         number = config.getint("InitialiseSection", "blood_vessels_random_number")
         assert len(available_addresses) > number
