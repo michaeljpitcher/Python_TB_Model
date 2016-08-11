@@ -1233,8 +1233,9 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 # Generate event if probability according to parameters
                 r = np.random.randint(1, 101)
                 if r <= self.parameters['t_cell_recruitment_probability']:
+                    # Get von Neumann neighbours
                     neighbours = self.neighbours_von_neumann(bv_address, 1)
-                    # Get neighbours which are empty and have a high enough chemokine level
+                    # Reduce neighbours to those which are empty and have high enough cheokine level
                     free_neighbours = []
                     for neighbour_address in neighbours:
                         neighbour = self.grid[neighbour_address]
@@ -1246,14 +1247,22 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     if len(free_neighbours) > 0:
                         # Pick one of the neighbours
                         neighbour_address = free_neighbours[np.random.randint(len(free_neighbours))]
+                        # Create event
                         internal = self.address_is_on_grid(neighbour_address)
                         new_event = RecruitTCell(neighbour_address, internal)
                         self.potential_events.append(new_event)
 
     def macrophage_recruitment(self):
+        """
+        Each step for each source vessel, there is a probability that macrophage will be recruited
+        :return:
+        """
+        # Loop through each blood vessel
         for bv_address in self.blood_vessels:
+            # Generate event with probability based on parameters
             r = np.random.randint(1, 101)
             if r <= self.parameters['macrophage_recruitment_probability']:
+                # Get neighbours, then reduce to those that are free and have sufficient chemokine scale
                 neighbours = self.neighbours_von_neumann(bv_address, 1)
                 free_neighbours = []
                 for neighbour_address in neighbours:
@@ -1266,137 +1275,170 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 if len(free_neighbours) > 0:
                     # Pick one of the neighbours
                     chosen_neighbour = free_neighbours[np.random.randint(len(free_neighbours))]
+                    # Create event
                     internal = self.address_is_on_grid(chosen_neighbour)
                     new_event = RecruitMacrophage(chosen_neighbour, internal)
                     self.potential_events.append(new_event)
 
     def chemotherapy_killing_bacteria(self):
+        """
+        Chemotherapy destroys bacterium if the level is high enough
+        :return:
+        """
+        # Loop through all bacteria
         for bacterium in self.bacteria:
+            # Check chemotherapy scale against relevant parameter based on metabolism
             chemo_scale = self.chemotherapy_scale(bacterium.address)
             if (bacterium.metabolism == 'fast' and chemo_scale >
                 self.parameters['chemotherapy_scale_for_kill_fast_bacteria']) \
                     or \
                     (bacterium.metabolism == 'slow' and chemo_scale >
                         self.parameters['chemotherapy_scale_for_kill_slow_bacteria']):
+                # Scale is high enough, so create event to destroy bacterium
                 new_event = ChemoKillBacterium(bacterium.address)
                 self.potential_events.append(new_event)
 
     def chemotherapy_killing_macrophages(self):
+        """
+        Chemotherapy destroys infected macrophage if the level is high enough
+        :return:
+        """
+        # Loop through all macrophages
         for m in self.macrophages:
+            # Check scale against parameter threshold (only for infected or chronically infected macrophages)
             chemo_scale = self.chemotherapy_scale(m.address)
             if ((m.state == 'infected' or m.state == 'chronically_infected') and chemo_scale >
                     self.parameters['chemotherapy_scale_for_kill_macrophage']):
+                # Scale if high enough so create event
                 new_event = ChemoKillMacrophage(m.address)
                 self.potential_events.append(new_event)
 
     def t_cell_processes(self):
+        """
+        T-cells movement, death and apoptosis of other agents
+        :return:
+        """
+        # T-cells only move after set period of time
         if self.time % self.parameters['t_cell_movement_time'] == 0:
 
+            # Loop through all T-cells
             for t_cell in self.t_cells:
+                # Increment age
                 t_cell.age += self.parameters['time_step']
-
+                # Stochastic age threshold
                 age_threshold = np.random.randint(0, self.parameters['t_cell_age_threshold'])
-
                 # T-CELL DEATH
+                # If age > threshold, t-cell dies
                 if t_cell.age >= age_threshold:
                     new_event = TCellDeath(t_cell.address)
                     self.potential_events.append(new_event)
                 else:  # T-CELL MOVE
+                    # T-cells move in biased random walk. Determine if move will be random based on probability in
+                    # parameters
                     random_move = False
                     prob_random_move = np.random.randint(1, 101)
                     if prob_random_move <= self.parameters['t_cell_random_move_probability']:
                         random_move = True
-
+                    # Get neighbours
                     neighbours = self.neighbours_moore(t_cell.address, 1)
+                    # If a random move, pick a neighbour at random
                     if random_move:
-                        possible_neighbours = []
-                        for n in neighbours:
-                            if self.grid[n] is not None:
-                                possible_neighbours.append(n)
+                        # Remove neighbours not on system
+                        possible_neighbours = [n for n in neighbours if self.grid[n] is not None]
                         index = np.random.randint(0, len(possible_neighbours))
                         chosen_neighbour_address = possible_neighbours[index]
-                    else:
+                    else: # Pick the neighbour with the highest chemokine level
                         chosen_index = self.find_max_chemokine_neighbour(neighbours)[0]
                         chosen_neighbour_address = neighbours[chosen_index]
 
                     # Check if leaving the grid
                     internal = self.address_is_on_grid(chosen_neighbour_address)
-
+                    # Get neighbour
                     neighbour = self.grid[chosen_neighbour_address]
-
+                    # Check neighbour is empty, then move T-cell there
                     if neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
                         new_event = TCellMovement(t_cell, t_cell.address, chosen_neighbour_address, internal)
                         self.potential_events.append(new_event)
+                    # Else if the address contains an infected macrophage, then t-cell may kill it
                     elif isinstance(neighbour['contents'], Macrophage) and (neighbour['contents'].state == 'infected'
                                                                             or neighbour[
                             'contents'].state == 'chronically_infected'):
+                        # T-cell killing based on parameter probability
                         prob_t_cell_killing = np.random.randint(1, 101)
                         if prob_t_cell_killing <= self.parameters['t_cell_kills_macrophage_probability']:
                             new_event = TCellKillsMacrophage(t_cell, t_cell.address, chosen_neighbour_address, internal)
                             self.potential_events.append(new_event)
 
     def macrophage_processes(self):
+        """
+        Macrophages move, die and ingest bacteria
+        :return:
+        """
+        # Loop through macrophages
         for macrophage in self.macrophages:
+            # Increment age
             macrophage.age += self.parameters['time_step']
-
+            # Different events/movement rates/death rates depending on state
             if macrophage.state == 'resting':
-
+                # Death by age is stochastic
                 random_macrophage_age = np.random.randint(0, self.parameters['resting_macrophage_age_limit'])
-
                 if macrophage.age >= random_macrophage_age == 0:
+                    # Create an event
                     new_event = MacrophageDeath(macrophage.address)
                     self.potential_events.append(new_event)
                     # Progress to the next macrophage
                     continue
-
+                # Within a set time for movement
                 if self.time % self.parameters['resting_macrophage_movement_time'] == 0:
-
+                    # Chemokine moves on random biased walk. Random move with probability based on parameters, if
+                    # highest chemokine scale at neighbours does not exceed threshold, then also random move
                     neighbours = [n for n in self.neighbours_moore(macrophage.address, 1) if self.grid[n] is not None]
                     chosen_index, max_chemokine_scale = self.find_max_chemokine_neighbour(neighbours)
-
+                    # Generate random number for probability of random move
                     prob_random_move = np.random.randint(1, 101)
                     random_move = False
                     if prob_random_move <= self.parameters['prob_resting_macrophage_random_move'] \
                             or max_chemokine_scale <= \
                             self.parameters['minimum_chemokine_for_resting_macrophage_movement']:
                         random_move = True
-
+                    # Pick the neighbour to move to, either random or highest chemokine scale
                     if random_move:
                         chosen_neighbour_address = neighbours[np.random.randint(0, len(neighbours))]
                     else:
                         chosen_neighbour_address = neighbours[chosen_index]
-
                     # Check if leaving the grid
                     internal = self.address_is_on_grid(chosen_neighbour_address)
-
                     neighbour = self.grid[chosen_neighbour_address]
-
+                    # If neighbour is empty, create a move event
                     if neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
                         new_event = MacrophageMovement(macrophage, macrophage.address, chosen_neighbour_address,
                                                        internal)
                         self.potential_events.append(new_event)
+                    # If neighbour contains a bacterium, ingest it
                     elif isinstance(neighbour['contents'], Bacterium):
                         new_event = MacrophageKillsBacterium(macrophage, macrophage.address, chosen_neighbour_address,
                                                              internal)
                         self.potential_events.append(new_event)
-
+            # Active macrophage processes
             elif macrophage.state == 'active':
+                # Active macrophages die after a set time (not stochastic)
                 if macrophage.age > self.parameters['active_macrophage_age_limit']:
                     new_event = MacrophageDeath(macrophage.address)
                     self.potential_events.append(new_event)
                     # Progress to the next macrophage
                     continue
-
+                # Set time for macrophage movement
                 if self.time % self.parameters['active_macrophage_movement_time'] == 0:
+                    # Active macrophages always move to highest chemokine neighbour
                     neighbours = [n for n in self.neighbours_moore(macrophage.address, 1) if self.grid[n] is not None]
                     chosen_neighbour_address = neighbours[self.find_max_chemokine_neighbour(neighbours)[0]]
-
                     internal = self.address_is_on_grid(chosen_neighbour_address)
                     neighbour = self.grid[chosen_neighbour_address]
-
+                    # If cell to move to has a bacterium
                     if isinstance(neighbour['contents'], Bacterium):
-
+                        # Macrophages ingests with set probability (active macrophages will destroy)
                         prob_macrophage_kill = np.random.randint(1, 101)
+                        # Probabilites differ based on bacterium metabolism
                         if (neighbour['contents'].metabolism == 'fast' and prob_macrophage_kill <= self.parameters[
                                 'prob_active_macrophage_kill_fast_bacteria']) or (
                                 neighbour['contents'].metabolism == 'slow' and prob_macrophage_kill <=
@@ -1404,119 +1446,133 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                             new_event = MacrophageKillsBacterium(macrophage, macrophage.address,
                                                                  chosen_neighbour_address, internal)
                             self.potential_events.append(new_event)
-
+                    # Cell is empty so create a move event
                     elif neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
                         new_event = MacrophageMovement(macrophage, macrophage.address, chosen_neighbour_address,
                                                        internal)
                         self.potential_events.append(new_event)
-
+            # Infected Macrophage processes
             elif macrophage.state == 'infected':
-
+                # Death is stochastic
                 random_macrophage_age = np.random.randint(0, self.parameters['infected_macrophage_age_limit'])
-
                 if macrophage.age >= random_macrophage_age == 0:
                     new_event = MacrophageDeath(macrophage.address)
                     self.potential_events.append(new_event)
                     # Progress to the next macrophage
                     continue
-
+                # Move after certain time
                 if self.time % self.parameters['infected_macrophage_movement_time'] == 0:
+                    # Infected move to highest chemokine neighbour
                     neighbours = [n for n in self.neighbours_moore(macrophage.address, 1) if self.grid[n] is not None]
                     chosen_neighbour_address = neighbours[self.find_max_chemokine_neighbour(neighbours)[0]]
-
                     internal = self.address_is_on_grid(chosen_neighbour_address)
-
                     neighbour = self.grid[chosen_neighbour_address]
-
+                    # Neighbour is empty, so move event
                     if neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
                         new_event = MacrophageMovement(macrophage, macrophage.address, chosen_neighbour_address,
                                                        internal)
                         self.potential_events.append(new_event)
+                    # Neighbour has a bacterium, so kill event
                     elif isinstance(neighbour['contents'], Bacterium):
                         new_event = MacrophageKillsBacterium(macrophage, macrophage.address, chosen_neighbour_address,
                                                              internal)
                         self.potential_events.append(new_event)
-
+            # Chronically infected macrophage processes
             elif macrophage.state == 'chronically_infected':
+                # Stochastic death
                 random_macrophage_age = np.random.randint(0,
                                                           self.parameters['chronically_infected_macrophage_age_limit'])
-
                 if macrophage.age >= random_macrophage_age == 0:
                     new_event = MacrophageDeath(macrophage.address)
                     self.potential_events.append(new_event)
                     # Progress to the next macrophage
                     continue
-
+                # Movement at set times
                 if self.time % self.parameters['chronically_infected_macrophage_movement_time'] == 0:
+                    # Move to highest chemokine scale neighbour
                     neighbours = [n for n in self.neighbours_moore(macrophage.address, 1) if self.grid[n] is not None]
                     chosen_neighbour_address = neighbours[self.find_max_chemokine_neighbour(neighbours)[0]]
-
                     internal = self.address_is_on_grid(chosen_neighbour_address)
                     neighbour = self.grid[chosen_neighbour_address]
-
+                    # Neighbour is empty, so move event
                     if neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
                         new_event = MacrophageMovement(macrophage, macrophage.address, chosen_neighbour_address,
                                                        internal)
                         self.potential_events.append(new_event)
+                    # Neighbour has bacterium, so kill event
                     elif isinstance(neighbour['contents'], Bacterium):
                         new_event = MacrophageKillsBacterium(macrophage, macrophage.address, chosen_neighbour_address,
                                                              internal)
                         self.potential_events.append(new_event)
 
     def macrophage_state_changes(self):
+        """
+        Macrophages change state based on chemokine levels and intracellular bacteria
+        :return:
+        """
+        # Loop through macrophages
         for macrophage in self.macrophages:
-
-            # MACROPHAGE STATE CHANGES
             if macrophage.state == 'resting':
-                # Resting to active
+                # Resting to active if scale exceeds threshold
                 if self.chemokine_scale(macrophage.address) > \
                         self.parameters['chemokine_scale_for_macrophage_activation'] \
                         and macrophage.intracellular_bacteria == 0:
                     new_event = MacrophageChangesState(macrophage.address, 'active')
                     self.potential_events.append(new_event)
-                # Resting to infected
+                # Resting to infected if there is one intracellular bacteria
                 elif macrophage.intracellular_bacteria == 1:
                     new_event = MacrophageChangesState(macrophage.address, 'infected')
                     self.potential_events.append(new_event)
             elif macrophage.state == 'active':
-                # Active to resting
+                # Active to resting if scale is low enough
                 if self.chemokine_scale(macrophage.address) < \
                         self.parameters['chemokine_scale_for_macrophage_deactivation']:
                     new_event = MacrophageChangesState(macrophage.address, 'resting')
                     self.potential_events.append(new_event)
             elif macrophage.state == 'infected':
-                # Infected to Chronically Infected
+                # Infected to Chronically Infected if intracellular bacteria exceeds threshold
                 if macrophage.intracellular_bacteria > self.parameters['bacteria_to_turn_chronically_infected']:
                     new_event = MacrophageChangesState(macrophage.address, 'chronically_infected')
                     self.potential_events.append(new_event)
             elif macrophage.state == 'chronically_infected':
-                # MACROPHAGE BURSTING
+                # Macrophage bursts if intracellular bacteria exceed threshold
                 if macrophage.intracellular_bacteria == self.parameters['bacteria_to_burst_macrophage']:
                     internal = self.address_is_on_grid(macrophage.address)
+                    # Loop through all neighbours (up to depth 3) and try to find enough to distribute bacteria on to
                     bacteria_addresses = []
                     for depth in range(1, 4):
                         neighbours = self.neighbours_moore(macrophage.address, depth)
                         # Shuffle the neighbours so we don't give priority
                         np.random.shuffle(neighbours)
                         for n in neighbours:
+                            # Find empty neighbours
                             if self.grid[n] is not None and self.grid[n]['contents'] == 0.0 and \
                                             self.grid[n]['blood_vessel'] == 0.0:
                                 bacteria_addresses.append(n)
+                                # If an address is off the tile then event will be external
                                 if not self.address_is_on_grid(n):
                                     internal = False
+                            # Limit reached - break here stops checking other neighbours at this depth, also need to
+                            # stop searching further depths
                             if len(bacteria_addresses) == self.parameters['bacteria_to_burst_macrophage']:
                                 break
+                        # Limit reached earlier so don't check other depths
                         if len(bacteria_addresses) == self.parameters['bacteria_to_burst_macrophage']:
                             break
+                    # Macrophage bursting event
                     new_event = MacrophageBursting(macrophage.address, bacteria_addresses, internal)
                     self.potential_events.append(new_event)
 
     def bacteria_state_changes(self):
+        """
+        Bacteria switch between metabolism based on oxygen and switch resting true to false based on space
+        :return:
+        """
+        # Loop through bacteria
         for bacterium in self.bacteria:
-
-            # Metabolism change only happens later in process
+            # Metabolism change only happens later in process (after 2 hours)
             if self.time > 2 / self.parameters['time_step']:
-
+                # Check if state change - different scales based on metabolism
                 if bacterium.metabolism == 'fast' and self.oxygen_scale(bacterium.address) <= self.parameters[
                         'oxygen_scale_for_metabolism_change_to_slow']:
                     new_event = BacteriumStateChange(bacterium.address, 'metabolism', 'slow')
@@ -1525,31 +1581,40 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                         'oxygen_scale_for_metabolism_change_to_fast']:
                     new_event = BacteriumStateChange(bacterium.address, 'metabolism', 'fast')
                     self.potential_events.append(new_event)
-
+            # If bacteria is resting, check if there is now space in neighbourhood, if so, revert to non-resting
             if bacterium.resting:
                 space_found = False
                 for depth in range(1, 4):
+                    # Get neighbours
                     neighbours = self.neighbours_moore(bacterium.address, depth)
                     for n in neighbours:
+                        # Is neighbour empty?
                         if self.grid[n] is not None and self.grid[n]['blood_vessel'] == 0.0 and \
                                         self.grid[n]['contents'] == 0.0:
                             new_event = BacteriumStateChange(bacterium.address, 'resting', False)
                             self.potential_events.append(new_event)
                             space_found = True
+                            # Don't check other neighbours
                             break
+                    # Space found so don't check further depths
                     if space_found:
                         break
 
     def reorder_events(self):
+        """
+        Order the set of potential events
+        :return:
+        """
         # TODO - COMP - other methods - currently just random
         np.random.shuffle(self.potential_events)
 
     def process_events(self, events):
         """
-        Given a list of acceptable addresses, pass to the Event Handler to update the grid
+        Given a list of acceptable events, pass to the Event Handler to update the grid
         :param events:
         :return:
         """
+        # Handle each event through the event handler
         for event in events:
             self.handle_event(event)
 
@@ -1561,55 +1626,112 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         # Record state
         if self.time % self.parameters['interval_to_record_results'] == 0.0:
             self.record_state()
-
+        # Record counts
         self.record_counts()
 
     def set_max_oxygen_global(self, max_oxygen):
+        """
+        Set global maximum oxygen level (from external source)
+        :param max_oxygen:
+        :return:
+        """
         self.max_oxygen_global = max_oxygen
 
     def set_max_chemotherapy_global(self, max_chemotherapy):
+        """
+        Set global maximum chemotherapy level (from external source)
+        :param max_chemotherapy:
+        :return:
+        """
         self.max_chemotherapy_global = max_chemotherapy
 
     def set_max_chemokine_global(self, max_chemokine):
+        """
+        Set global maximum chemokine level (from external source)
+        :param max_chemokine:
+        :return:
+        """
         self.max_chemokine_global = max_chemokine
 
     def set_global_bacteria_number(self, number):
+        """
+        Set global bacteria numbers (from external source)
+        :param number:
+        :return:
+        """
         self.number_of_bacteria_global = number
 
     def oxygen_scale(self, address):
+        """
+        Oxygen level at cell as % of maximum global oxygen level
+        :param address:
+        :return:
+        """
         if self.max_oxygen_global == 0.0:
             return 0.0
         else:
             return (self.grid[address]['oxygen'] / self.max_oxygen_global) * 100
 
     def chemotherapy_scale(self, address):
+        """
+        Maximum chemotherapy level at cell as % of global maximum chemotherapy
+        :param address:
+        :return:
+        """
         if self.max_chemotherapy_global == 0.0:
             return 0.0
         else:
             return (self.grid[address]['chemotherapy'] / self.max_chemotherapy_global) * 100
 
     def chemokine_scale(self, address):
+        """
+        Chemokine level at cell as % of global maximum chemokine level
+        :param address:
+        :return:
+        """
         if self.max_chemokine_global == 0.0:
             return 0.0
         else:
             return (self.grid[address]['chemokine'] / self.max_chemokine_global) * 100.0
 
     def add_bacterium(self, address, metabolism):
+        """
+        Add a new bacterium of set metabolism
+        :param address:
+        :param metabolism:
+        :return:
+        """
         new_bacterium = Bacterium(address, metabolism)
         self.bacteria.append(new_bacterium)
         self.set_attribute_work_grid(address, 'contents', new_bacterium)
 
     def add_macrophage(self, address, state):
+        """
+        Add a macrophage of set state
+        :param address:
+        :param state:
+        :return:
+        """
         new_macrophage = Macrophage(address, state)
         self.macrophages.append(new_macrophage)
         self.set_attribute_work_grid(address, 'contents', new_macrophage)
 
     def add_t_cell(self, address):
+        """
+        Add a T-cell at address
+        :param address:
+        :return:
+        """
         new_t_cell = TCell(address)
         self.t_cells.append(new_t_cell)
         self.set_attribute_work_grid(address, 'contents', new_t_cell)
 
     def persist_agents(self):
+        """
+        For every agent in the lists, assign them to the cell contents using their addess attribute
+        Ensures any agents who don't move, etc. remain on the system
+        :return:
+        """
         for b in self.bacteria:
             self.set_attribute_work_grid(b.address, 'contents', b)
         for m in self.macrophages:
@@ -1637,15 +1759,16 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     highest_indices.append(index)
 
         # Tie-breaking. If just one pick it, else pick any one index at random
-        if len(highest_indices) == 1:
-            chosen_index = highest_indices[0]
-        else:
-            choice = np.random.randint(0, len(highest_indices))
-            chosen_index = highest_indices[choice]
+        choice = np.random.randint(0, len(highest_indices))
+        chosen_index = highest_indices[choice]
 
         return chosen_index, max_chemokine_scale
 
     def record_state(self):
+        """
+        Record the attributes of each cell. Each attribute has a separate file.
+        :return:
+        """
 
         contents_file = open(self.contents_file_path, 'a')
         oxygen_file = open(self.oxygen_file_path, 'a')
@@ -1701,6 +1824,10 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             chemokine_file.write('\n')
 
     def record_counts(self):
+        """
+        Record the counts of various agents
+        :return:
+        """
 
         # Files for counts
         bacteria_count = len(self.bacteria)
@@ -1716,21 +1843,25 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         type1_r.write(str(type1_r_count))
         type1_r.write('\n')
 
+        # Write slow bacteria numbers to file
         type2_count = len([n for n in self.bacteria if n.metabolism == 'slow'])
         type2 = open(self.type2_file_path, 'a')
         type2.write(str(type2_count))
         type2.write('\n')
 
+        # Write slow resting bacteria numbers to file
         type2_r_count = len([n for n in self.bacteria if n.metabolism == 'slow' and n.resting])
         type2_r = open(self.type2_r_file_path, 'a')
         type2_r.write(str(type2_r_count))
         type2_r.write('\n')
 
+        # Write t-cell numbers to file
         t_cell_count = len(self.t_cells)
         type3 = open(self.type3_file_path, 'a')
         type3.write(str(t_cell_count))
         type3.write('\n')
 
+        # Write macrophage numbers to file
         macrophage_count = len(self.macrophages)
 
         activemac_count = 0
@@ -1759,16 +1890,19 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         chroninfectedmac.write(str(chroninfectedmac_count))
         chroninfectedmac.write('\n')
 
+        # Write caseum numbers to file
         caseation_count = len(self.caseum)
         caseation = open(self.caseation_file_path, 'a')
         caseation.write(str(caseation_count))
         caseation.write('\n')
 
+        # Write total agent numbers to file
         total_count = bacteria_count + macrophage_count + t_cell_count + caseation_count
         total = open(self.total_file_path, 'a')
         total.write(str(total_count))
         total.write('\n')
 
+        # Write intracellular bacteria numbers to file
         intra_bac = open(self.intra_bac_file_path, 'a')
         intra_bac_count = sum([m.intracellular_bacteria for m in self.macrophages])
         intra_bac.write(str(intra_bac_count))
