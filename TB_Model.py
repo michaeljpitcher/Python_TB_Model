@@ -994,33 +994,49 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         self.reorder_events()
 
     def diffusion_pre_process(self):
+        """
+        Diffusion of oxygen and chemo reduces inside a granuloma. Checks each cells neighbourhood for caseum, and if the
+        total is above a threshold, oxygen and chemo diffusion are reduced accordingly.
+        :return:
+        """
 
+        # Using the caseum list, record which cells are affected (i.e. within the neighbourhood). If a cell is affected
+        # by enough caseum cells (over the threshold), reduce it's diffusion
         affected_addresses = []
+        # Make a copy of the caseum addresses (don't directly reference as it will be added to with halo caseum)
         caseum_addresses = list(self.caseum)
 
+        # Find caseum in the halo, add to the caseum list
         for address in self.list_halo_addresses:
             if self.grid[address] is not None and self.grid[address]['contents'] == 'caseum':
                 caseum_addresses.append(address)
-        # Loop addresses
-        for address in caseum_addresses:
 
+        # Process all caseum addresses
+        for address in caseum_addresses:
+            # Check the nighbourhood of the cell, up to the pre-set depth
             for depth in range(1, int(self.parameters['caseum_distance_to_reduce_diffusion']+1)):
+                # Record each affected neighbour in the list (can be duplicates in list)
                 neighbours = self.neighbours_moore(address, depth)
                 for neighbour in neighbours:
                     affected_addresses.append(neighbour)
 
+        # Count how many times each address appears in the affected list
         counted = Counter(affected_addresses)
 
+        # TODO - COMP - is looping through every address inefficient? Once a cell has reduced diffusion it never reverts
+        #  back. Also, we know which cells we're going to process from counted.
+
+        # Loop through every address
         for address in self.list_grid_addresses:
             # Get initial diffusion rates
             oxygen_diffusion = self.parameters['oxygen_diffusion']
             chemotherapy_diffusion = self.parameters['chemotherapy_diffusion']
-
+            # If the address has been affected and the number of affectations exceeds the threshold
             if address in counted and counted[address] >= \
                     self.parameters['caseum_threshold_to_reduce_diffusion']:
+                # Reduce the diffusion rates at the cell
                 oxygen_diffusion /= self.parameters['oxygen_diffusion_caseum_reduction']
                 chemotherapy_diffusion /= self.parameters['chemotherapy_diffusion_caseum_reduction']
-
                 # Reduce the oxygen from source value
                 if self.grid[address]['blood_vessel'] > 0.0:
                     self.set_attribute_grid(address, 'blood_vessel',
@@ -1031,6 +1047,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             self.set_attribute_grid(address, 'oxygen_diffusion_rate', oxygen_diffusion)
             self.set_attribute_grid(address, 'chemotherapy_diffusion_rate', chemotherapy_diffusion)
 
+        # Repeat the above, but for the halo addresses
         for halo_address in self.halo_depth1:
             if self.grid[halo_address] is not None:
 
@@ -1051,14 +1068,21 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 self.grid[halo_address]['chemotherapy_diffusion_rate'] = chemotherapy_diffusion
 
     def diffusion(self, chemo):
+        """
+        Oxygen, chemotherapy and chemokine diffuse through cells. Calculate new rates from the current values and set
+        new values on the work grid.
+        :param chemo:
+        :return:
+        """
 
+        # Loop through every address, compare the value in the immediate von Neumann neighbourhood to calculate
+        # diffusion. Then amend values based on agents/blood vessels
         for address in self.list_grid_addresses:
 
             # Clear the work grid - agents will be added as they are processed
             self.work_grid[address]['contents'] = 0.0
 
             cell = self.grid[address]
-
             neighbour_addresses = self.neighbours_von_neumann(address, 1)
             neighbours = [self.grid[neighbour_address] for neighbour_address in neighbour_addresses]
 
@@ -1082,9 +1106,9 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                                          self.parameters['spatial_step']**2)
                     if chemo:
                         chemotherapy_neighbour_diffusion = neighbour['chemotherapy_diffusion_rate']
-                        chemotherapy_expression += ((chemotherapy_cell_diffusion + chemotherapy_neighbour_diffusion) / 2 * (
-                            neighbour['chemotherapy'] - cell['chemotherapy'])) / (
-                                                   self.parameters['spatial_step']**2)
+                        chemotherapy_expression += ((chemotherapy_cell_diffusion + chemotherapy_neighbour_diffusion)
+                            / 2 * (neighbour['chemotherapy'] - cell['chemotherapy'])) / \
+                            (self.parameters['spatial_step']**2)
 
                     chemokine_neighbour_diffusion = self.parameters['chemokine_diffusion']
                     chemokine_expression += ((chemokine_cell_diffusion + chemokine_neighbour_diffusion) / 2 * (
@@ -1092,6 +1116,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                                             self.parameters['spatial_step'] * self.parameters['spatial_step'])
 
             # Amendments based on cell contents
+
             # OXYGEN
 
             # Add oxygen entering through blood vessel
@@ -1136,14 +1161,20 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             self.set_attribute_work_grid(address, 'chemokine', new_chemokine)
 
     def bacteria_replication(self):
+        """
+        Bacteria replicate (produce a new bacterium agent) once they reach a certain age.
+        :return:
+        """
+        # Loop through every bacteria, check age against a (stochastic) threshold, generate event if age is higher than
+        # threshold
         for bacterium in self.bacteria:
+            # Increment age
             bacterium.age += self.parameters['time_step']
 
             # Skip if the bacterium is resting
             if bacterium.resting:
                 continue
 
-            division = False
             if bacterium.metabolism == 'fast':
                 maximum = self.parameters['bacteria_replication_fast_upper']
                 minimum = self.parameters['bacteria_replication_fast_lower']
@@ -1153,42 +1184,54 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
             replication_time = np.random.randint(minimum, maximum) / self.parameters['time_step']
 
+            # TODO - MED - why is this a modulo and not a > ?
+            # If the time is sufficient enough, bacteria can replicate
             if self.time % replication_time == 0:
-                division = True
 
-            if division:
+                # Look for free neighbours
                 free_neighbours = []
-
+                # TODO - COMP - maybe 4 shouldn't be hard coded?
                 for depth in range(1, 4):
+                    # Pull the neighbours from the appropriate neighbourhood
                     if bacterium.division_neighbourhood == 'mo':
                         neighbours = self.neighbours_moore(bacterium.address, depth)
                     else:
                         neighbours = self.neighbours_von_neumann(bacterium.address, depth)
-
+                    # Find a free neighbour (not a blood vessel and contents == 0.0)
                     for neighbour_address in neighbours:
                         neighbour = self.grid[neighbour_address]
                         if neighbour is not None and neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
                             free_neighbours.append(neighbour_address)
-
+                    # If a free neighbour found, don't look at greater depths
                     if len(free_neighbours) > 0:
                         break
-
+                # A free neighbour has not been found anywhere
                 if len(free_neighbours) == 0:
+                    # Bacterium will change to resting state (quorum sensing)
                     new_event = BacteriumStateChange(bacterium.address, 'resting', True)
                     self.potential_events.append(new_event)
                 else:  # Free space found
+                    # Pick a free neighbour at random
                     neighbour_address = free_neighbours[np.random.randint(len(free_neighbours))]
-
+                    # Determine if the event crosses a tile boundary
                     internal = self.address_is_on_grid(neighbour_address)
+                    # Create event and add to list of potential events
                     new_event = BacteriumReplication(bacterium.address, neighbour_address, bacterium.metabolism,
                                                      internal)
                     self.potential_events.append(new_event)
 
     def t_cell_recruitment(self):
+        """
+        Once bacteria over entire system reach a threshold, t-cells enter the system. Creates an event to add a t-cell
+        to a cell next to a blood vessel
+        :return:
+        """
+        # When global amount of bacteria exceeds threshold
         if self.number_of_bacteria_global >= self.parameters['bacteria_threshold_for_t_cells']:
             # Each blood vessel
             for bv_address in self.blood_vessels:
-                r = np.random.randint(1, 100)
+                # Generate event if probability according to parameters
+                r = np.random.randint(1, 101)
                 if r <= self.parameters['t_cell_recruitment_probability']:
                     neighbours = self.neighbours_von_neumann(bv_address, 1)
                     # Get neighbours which are empty and have a high enough chemokine level
@@ -1209,7 +1252,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
     def macrophage_recruitment(self):
         for bv_address in self.blood_vessels:
-            r = np.random.randint(1, 100)
+            r = np.random.randint(1, 101)
             if r <= self.parameters['macrophage_recruitment_probability']:
                 neighbours = self.neighbours_von_neumann(bv_address, 1)
                 free_neighbours = []
