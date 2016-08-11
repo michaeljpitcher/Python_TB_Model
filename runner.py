@@ -311,8 +311,11 @@ def initialise(config, total_shape):
         # Add the values to the list
         list_of_vessels = [line.rstrip('\n') for line in open(path)]
         for index in range(len(list_of_vessels)):
-            if int(list_of_vessels[index]) > 0.0:
-                address = np.unravel_index(index, total_shape)
+            if float(list_of_vessels[index]) > 0.0:
+                try:
+                    address = np.unravel_index(index, total_shape)
+                except ValueError:
+                    raise Exception(index, total_shape)
                 blood_vessel_addresses.append(address)
     elif blood_vessels_method == 'random':
         number = config.getint("InitialiseSection", "blood_vessels_random_number")
@@ -328,6 +331,7 @@ def initialise(config, total_shape):
 
     if bacteria_method == 'hard_code':
         fast_list = config.get("InitialiseSection", "bacteria_fast_hard_code").split("/")
+
         assert len(available_addresses) > len(fast_list)
         for a in fast_list:
             address = tuple(int(c) for c in a.split(","))
