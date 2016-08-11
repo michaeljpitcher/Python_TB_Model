@@ -526,6 +526,8 @@ class EventHandler:
     Also, where possible, pull agents from the grid not the event - passing events back and forth may change where
     they're stored in memory. So if an agent moves from (a) to (b) use the reference that exists in cell (a) to locate
     the agent
+    Updates to agents are made to the agents themselves and the lists of agents, not to the grid. When a time-step
+    finishes, all agents are written onto the grid for the next time-step
     """
 
     def __init__(self):
@@ -537,6 +539,7 @@ class EventHandler:
         :param event:
         :return:
         """
+        # Call relevant function based on the type of event
         if isinstance(event, BacteriumReplication):
             self.process_bacterium_replication(event)
         elif isinstance(event, RecruitTCell):
@@ -574,18 +577,17 @@ class EventHandler:
         :param event:
         :return:
         """
-        # TODO - comments from here
         # Is the new bacterium address on the grid
         if self.address_is_on_grid(event.new_bacterium_address):
             # Add new bacterium to grid
             self.add_bacterium(event.new_bacterium_address, event.new_metabolism)
         # Is the original bacteria address on the grid
         if self.address_is_on_grid(event.original_bacterium_address):
-            # Pull the bacterium from the grid
+            # Pull the bacterium reference from the grid
             bacterium = self.grid[event.original_bacterium_address]['contents']
             # Reset age
             bacterium.age = 0.0
-            # Swap the division neighbourhood
+            # Swap the division neighbourhood between Moore and von Neumann
             if bacterium.division_neighbourhood == 'mo':
                 bacterium.division_neighbourhood = 'vn'
             else:
@@ -603,10 +605,11 @@ class EventHandler:
 
     def process_macrophage_recruitment(self, event):
         """
-        Recruit a new macrophage from blood_vessel
+        Recruit a new macrophage from blood vessel
         :param event:
         :return:
         """
+        # Only process if address is on the grid
         if self.address_is_on_grid(event.macrophage_address):
             self.add_macrophage(event.macrophage_address, "resting")
 
@@ -616,6 +619,7 @@ class EventHandler:
         :param event:
         :return:
         """
+        # Pull bacteria reference from grid and remove it from the list
         bacterium = self.grid[event.address]['contents']
         self.bacteria.remove(bacterium)
 
@@ -625,8 +629,10 @@ class EventHandler:
         :param event:
         :return:
         """
+        # Pull the macrophage reference from the grid and remove it
         macrophage = self.grid[event.dependant_addresses[0]]['contents']
         self.macrophages.remove(macrophage)
+        # Add caseum at the address to the caseum list
         self.caseum.append(event.dependant_addresses[0])
 
 
@@ -636,6 +642,7 @@ class EventHandler:
         :param event:
         :return:
         """
+        # Pull t-cell reference from grid and remove from list
         t_cell_to_die = self.grid[event.address]['contents']
         self.t_cells.remove(t_cell_to_die)
 
@@ -659,20 +666,31 @@ class EventHandler:
             self.t_cells.append(event.t_cell_to_move)
 
     def process_t_cell_kill_macrophage(self, event):
+        """
+        T-cell moves to a cell and kills an infected macrophage (also destroying itself)
+        :param event:
+        :return:
+        """
         from_address = event.dependant_addresses[0]
         to_address = event.dependant_addresses[1]
+        # Is the macrophage on the grid
         if self.address_is_on_grid(to_address):
-            # Turn macrophage into caseum
+            # Remove macrophage, add caseum to cell
             macrophage = self.grid[to_address]['contents']
             self.macrophages.remove(macrophage)
             self.caseum.append(to_address)
-
+        # Is the t-cell on the grid
         if self.address_is_on_grid(from_address):
             # Remove t-cell
             t_cell = self.grid[from_address]['contents']
             self.t_cells.remove(t_cell)
 
     def process_macrophage_death(self, event):
+        """
+        Macrophage dies, through age
+        :param event:
+        :return:
+        """
         # Resting or active die, infected/chronically infected turn to caseum
         macrophage_to_die = self.grid[event.address]['contents']
         if macrophage_to_die.state == 'infected' or macrophage_to_die.state == 'chronically_infected':
@@ -681,6 +699,11 @@ class EventHandler:
         self.macrophages.remove(macrophage_to_die)
 
     def process_macrophage_movement(self, event):
+        """
+        Macrophage moves from one cell to an empty cell
+        :param event:
+        :return:
+        """
         from_address = event.dependant_addresses[0]
         to_address = event.dependant_addresses[1]
         # Macrophage moving between 2 cells in the same tile
@@ -697,6 +720,12 @@ class EventHandler:
             self.macrophages.append(event.macrophage_to_move)
 
     def process_macrophage_kills_bacterium(self, event):
+        """
+        Macrophage moves to a cell with a bacterium, ingests said bacterium
+        :param event:
+        :return:
+        """
+
         from_address = event.dependant_addresses[0]
         to_address = event.dependant_addresses[1]
 
@@ -708,12 +737,10 @@ class EventHandler:
             # Remove bacterium
             bacterium = self.grid[to_address]['contents']
             self.bacteria.remove(bacterium)
-
+            # Active macrophages phagocytose bacteria, other states increment their intracellular bacteria count
             if macrophage.state == 'resting' or macrophage.state == 'infected' or macrophage.state == \
                     'chronically_infected':
-                # Macrophage ingests bacteria, doesn't kill
                 event.macrophage_to_move.intracellular_bacteria += 1
-
         elif self.address_is_on_grid(from_address):  # Macrophage is moving to a new tile
             macrophage = self.grid[from_address]['contents']
             self.macrophages.remove(macrophage)
@@ -722,60 +749,61 @@ class EventHandler:
             self.macrophages.append(event.macrophage_to_move)
             bacterium = self.grid[to_address]['contents']
             self.bacteria.remove(bacterium)
-
+            # Active macrophages phagocytose bacteria, other states increment their intracellular bacteria count
             if event.macrophage_to_move.state == 'resting' or event.macrophage_to_move.state == 'infected' or \
                     event.macrophage_to_move.state == 'chronically_infected':
-                # Macrophage ingests bacterium, doesn't kill
                 event.macrophage_to_move.intracellular_bacteria += 1
 
     def process_macrophage_state_change(self, event):
+        """
+        Macrophage changes its state (e.g. resting -> active)
+        :param event:
+        :return:
+        """
         # Pulling the macrophage from the grid
         macrophage = self.grid[event.address]['contents']
+        # Change the state
         macrophage.state = event.new_state
 
     def process_bacterium_state_change(self, event):
+        """
+        A bacterium changes its state (fast <-> slow, resting -> true/false)
+        :param event:
+        :return:
+        """
         # Pull bacterium from grid
         bacterium = self.grid[event.address]['contents']
-
+        # Change the relevant state
         if event.type_of_change == 'metabolism':
             bacterium.metabolism = event.new_value
         elif event.type_of_change == 'resting':
             bacterium.resting = event.new_value
 
     def process_macrophage_bursting(self, event):
-
+        """
+        A macrophage bursts, spreading bacteria into the local neighbourhood
+        :param event:
+        :return:
+        """
+        # Is the macrophage on the grid
         if self.address_is_on_grid(event.macrophage_address):
+            # Pull the macrophage from the grid
             macrophage_to_burst = self.grid[event.macrophage_address]['contents']
+            # Remove macrophage from list and add caseum in its place
             self.macrophages.remove(macrophage_to_burst)
             self.caseum.append(macrophage_to_burst.address)
 
+        # For each bacteria address, check it's an allowed address and the address is on this tile
         for i in event.bacteria_addresses:
             if i in event.impacted_addresses_allowed and self.address_is_on_grid(i):
-                    self.add_bacterium(i, 'slow')
-
-    def get_bacteria_addresses(self):
-        addresses = []
-        for b in self.bacteria:
-            addresses.append(b.address)
-        return addresses
-
-    def get_macrophage_addresses(self):
-        addresses = []
-        for m in self.macrophages:
-            addresses.append(m.address)
-        return addresses
-
-    def get_t_cell_addresses(self):
-        addresses = []
-        for t in self.t_cells:
-            addresses.append(t.address)
-        return addresses
+                # Add a new slow bacteria there
+                self.add_bacterium(i, 'slow')
 
 
 class Automaton(Tile, Neighbourhood, EventHandler):
 
     def __init__(self, shape, tile_id, attributes, parameters, blood_vessels, fast_bacteria=None, slow_bacteria=None,
-                 macrophages=None, log_level='debug'):
+                 macrophages=None):
         Tile.__init__(self, shape, attributes)
         Neighbourhood.__init__(self, len(shape), parameters['max_depth'], self.list_grid_addresses)
         EventHandler.__init__(self)
@@ -788,10 +816,11 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         self.parameters = parameters
         self.time = 0
 
+        # Local maxima (set internally)
         self.max_oxygen_local = 0.0
         self.max_chemotherapy_local = 0.0
         self.max_chemokine_local = 0.0
-
+        # Global maxima (set externally)
         self.max_oxygen_global = 0.0
         self.max_chemotherapy_global = 0.0
         self.max_chemokine_global = 0.0
@@ -805,21 +834,22 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         self.potential_events = []
         self.caseum = []
 
-        # INITIAL VESSELS
+        # Initialise blood vessels and O2 levels
         self.initialise_blood_vessels(blood_vessels)
         self.initialise_oxygen_levels()
 
-        # CHEMO SCHEDULE
+        # Calculate chemo schedule
         self.chemo_schedule1_start = np.random.randint(self.parameters['chemotherapy_schedule1_start_lower'],
                                                        self.parameters['chemotherapy_schedule1_start_upper'])
 
-        # COPY GRID TO WORK GRID
+        # Copy grid to work grid
         self.create_work_grid()
 
-        # INITIAL AGENTS
+        # Initialise agents
         self.initialise_bacteria(fast_bacteria, slow_bacteria)
         self.initialise_macrophages(macrophages)
 
+        # Set up output files
         self.contents_file_path = str(self.tile_id) + '_contents.txt'
         self.oxygen_file_path = str(self.tile_id) + '_oxygen.txt'
         self.chemotherapy_file_path = str(self.tile_id) + '_chemotherapy.txt'
