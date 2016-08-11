@@ -845,46 +845,93 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         # Copy grid to work grid
         self.create_work_grid()
 
-        # Initialise agents
+        # Initialise agents onto the work grid
         self.initialise_bacteria(fast_bacteria, slow_bacteria)
         self.initialise_macrophages(macrophages)
 
-        # Set up output files
+        # Set up output file paths
         self.contents_file_path = str(self.tile_id) + '_contents.txt'
         self.oxygen_file_path = str(self.tile_id) + '_oxygen.txt'
         self.chemotherapy_file_path = str(self.tile_id) + '_chemotherapy.txt'
         self.chemokine_file_path = str(self.tile_id) + '_chemokine.txt'
+        self.type1_file_path = str(self.tile_id) + '_type1.txt'
+        self.type1_r_file_path = str(self.tile_id) + '_type1_r.txt'
+        self.type2_file_path = str(self.tile_id) + '_type2.txt'
+        self.type2_r_file_path = str(self.tile_id) + '_type2_r.txt'
+        self.type3_file_path = str(self.tile_id) + '_type3.txt'
+        self.activemac_file_path = str(self.tile_id) + '_activemac.txt'
+        self.restingmac_file_path = str(self.tile_id) + '_restingmac.txt'
+        self.infectedmac_file_path = str(self.tile_id) + '_infectedmac.txt'
+        self.chroninfectedmac_file_path = str(self.tile_id) + '_chroninfectedmac.txt'
+        self.caseation_file_path = str(self.tile_id) + '_caseation.txt'
+        self.total_file_path = str(self.tile_id) + '_total.txt'
+        self.intra_bac_file_path = str(self.tile_id) + '_intra_bac.txt'
 
         # Clear up any old output files
+        # TODO - should be check file exists, if so remove
         try:
             os.remove(self.contents_file_path)
             os.remove(self.oxygen_file_path)
             os.remove(self.chemotherapy_file_path)
             os.remove(self.chemokine_file_path)
+            os.remove(self.type1_file_path)
+            os.remove(self.type1_r_file_path)
+            os.remove(self.type2_file_path)
+            os.remove(self.type2_r_file_path)
+            os.remove(self.type3_file_path)
+            os.remove(self.activemac_file_path)
+            os.remove(self.restingmac_file_path)
+            os.remove(self.infectedmac_file_path)
+            os.remove(self.chroninfectedmac_file_path)
+            os.remove(self.caseation_file_path)
+            os.remove(self.total_file_path)
+            os.remove(self.intra_bac_file_path)
         except OSError:
             pass
 
+        # Swap the working grid with actual grid to start process
         self.swap_grids()
 
     def initialise_blood_vessels(self, addresses):
+        """
+        Set the initial blood vessels. These will not change.
+        :param addresses:
+        :return:
+        """
         for address in addresses:
+            # Set the value on grid and add to blood vessel list
             self.set_attribute_grid(address, 'blood_vessel', self.parameters['blood_vessel_value'])
             self.blood_vessels.append(address)
 
+    def initialise_oxygen_levels(self):
+        """
+        Set the initial oxygen levels at each blood vessel location
+        :return:
+        """
+        for address in self.blood_vessels:
+            self.set_attribute_grid(address, 'oxygen', self.parameters['initial_oxygen'])
+            self.max_oxygen_local = max(self.max_oxygen_local, self.parameters['initial_oxygen'])
+
     def initialise_bacteria(self, fast_bacteria, slow_bacteria):
+        """
+        Set the initial bacteria
+        :param fast_bacteria:
+        :param slow_bacteria:
+        :return:
+        """
         for address in fast_bacteria:
             self.add_bacterium(address, 'fast')
         for address in slow_bacteria:
             self.add_bacterium(address, 'slow')
 
     def initialise_macrophages(self, addresses):
+        """
+        Set the initial (resting) macrophages
+        :param addresses:
+        :return:
+        """
         for address in addresses:
             self.add_macrophage(address, 'resting')
-
-    def initialise_oxygen_levels(self):
-        for address in self.blood_vessels:
-            self.set_attribute_grid(address, 'oxygen', self.parameters['initial_oxygen'])
-            self.max_oxygen_local = max(self.max_oxygen_local, self.parameters['initial_oxygen'])
 
     def update(self):
         """
@@ -893,7 +940,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         Events are based on the state of the current GRID (i.e. are not affected by the diffusion changes)
         :return:
         """
-
+        # Increment time
         self.time += 1
 
         # ----------------------------
@@ -926,35 +973,24 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         # Reset list
         self.potential_events = []
 
-        # BACTERIA REPLICATION
-        # If bacteria is of suitable age, attempts to replicate (create a duplicate in neighbouring cell)
         self.bacteria_replication()
 
-        # T-CELL RECRUITMENT
         self.t_cell_recruitment()
 
-        # MACROPHAGE RECRUITMENT
         self.macrophage_recruitment()
 
-        # CHEMOTHERAPY KILLING BACTERIA
         self.chemotherapy_killing_bacteria()
 
-        # CHEMOTHERAPY KILLING MACROPHAGES
         self.chemotherapy_killing_macrophages()
 
-        # T-CELL DEATH, MOVEMENT & MACROPHAGE KILLING
         self.t_cell_processes()
 
-        # MACROPHAGES - death, movement, bacteria ingestion
         self.macrophage_processes()
 
-        # MACROPHAGE STATE CHANGES / BURSTING
         self.macrophage_state_changes()
 
-        # BACTERIUM STATE CHANGES
         self.bacteria_state_changes()
 
-        # Reorder events
         self.reorder_events()
 
     def diffusion_pre_process(self):
@@ -1627,28 +1663,28 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         bacteria_count = len(self.bacteria)
         # Write fast bacteria numbers to file
         type1_count = len([n for n in self.bacteria if n.metabolism == 'fast'])
-        type1 = open(str(self.tile_id) + '_type1.txt', 'a')
+        type1 = open(self.type1_file_path, 'a')
         type1.write(str(type1_count))
         type1.write('\n')
 
         # Write fast resting bacteria numbers to file
         type1_r_count = len([n for n in self.bacteria if n.metabolism == 'fast' and n.resting])
-        type1_r = open(str(self.tile_id) + '_type1_r.txt', 'a')
+        type1_r = open(self.type1_r_file_path, 'a')
         type1_r.write(str(type1_r_count))
         type1_r.write('\n')
 
         type2_count = len([n for n in self.bacteria if n.metabolism == 'slow'])
-        type2 = open(str(self.tile_id) + '_type2.txt', 'a')
+        type2 = open(self.type2_file_path, 'a')
         type2.write(str(type2_count))
         type2.write('\n')
 
         type2_r_count = len([n for n in self.bacteria if n.metabolism == 'slow' and n.resting])
-        type2_r = open(str(self.tile_id) + '_type2_r.txt', 'a')
+        type2_r = open(self.type2_r_file_path, 'a')
         type2_r.write(str(type2_r_count))
         type2_r.write('\n')
 
         t_cell_count = len(self.t_cells)
-        type3 = open(str(self.tile_id) + '_type3.txt', 'a')
+        type3 = open(self.type3_file_path, 'a')
         type3.write(str(t_cell_count))
         type3.write('\n')
 
@@ -1667,30 +1703,30 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 infectedmac_count += 1
             elif m.state == 'chroninfected':
                 chroninfectedmac_count += 1
-        activemac = open(str(self.tile_id) + '_activemac.txt', 'a')
+        activemac = open(self.activemac_file_path, 'a')
         activemac.write(str(activemac_count))
         activemac.write('\n')
-        restingmac = open(str(self.tile_id) + '_restingmac.txt', 'a')
+        restingmac = open(self.restingmac_file_path, 'a')
         restingmac.write(str(restingmac_count))
         restingmac.write('\n')
-        infectedmac = open(str(self.tile_id) + '_infectedmac.txt', 'a')
+        infectedmac = open(self.infectedmac_file_path, 'a')
         infectedmac.write(str(infectedmac_count))
         infectedmac.write('\n')
-        chroninfectedmac = open(str(self.tile_id) + '_chroninfectedmac.txt', 'a')
+        chroninfectedmac = open(self.chroninfectedmac_file_path, 'a')
         chroninfectedmac.write(str(chroninfectedmac_count))
         chroninfectedmac.write('\n')
 
         caseation_count = len(self.caseum)
-        caseation = open(str(self.tile_id) + '_caseation.txt', 'a')
+        caseation = open(self.caseation_file_path, 'a')
         caseation.write(str(caseation_count))
         caseation.write('\n')
 
         total_count = bacteria_count + macrophage_count + t_cell_count + caseation_count
-        total = open(str(self.tile_id) + '_total.txt', 'a')
+        total = open(self.total_file_path, 'a')
         total.write(str(total_count))
         total.write('\n')
 
-        intra_bac = open(str(self.tile_id) + '_intra_bac.txt', 'a')
+        intra_bac = open(self.intra_bac_file_path, 'a')
         intra_bac_count = sum([m.intracellular_bacteria for m in self.macrophages])
         intra_bac.write(str(intra_bac_count))
         intra_bac.write('\n')
