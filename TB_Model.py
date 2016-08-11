@@ -382,12 +382,7 @@ class Tile:
         :param value:
         :return:
         """
-        # Check that the attribute exists, if so, then set the value to given cell
-        if attribute in self.attributes:
-            self.work_grid[address][attribute] = value
-        else:  # Specified attribute hasn't been set as a possibility
-            raise Exception('Attribute {0} does not exist'.format(attribute))
-
+        self.work_grid[address][attribute] = value
 
 class Neighbourhood:
     """
