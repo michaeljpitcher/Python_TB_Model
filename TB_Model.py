@@ -630,7 +630,6 @@ class EventHandler:
         # Add caseum at the address to the caseum list
         self.caseum.append(event.dependant_addresses[0])
 
-
     def process_t_cell_death(self, event):
         """
         A t-cell dies (through age)
@@ -1074,17 +1073,14 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         # diffusion. Then amend values based on agents/blood vessels
         for address in self.list_grid_addresses:
 
+            work_grid_cell = self.work_grid[address]
+
             # Clear the work grid - agents will be added as they are processed
-            self.work_grid[address]['contents'] = 0.0
+            work_grid_cell['contents'] = 0.0
 
             cell = self.grid[address]
             neighbour_addresses = self.neighbours_von_neumann(address, 1)
             neighbours = [self.grid[neighbour_address] for neighbour_address in neighbour_addresses]
-
-            # Get diffusion value for cell
-            oxygen_cell_diffusion = cell['oxygen_diffusion_rate']
-            chemotherapy_cell_diffusion = cell['chemotherapy_diffusion_rate']
-            chemokine_cell_diffusion = self.parameters['chemokine_diffusion']
 
             # Initialise expression
             oxygen_expression = 0
@@ -1096,19 +1092,20 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 # Only process if not boundary
                 if neighbour is not None:
                     oxygen_neighbour_diffusion = neighbour['oxygen_diffusion_rate']
-                    oxygen_expression += ((oxygen_cell_diffusion + oxygen_neighbour_diffusion) / 2 * (
+                    oxygen_expression += ((cell['oxygen_diffusion_rate'] + oxygen_neighbour_diffusion) / 2 * (
                         neighbour['oxygen'] - cell['oxygen'])) / (
                                          self.parameters['spatial_step']**2)
                     if chemo:
                         chemotherapy_neighbour_diffusion = neighbour['chemotherapy_diffusion_rate']
-                        chemotherapy_expression += ((chemotherapy_cell_diffusion + chemotherapy_neighbour_diffusion)
+                        chemotherapy_expression += ((cell['chemotherapy_diffusion_rate'] +
+                            chemotherapy_neighbour_diffusion)
                             / 2 * (neighbour['chemotherapy'] - cell['chemotherapy'])) / \
                             (self.parameters['spatial_step']**2)
 
                     chemokine_neighbour_diffusion = self.parameters['chemokine_diffusion']
-                    chemokine_expression += ((chemokine_cell_diffusion + chemokine_neighbour_diffusion) / 2 * (
-                        neighbour['chemokine'] - cell['chemokine'])) / (
-                                            self.parameters['spatial_step'] * self.parameters['spatial_step'])
+                    chemokine_expression += ((self.parameters['chemokine_diffusion'] + chemokine_neighbour_diffusion)
+                        / 2 * (neighbour['chemokine'] - cell['chemokine'])) / (
+                        self.parameters['spatial_step'] * self.parameters['spatial_step'])
 
             # Amendments based on cell contents
 
@@ -1117,11 +1114,11 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             # Add oxygen entering through blood vessel
             oxygen_expression += (self.parameters['oxygen_from_source'] * cell['blood_vessel'])
             # If there is bacteria in cell, then oxygen is taken up by bacteria so remove
-            if isinstance(cell['contents'], Bacterium):
+            if cell['contents'] != 0.0 and isinstance(cell['contents'], Bacterium):
                 oxygen_expression -= self.parameters['oxygen_uptake_from_bacteria'] * cell['oxygen']
             # Calculate new level
             new_oxygen = cell['oxygen'] + self.parameters['time_step'] * oxygen_expression
-            self.set_attribute_work_grid(address, 'oxygen', new_oxygen)
+            work_grid_cell['oxygen'] = new_oxygen
             # Overwrite the maximum oxygen value if larger
             self.max_oxygen_local = max(self.max_oxygen_local, new_oxygen)
 
@@ -1138,22 +1135,22 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             else:
                 self.max_chemotherapy_local = 0.0
                 new_chemotherapy = 0.0
-            self.set_attribute_work_grid(address, 'chemotherapy', new_chemotherapy)
+            work_grid_cell['chemotherapy'] = new_chemotherapy
 
             # CHEMOKINE
 
             # Release of chemokine by bacteria
-            if isinstance(cell['contents'], Bacterium):
+            if cell['contents'] != 0.0 and isinstance(cell['contents'], Bacterium):
                 chemokine_expression += self.parameters['chemokine_from_bacteria']
             # Release of chemokine by (non-resting) macrophages
-            if isinstance(cell['contents'], Macrophage) and cell['contents'].state != 'resting':
+            if cell['contents'] != 0.0 and isinstance(cell['contents'], Macrophage) and cell['contents'].state != 'resting':
                 chemokine_expression += self.parameters['chemokine_from_macrophage']
             # Chemokine decay
             chemokine_expression -= self.parameters['chemokine_decay'] * cell['chemokine']
             # Calculate new level
             new_chemokine = cell['chemokine'] + self.parameters['time_step'] * chemokine_expression
             self.max_chemokine_local = max(self.max_chemokine_local, new_chemokine)
-            self.set_attribute_work_grid(address, 'chemokine', new_chemokine)
+            work_grid_cell['chemokine'] = new_chemokine
 
     def bacteria_replication(self):
         """
