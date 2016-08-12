@@ -439,12 +439,6 @@ class TwoDimensionalTopologyTestCase(unittest.TestCase):
                               (2, 1), (2, 2), (2, 3), (2, 4), (3, 0), (3, 1), (3, 2), (4, 0), (4, 1), (4, 2)]
         self.assertItemsEqual(tile3_dz_addresses, self.topology.automata[3].danger_zone_addresses)
 
-    def test_normalise_address(self):
-        self.assertSequenceEqual(self.topology.normalise_address([0, 0]), [0, 0])
-        self.assertSequenceEqual(self.topology.normalise_address([9, 9]), [9, 9])
-        self.assertEqual(self.topology.normalise_address([-1, 0]), None)
-        self.assertEqual(self.topology.normalise_address([3, 10]), None)
-
     def test_blood_vessel(self):
 
         for a in self.topology.automata:

@@ -85,7 +85,7 @@ class Topology:
 
 class TwoDimensionalTopology(Topology):
     """
-    2d Grid Topology (amend normalise address if Toroid needed)
+    2d Grid Topology
     """
 
     def __init__(self, tile_arrangement, total_shape, attributes, parameters, blood_vessel_global,
@@ -150,18 +150,6 @@ class TwoDimensionalTopology(Topology):
         for tile_id in self.danger_zone_addresses.keys():
             self.automata[tile_id].set_addresses_for_danger_zone(self.danger_zone_addresses[tile_id])
 
-    def normalise_address(self, address):
-        """
-        Normalise the address - converts addresses outside the boundary into required values
-        :param address:
-        :return: None if outside the global boundary, else the address
-        """
-        # Normalise the address - returns None if outside the global boundary
-        x, y = address
-        if x < 0 or x >= self.total_shape[0] or y < 0 or y >= self.total_shape[1]:
-            return None
-        return x, y
-
     def global_to_local(self, global_address):
         """
         Turn a global address into a tile ID and a local address
@@ -190,10 +178,14 @@ class TwoDimensionalTopology(Topology):
         :param local_address:
         :return:
         """
-        x, y = local_address
         origin = self.origins[tile_id]
+
+        new_address = (origin[0] + local_address[0], origin[1] + local_address[1])
         # Normalise the address before it's returned
-        return self.normalise_address((origin[0] + x, origin[1] + y))
+        if new_address[0] < 0 or new_address[0] >= self.total_shape[0] or \
+                new_address[1] < 0 or new_address[1] >= self.total_shape[1]:
+            return None
+        return new_address
 
     def local_to_local(self, original_tile_id, local_address, new_tile_id):
         """
