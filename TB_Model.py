@@ -836,21 +836,22 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         self.initialise_macrophages(macrophages)
 
         # Set up output file paths
-        self.contents_file_path = str(self.tile_id) + '_contents.txt'
-        self.oxygen_file_path = str(self.tile_id) + '_oxygen.txt'
-        self.chemotherapy_file_path = str(self.tile_id) + '_chemotherapy.txt'
-        self.chemokine_file_path = str(self.tile_id) + '_chemokine.txt'
-        self.type1_file_path = str(self.tile_id) + '_type1.txt'
-        self.type1_r_file_path = str(self.tile_id) + '_type1_r.txt'
-        self.type2_file_path = str(self.tile_id) + '_type2.txt'
-        self.type2_r_file_path = str(self.tile_id) + '_type2_r.txt'
-        self.type3_file_path = str(self.tile_id) + '_type3.txt'
+        self.totalcell_test_file_path = str(self.tile_id) + '_totalcell_test.txt'
+        self.contents_file_path = str(self.tile_id) + '_data_test.txt'
+        self.oxygen_file_path = str(self.tile_id) + '_oxygen_test.txt'
+        self.chemotherapy_file_path = str(self.tile_id) + '_chemo1.txt'
+        self.chemokine_file_path = str(self.tile_id) + '_ckine.txt'
+        self.type1_file_path = str(self.tile_id) + '_Type1.txt'
+        self.type1_r_file_path = str(self.tile_id) + '_Type1_R.txt'
+        self.type2_file_path = str(self.tile_id) + '_Type2.txt'
+        self.type2_r_file_path = str(self.tile_id) + '_Type2_R.txt'
+        self.type3_file_path = str(self.tile_id) + '_Type3.txt'
         self.activemac_file_path = str(self.tile_id) + '_activemac.txt'
         self.restingmac_file_path = str(self.tile_id) + '_restingmac.txt'
         self.infectedmac_file_path = str(self.tile_id) + '_infectedmac.txt'
         self.chroninfectedmac_file_path = str(self.tile_id) + '_chroninfectedmac.txt'
         self.caseation_file_path = str(self.tile_id) + '_caseation.txt'
-        self.total_file_path = str(self.tile_id) + '_total.txt'
+        self.total_file_path = str(self.tile_id) + '_Total.txt'
         self.intra_bac_file_path = str(self.tile_id) + '_intra_bac.txt'
 
         # Clear up any old output files
@@ -1886,6 +1887,11 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         total = open(self.total_file_path, 'a')
         total.write(str(total_count))
         total.write('\n')
+
+        total_cell_test = open(self.totalcell_test_file_path, 'a')
+        if self.time % self.parameters['interval_to_record_results'] == 0.0:
+            total_cell_test.write(str(total_count))
+            total_cell_test.write('\n')
 
         # Write intracellular bacteria numbers to file
         intra_bac = open(self.intra_bac_file_path, 'a')
