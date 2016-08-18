@@ -1818,7 +1818,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         # Files for counts
         bacteria_count = len(self.bacteria)
         # Write fast bacteria numbers to file
-        type1_count = len([n for n in self.bacteria if n.metabolism == 'fast'])
+        type1_count = len([n for n in self.bacteria if n.metabolism == 'fast' and not n.resting])
         type1 = open(self.type1_file_path, 'a')
         type1.write(str(type1_count))
         type1.write('\n')
@@ -1830,7 +1830,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         type1_r.write('\n')
 
         # Write slow bacteria numbers to file
-        type2_count = len([n for n in self.bacteria if n.metabolism == 'slow'])
+        type2_count = len([n for n in self.bacteria if n.metabolism == 'slow' and not n.resting])
         type2 = open(self.type2_file_path, 'a')
         type2.write(str(type2_count))
         type2.write('\n')
