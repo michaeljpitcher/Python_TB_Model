@@ -4426,7 +4426,7 @@ class OutputWritingTestCase(unittest.TestCase):
         os.path.isfile('0_chemokine.txt')
 
         # Check contents file
-        content_lines = [line.rstrip('\n') for line in open('0_contents.txt')]
+        content_lines = [line.rstrip('\n') for line in open('0_data_test.txt')]
         for i in range(len(content_lines)):
 
             if i == 6:
@@ -4453,7 +4453,7 @@ class OutputWritingTestCase(unittest.TestCase):
                 self.assertEqual(content_lines[i], '0.0')
 
         # Check oxygen file
-        oxygen_lines = [line.rstrip('\n') for line in open('0_oxygen.txt')]
+        oxygen_lines = [line.rstrip('\n') for line in open('0_oxygen_test.txt')]
         for i in range(len(oxygen_lines)):
             if i == 0:
                 self.assertEqual(oxygen_lines[i], '100.0')
@@ -4461,12 +4461,12 @@ class OutputWritingTestCase(unittest.TestCase):
                 self.assertEqual(oxygen_lines[i], '0.0')
 
         # CHEMOTHERAPY
-        chemotherapy_lines = [line.rstrip('\n') for line in open('0_chemotherapy.txt')]
+        chemotherapy_lines = [line.rstrip('\n') for line in open('0_chemo1.txt')]
         for i in range(len(chemotherapy_lines)):
             self.assertEqual(chemotherapy_lines[i], '0.0')
 
         # CHEMOKINE
-        chemokine_lines = [line.rstrip('\n') for line in open('0_chemokine.txt')]
+        chemokine_lines = [line.rstrip('\n') for line in open('0_ckine.txt')]
         for i in range(len(chemokine_lines)):
             self.assertEqual(chemokine_lines[i], '0.0')
 
@@ -4491,10 +4491,10 @@ class OutputWritingTestCase(unittest.TestCase):
         self.topology.automata[0].update()
         self.topology.automata[0].process_events([])
 
-        self.assertTrue(os.path.isfile('0_contents.txt'))
-        self.assertTrue(os.path.isfile('0_oxygen.txt'))
-        self.assertTrue(os.path.isfile('0_chemotherapy.txt'))
-        self.assertTrue(os.path.isfile('0_chemokine.txt'))
+        self.assertTrue(os.path.isfile('0_data_test.txt'))
+        self.assertTrue(os.path.isfile('0_oxygen_test.txt'))
+        self.assertTrue(os.path.isfile('0_chemo1.txt'))
+        self.assertTrue(os.path.isfile('0_ckine.txt'))
 
 if __name__ == '__main__':
     unittest.main()
