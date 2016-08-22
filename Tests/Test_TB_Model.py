@@ -5,6 +5,72 @@ import numpy as np
 import os
 
 
+def parameter_setup():
+    params = dict()
+    params['max_depth'] = 3
+    params['initial_oxygen'] = 1
+    params['blood_vessel_value'] = 1.5
+    params['time_step'] = 0.001
+    params['spatial_step'] = 0.2
+    params['oxygen_diffusion'] = 1
+    params['oxygen_from_source'] = 2.4
+    params['oxygen_uptake_from_bacteria'] = 1
+    params['chemotherapy_diffusion'] = 0.75
+    params['chemotherapy_from_source'] = 1
+    params['chemotherapy_decay'] = 0.35
+    params['chemokine_diffusion'] = 0.05
+    params['chemokine_from_bacteria'] = 0
+    params['chemokine_from_macrophage'] = 1
+    params['chemokine_decay'] = 0.347
+    params['caseum_distance_to_reduce_diffusion'] = 2
+    params['caseum_threshold_to_reduce_diffusion'] = 2
+    params['oxygen_diffusion_caseum_reduction'] = 1.5
+    params['chemotherapy_diffusion_caseum_reduction'] = 1.5
+    params['chemotherapy_schedule1_start_lower'] = 168
+    params['chemotherapy_schedule1_start_upper'] = 336
+    params['chemotherapy_schedule1_end'] = 700
+    params['chemotherapy_schedule2_start'] = 900
+    params['bacteria_replication_fast_upper'] = 31
+    params['bacteria_replication_fast_lower'] = 17
+    params['bacteria_replication_slow_upper'] = 72
+    params['bacteria_replication_slow_lower'] = 48
+    params['bacteria_threshold_for_t_cells'] = 50
+    params['t_cell_recruitment_probability'] = 2
+    params['chemokine_scale_for_t_cell_recruitment'] = 0.01
+    params['bacteria_threshold_for_macrophage_recruitment'] = 70
+    params['macrophage_recruitment_probability'] = 7
+    params['chemokine_scale_for_macrophage_recruitment_above_threshold'] = 0.001
+    params['chemokine_scale_for_macrophage_recruitment_below_threshold'] = 0.1
+    params['chemotherapy_scale_for_kill_fast_bacteria'] = 10
+    params['chemotherapy_scale_for_kill_slow_bacteria'] = 20
+    params['chemotherapy_scale_for_kill_macrophage'] = 30
+    params['t_cell_movement_time'] = 167
+    params['t_cell_age_threshold'] = 72000
+    params['t_cell_random_move_probability'] = 20
+    params['t_cell_kills_macrophage_probability'] = 75
+    params['resting_macrophage_age_limit'] = 2400000
+    params['resting_macrophage_movement_time'] = 333
+    params['prob_resting_macrophage_random_move'] = 10
+    params['minimum_chemokine_for_resting_macrophage_movement'] = 20
+    params['active_macrophage_age_limit'] = 240000
+    params['active_macrophage_movement_time'] = 7800
+    params['prob_active_macrophage_kill_fast_bacteria'] = 20
+    params['prob_active_macrophage_kill_slow_bacteria'] = 30
+    params['infected_macrophage_age_limit'] = 2400000
+    params['infected_macrophage_movement_time'] = 240000
+    params['chronically_infected_macrophage_age_limit'] = 2400000
+    params['chronically_infected_macrophage_movement_time'] = 240000
+    params['chemokine_scale_for_macrophage_activation'] = 50
+    params['chemokine_scale_for_macrophage_deactivation'] = 1
+    params['bacteria_to_turn_chronically_infected'] = 10
+    params['bacteria_to_burst_macrophage'] = 20
+    params['oxygen_scale_for_metabolism_change_to_slow'] = 1
+    params['oxygen_scale_for_metabolism_change_to_fast'] = 99
+    params['interval_to_record_results'] = 1000
+
+    return params
+
+
 class TileTestCase(unittest.TestCase):
 
     def setUp(self):
@@ -318,6 +384,19 @@ class AutomatonTestCase(unittest.TestCase):
         self.assertEqual(self.automaton.work_grid[0, 0]['contents'], b)
         self.assertEqual(self.automaton.work_grid[0, 1]['contents'], m)
         self.assertEqual(self.automaton.work_grid[0, 2]['contents'], t)
+
+    def test_get_bacteria(self):
+        self.assertEqual(self.automaton.get_total_bacteria(), 0)
+
+        self.automaton.add_bacterium((0,0), 'fast')
+        self.assertEqual(self.automaton.get_total_bacteria(), 1)
+
+        self.automaton.add_macrophage((1,1), 'resting')
+        self.assertEqual(self.automaton.get_total_bacteria(), 1)
+
+        m = self.automaton.macrophages[0]
+        m.intracellular_bacteria = 2
+        self.assertEqual(self.automaton.get_total_bacteria(), 3)
 
 
 class TopologyTestCase(unittest.TestCase):
@@ -712,15 +791,9 @@ class TwoDimensionalTopologyTestCase(unittest.TestCase):
 class TBAutomatonScenariosTestCase(unittest.TestCase):
 
     def setUp(self):
-        params = dict()
-        params['max_depth'] = 3
-        params['initial_oxygen'] = 1.5
-        params['blood_vessel_value'] = 15
-        params['oxygen_diffusion'] = 1.0
-        params['chemotherapy_diffusion'] = 0.75
-        params['chemotherapy_schedule1_start_lower'] = 99
-        params['chemotherapy_schedule1_start_upper'] = 100
+        params = parameter_setup()
 
+        params['blood_vessel_value'] = 15
         params['caseum_distance_to_reduce_diffusion'] = 2
         params['caseum_threshold_to_reduce_diffusion'] = 2
         params['oxygen_diffusion_caseum_reduction'] = 1.5
@@ -1352,31 +1425,7 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
 class BacteriaReplicationTestCase(unittest.TestCase):
 
     def setUp(self):
-        params = dict()
-        params['max_depth'] = 3
-        params['blood_vessel_value'] = 1.5
-        params['initial_oxygen'] = 1.5
-        params['oxygen_diffusion'] = 1.0
-        params['chemotherapy_diffusion'] = 0.75
-        params['caseum_distance_to_reduce_diffusion'] = 2
-        params['caseum_threshold_to_reduce_diffusion'] = 2
-        params['oxygen_diffusion_caseum_reduction'] = 1.5
-        params['chemotherapy_diffusion_caseum_reduction'] = 1.5
-        params['spatial_step'] = 0.2
-        params['oxygen_from_source'] = 2.4
-        params['oxygen_uptake_from_bacteria'] = 1.0
-        params['time_step'] = 1
-        params['chemotherapy_from_source'] = 1.0
-        params['chemotherapy_decay'] = 0.35
-        params['chemokine_diffusion'] = 0.05
-        params['chemokine_from_bacteria'] = 0.5
-        params['chemokine_from_macrophages'] = 1
-        params['chemokine_decay'] = 0.347
-        params['chemotherapy_schedule1_start_lower'] = 99
-        params['chemotherapy_schedule1_start_upper'] = 100
-        params['chemotherapy_schedule2_start'] = 200
-        params['interval_to_record_results'] = 1000
-        params['t_cell_movement_time'] = 1000
+        params = parameter_setup()
 
         # Set the limits to 1 and 2 - forces random number to be 1 and thus always replicates each step
         params['bacteria_replication_fast_upper'] = 2
@@ -1388,6 +1437,7 @@ class BacteriaReplicationTestCase(unittest.TestCase):
         params['macrophage_recruitment_probability'] = 0
         params['chemotherapy_scale_for_kill_fast_bacteria'] = 100
         params['chemotherapy_scale_for_kill_slow_bacteria'] = 100
+        params['time_step'] = 1
 
         atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
                 'chemotherapy', 'chemokine']
@@ -1538,24 +1588,7 @@ class BacteriaReplicationTestCase(unittest.TestCase):
 class TCellRecruitmentTestCase(unittest.TestCase):
 
     def setUp(self):
-        params = dict()
-        params['max_depth'] = 3
-        params['initial_oxygen'] = 1.5
-        params['blood_vessel_value'] = 1.5
-        params['oxygen_diffusion'] = 1.0
-        params['chemotherapy_diffusion'] = 0.75
-        params['caseum_distance_to_reduce_diffusion'] = 2
-        params['spatial_step'] = 0.2
-        params['oxygen_from_source'] = 2.4
-        params['time_step'] = 0.001
-        params['chemokine_diffusion'] = 0.05
-        params['chemokine_decay'] = 0.347
-        params['chemotherapy_schedule1_start_lower'] = 99
-        params['chemotherapy_schedule1_start_upper'] = 100
-        params['chemotherapy_schedule2_start'] = 200
-        params['macrophage_recruitment_probability'] = 0
-        params['t_cell_movement_time'] = 1
-        params['interval_to_record_results'] = 1000
+        params = parameter_setup()
 
         # PARAMETERS WHICH ARE RELEVANT FOR THESE TESTS
         # Each of these require negative testing as well (later)
@@ -1617,25 +1650,7 @@ class TCellRecruitmentTestCase(unittest.TestCase):
     def test_t_cell_recruited_across_boundary(self):
 
         # Need a different set-up
-        params = dict()
-        params['max_depth'] = 3
-        params['initial_oxygen'] = 1.5
-        params['blood_vessel_value'] = 1.5
-        params['oxygen_diffusion'] = 1.0
-        params['chemotherapy_diffusion'] = 0.75
-        params['caseum_distance_to_reduce_diffusion'] = 2
-        params['caseum_threshold_to_reduce_diffusion'] = 200
-        params['spatial_step'] = 0.2
-        params['oxygen_from_source'] = 2.4
-        params['time_step'] = 0.001
-        params['chemokine_diffusion'] = 0.05
-        params['chemokine_decay'] = 0.347
-        params['chemotherapy_schedule1_start_lower'] = 99
-        params['chemotherapy_schedule1_start_upper'] = 100
-        params['chemotherapy_schedule2_start'] = 200
-        params['macrophage_recruitment_probability'] = 0
-        params['t_cell_movement_time'] = 1
-        params['interval_to_record_results'] = 1000
+        params = parameter_setup()
 
         # PARAMETERS WHICH ARE RELEVANT FOR THESE TESTS
         params['bacteria_threshold_for_t_cells'] = 0
@@ -1707,27 +1722,12 @@ class TCellRecruitmentTestCase(unittest.TestCase):
 class MacrophageRecruitmentTestCase(unittest.TestCase):
 
     def setUp(self):
-        params = dict()
-        params['max_depth'] = 3
-        params['initial_oxygen'] = 1.5
-        params['blood_vessel_value'] = 1.5
-        params['oxygen_diffusion'] = 1.0
-        params['chemotherapy_diffusion'] = 0.75
-        params['caseum_distance_to_reduce_diffusion'] = 2
-        params['spatial_step'] = 0.2
-        params['oxygen_from_source'] = 2.4
-        params['time_step'] = 0.001
-        params['chemokine_diffusion'] = 0.05
-        params['chemokine_decay'] = 0.347
-        params['chemotherapy_schedule1_start_lower'] = 99
-        params['chemotherapy_schedule1_start_upper'] = 100
-        params['chemotherapy_schedule2_start'] = 200
-        params['t_cell_movement_time'] = 1
-        params['bacteria_threshold_for_t_cells'] = 1000
-        params['interval_to_record_results'] = 1000
+        params = parameter_setup()
 
         params['macrophage_recruitment_probability'] = 100
-        params['chemokine_scale_for_macrophage_recruitment'] = -1
+        params['chemokine_scale_for_macrophage_recruitment_above_threshold'] = 5
+        params['chemokine_scale_for_macrophage_recruitment_below_threshold'] = 10
+        params['bacteria_threshold_for_macrophage_recruitment'] = 20
 
         atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
                 'chemotherapy', 'chemokine']
@@ -1750,133 +1750,141 @@ class MacrophageRecruitmentTestCase(unittest.TestCase):
             self.topology.automata[i].set_halo(halos[i])
             self.topology.automata[i].set_global_bacteria_number(bacteria_global)
 
-    def test_macrophage_recruitment(self):
+    def test_macrophage_recruited_above_threshold(self):
         self.sort_out_halos()
-        self.topology.automata[0].update()
 
+        self.topology.automata[0].number_of_bacteria_global = 21
+        self.topology.automata[0].max_chemokine_global = 100
+        self.topology.automata[0].grid[(2, 3)]['chemokine'] = 0
+        self.topology.automata[0].grid[(3, 2)]['chemokine'] = 0
+        self.topology.automata[0].grid[(3, 4)]['chemokine'] = 0
+        self.topology.automata[0].grid[(4, 3)]['chemokine'] = 6.0
+
+        self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
-        event = self.topology.automata[0].potential_events[0]
-        self.assertTrue(isinstance(event, TB_Model.RecruitMacrophage))
 
-        address = event.dependant_addresses[0]
-        distance = math.fabs(address[0] - 3) + math.fabs(address[1] - 3)
-        self.assertEqual(distance, 1)
+        self.assertTrue(isinstance(self.topology.automata[0].potential_events[0], TB_Model.RecruitMacrophage))
+        self.assertEqual(self.topology.automata[0].potential_events[0].macrophage_address, (4,3))
 
-    def test_macrophage_recruit_process(self):
+    def test_macrophage_recruited_below_threshold(self):
         self.sort_out_halos()
+
+        self.topology.automata[0].number_of_bacteria_global = 19
+        self.topology.automata[0].max_chemokine_global = 100
+        self.topology.automata[0].grid[(2, 3)]['chemokine'] = 0
+        self.topology.automata[0].grid[(3, 2)]['chemokine'] = 0
+        self.topology.automata[0].grid[(3, 4)]['chemokine'] = 0
+        self.topology.automata[0].grid[(4, 3)]['chemokine'] = 11.0
+
         self.topology.automata[0].update()
-        events = self.topology.automata[0].potential_events
-        self.topology.automata[0].process_events(events)
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+
+        self.assertTrue(isinstance(self.topology.automata[0].potential_events[0], TB_Model.RecruitMacrophage))
+        self.assertEqual(self.topology.automata[0].potential_events[0].macrophage_address, (4,3))
+
+    def test_negative_macrophage_recruited_above_threshold_chemokine_scale(self):
+        self.sort_out_halos()
+
+        self.topology.automata[0].number_of_bacteria_global = 21
+        self.topology.automata[0].max_chemokine_global = 100
+        self.topology.automata[0].grid[(2, 3)]['chemokine'] = 0
+        self.topology.automata[0].grid[(3, 2)]['chemokine'] = 0
+        self.topology.automata[0].grid[(3, 4)]['chemokine'] = 0
+        self.topology.automata[0].grid[(4, 3)]['chemokine'] = 4.0
+
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+    def test_negative_macrophage_recruited_below_threshold_chemokine_scale(self):
+        self.sort_out_halos()
+
+        self.topology.automata[0].number_of_bacteria_global = 19
+        self.topology.automata[0].max_chemokine_global = 100
+        self.topology.automata[0].grid[(2, 3)]['chemokine'] = 0
+        self.topology.automata[0].grid[(3, 2)]['chemokine'] = 0
+        self.topology.automata[0].grid[(3, 4)]['chemokine'] = 0
+        self.topology.automata[0].grid[(4, 3)]['chemokine'] = 9.0
+
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+    def test_negative_macrophage_recruited_probability(self):
+
+        self.topology.automata[0].parameters['macrophage_recruitment_probability'] = 0
+        self.sort_out_halos()
+
+        self.topology.automata[0].number_of_bacteria_global = 100
+        self.topology.automata[0].max_chemokine_global = 100.0
+        self.topology.automata[0].grid[(2, 3)]['chemokine'] = 0
+        self.topology.automata[0].grid[(3, 2)]['chemokine'] = 0
+        self.topology.automata[0].grid[(3, 4)]['chemokine'] = 0
+        self.topology.automata[0].grid[(4, 3)]['chemokine'] = 100.0
+
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
+
+    def test_macrophage_recruitment_process(self):
+        self.sort_out_halos()
+
+        self.topology.automata[0].number_of_bacteria_global = 21
+        self.topology.automata[0].max_chemokine_global = 100
+        self.topology.automata[0].grid[(2, 3)]['chemokine'] = 0
+        self.topology.automata[0].grid[(3, 2)]['chemokine'] = 0
+        self.topology.automata[0].grid[(3, 4)]['chemokine'] = 0
+        self.topology.automata[0].grid[(4, 3)]['chemokine'] = 6.0
+
+        self.topology.automata[0].update()
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+
+        self.assertTrue(isinstance(self.topology.automata[0].potential_events[0], TB_Model.RecruitMacrophage))
+
+        self.topology.automata[0].process_events(self.topology.automata[0].potential_events)
 
         self.assertEqual(len(self.topology.automata[0].macrophages), 1)
-        self.assertTrue(isinstance(self.topology.automata[0].grid[events[0].dependant_addresses[0]]['contents'],
-                                   TB_Model.Macrophage))
+        self.assertTrue(isinstance(self.topology.automata[0].grid[(4,3)]['contents'],TB_Model.Macrophage))
 
-    def test_macrophage_recruited_across_boundary(self):
-
-        params = dict()
-        params['max_depth'] = 3
-        params['initial_oxygen'] = 1.5
-        params['blood_vessel_value'] = 1.5
-        params['oxygen_diffusion'] = 1.0
-        params['chemotherapy_diffusion'] = 0.75
-        params['caseum_distance_to_reduce_diffusion'] = 2
-        params['caseum_threshold_to_reduce_diffusion'] = 100
-        params['spatial_step'] = 0.2
-        params['oxygen_from_source'] = 2.4
-        params['time_step'] = 0.001
-        params['chemokine_diffusion'] = 0.05
-        params['chemokine_decay'] = 0.347
-        params['chemotherapy_schedule1_start_lower'] = 99
-        params['chemotherapy_schedule1_start_upper'] = 100
-        params['chemotherapy_schedule2_start'] = 200
-        params['t_cell_movement_time'] = 1
-        params['bacteria_threshold_for_t_cells'] = 1000
-        params['interval_to_record_results'] = 1000
+    def test_macrophage_recruitment_process_across_boundary(self):
+        params = parameter_setup()
 
         params['macrophage_recruitment_probability'] = 100
-        params['chemokine_scale_for_macrophage_recruitment'] = -1
+        params['chemokine_scale_for_macrophage_recruitment_above_threshold'] = 5
+        params['chemokine_scale_for_macrophage_recruitment_below_threshold'] = 10
+        params['bacteria_threshold_for_macrophage_recruitment'] = 20
 
         atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
                 'chemotherapy', 'chemokine']
 
-        blood_vessels = [(0, 4)]
-        fast_bacteria = []
+        blood_vessels = [[4, 4]]
+        fast_bacteria = [[9, 9], [8, 9]]
         slow_bacteria = []
         macrophages = []
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
                                                         slow_bacteria, macrophages)
+        self.topology.automata[1].grid[(4,0)]['chemokine'] = 100.0
+        self.topology.automata[0].max_chemokine_global = 100.0
+        self.topology.automata[1].max_chemokine_global = 100.0
 
         self.sort_out_halos()
-
-        self.topology.automata[0].grid[0, 3]['contents'] = 'caseum'
-        self.topology.automata[0].grid[1, 3]['contents'] = 'caseum'
-        self.topology.automata[0].grid[1, 4]['contents'] = 'caseum'
-        self.topology.automata[1].grid[1, 0]['contents'] = 'caseum'
-        self.topology.automata[0].caseum += [(0, 3),(1, 3),(1, 4)]
-        self.topology.automata[1].caseum.append((1,0))
+        self.assertEqual(len(self.topology.automata[0].macrophages), 0)
+        self.assertEqual(len(self.topology.automata[1].macrophages), 0)
 
         self.topology.automata[0].update()
-        self.assertTrue(self.topology.automata[0].potential_events[0].dependant_addresses[0] == (0, 5))
+        self.assertEqual(len(self.topology.automata[0].potential_events), 1)
+        self.assertTrue(isinstance(self.topology.automata[0].potential_events[0], TB_Model.RecruitMacrophage))
+        self.assertEqual(self.topology.automata[0].potential_events[0].macrophage_address, (4,5))
 
-        self.topology.automata[1].update()
-
-        event = self.topology.automata[0].potential_events[0]
-        self.assertTrue(isinstance(event, TB_Model.RecruitMacrophage))
-
-        new_address = self.topology.local_to_local(0, event.dependant_addresses[0], 1)
-        self.assertTrue(new_address == (0, 0))
-
-        new_event = event.clone([new_address])
-
-        self.topology.automata[0].process_events([event])
+        new_event = self.topology.automata[0].potential_events[0].clone([(4,0)])
         self.topology.automata[1].process_events([new_event])
-
         self.assertEqual(len(self.topology.automata[0].macrophages), 0)
         self.assertEqual(len(self.topology.automata[1].macrophages), 1)
+        self.assertTrue(isinstance(self.topology.automata[1].grid[(4,0)]['contents'], TB_Model.Macrophage))
 
-    def test_macrophage_recruit_negative_probability(self):
-        self.sort_out_halos()
-        for i in self.topology.automata:
-            i.parameters['macrophage_recruitment_probability'] = 0
-
-        self.topology.automata[0].update()
-        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
-
-    def test_macrophage_recruit_negative_scale(self):
-        self.sort_out_halos()
-        for i in self.topology.automata:
-            i.parameters['chemokine_scale_for_macrophage_recruitment'] = 101
-
-        self.topology.automata[0].update()
-        self.assertEqual(len(self.topology.automata[0].potential_events), 0)
 
 
 class ChemotherapyKillsBacteriaTestCase(unittest.TestCase):
 
     def setUp(self):
-        params = dict()
-        params['max_depth'] = 3
-        params['blood_vessel_value'] = 1.5
-        params['initial_oxygen'] = 1.5
-        params['oxygen_diffusion'] = 0.0
-        params['chemotherapy_diffusion'] = 0.0
-        params['caseum_distance_to_reduce_diffusion'] = 2
-        params['spatial_step'] = 0.2
-        params['oxygen_from_source'] = 0.0
-        params['time_step'] = 0.001
-        params['chemokine_diffusion'] = 0.0
-        params['chemokine_decay'] = 0.0
-        params['oxygen_uptake_from_bacteria'] = 0.0
-        params['chemokine_from_bacteria'] = 0.0
-        params['macrophage_recruitment_probability'] = 0
-        params['bacteria_threshold_for_t_cells'] = 1000
-        params['bacteria_replication_fast_upper'] = 99999
-        params['bacteria_replication_fast_lower'] = 99998
-        params['bacteria_replication_slow_upper'] = 99999
-        params['bacteria_replication_slow_lower'] = 99998
-        params['interval_to_record_results'] = 1000
-        params['t_cell_movement_time'] = 1000
+        params = parameter_setup()
 
         # Scale = 0, so any chemo will kill bacteria (will change later for negative tests)
         params['chemotherapy_scale_for_kill_fast_bacteria'] = 0
@@ -2011,41 +2019,14 @@ class ChemotherapyKillsBacteriaTestCase(unittest.TestCase):
 class ChemotherapyKillsMacrophageTestCase(unittest.TestCase):
 
     def setUp(self):
-        params = dict()
-        params['max_depth'] = 3
-        params['initial_oxygen'] = 1.5
-        params['blood_vessel_value'] = 1.5
-        params['oxygen_diffusion'] = 0.0
-        params['chemotherapy_diffusion'] = 0.0
-        params['caseum_distance_to_reduce_diffusion'] = 2
-        params['spatial_step'] = 0.2
-        params['time_step'] = 0.001
-        params['oxygen_from_source'] = 0.0
-        params['chemokine_diffusion'] = 0.0
-        params['chemokine_decay'] = 0.0
-        params['chemokine_from_macrophage'] = 0.0
-        params['bacteria_threshold_for_t_cells'] = 1000
-        params['macrophage_recruitment_probability'] = 0
-        params['chemokine_scale_for_macrophage_activation'] = 101
-        params['resting_macrophage_age_limit'] = 1000000
-        params['resting_macrophage_movement_time'] = 1000000
-        params['active_macrophage_age_limit'] = 999
-        params['active_macrophage_movement_time'] = 999
-        params['infected_macrophage_age_limit'] = 999
-        params['infected_macrophage_movement_time'] = 999
-        params['chronically_infected_macrophage_age_limit'] = 999
-        params['chronically_infected_macrophage_movement_time'] = 999
-        params['chemokine_scale_for_macrophage_deactivation'] = -1
-        params['bacteria_to_turn_chronically_infected'] = 99
-        params['bacteria_to_burst_macrophage'] = 99
-        params['interval_to_record_results'] = 1000
-        params['t_cell_movement_time'] = 1000
+        params = parameter_setup()
 
         params['chemotherapy_scale_for_kill_macrophage'] = 0
 
         params['chemotherapy_schedule1_start_lower'] = 99
         params['chemotherapy_schedule1_start_upper'] = 100
         params['chemotherapy_schedule2_start'] = 200
+        params['chemokine_scale_for_macrophage_deactivation'] = 0
 
         atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
                 'chemotherapy', 'chemokine']
@@ -2196,24 +2177,7 @@ class ChemotherapyKillsMacrophageTestCase(unittest.TestCase):
 
 class TCellDeathTestCase(unittest.TestCase):
     def setUp(self):
-        params = dict()
-        params['max_depth'] = 3
-        params['initial_oxygen'] = 1.5
-        params['blood_vessel_value'] = 1.5
-        params['oxygen_diffusion'] = 0.0
-        params['chemotherapy_diffusion'] = 0.0
-        params['caseum_distance_to_reduce_diffusion'] = 2
-        params['spatial_step'] = 0.2
-        params['chemotherapy_schedule1_start_lower'] = 99
-        params['chemotherapy_schedule1_start_upper'] = 100
-        params['chemotherapy_schedule2_start'] = 200
-        params['oxygen_from_source'] = 0.0
-        params['chemokine_diffusion'] = 0.0
-        params['chemokine_decay'] = 0.0
-        params['macrophage_recruitment_probability'] = 0
-        params['chemotherapy_scale_for_kill_macrophage'] = 0
-        params['t_cell_random_move_probability'] = 100
-        params['interval_to_record_results'] = 1000
+        params = parameter_setup()
 
         params['bacteria_threshold_for_t_cells'] = 0
         params['t_cell_recruitment_probability'] = 0
@@ -2313,23 +2277,7 @@ class TCellDeathTestCase(unittest.TestCase):
 class TCellMovementTestCase(unittest.TestCase):
 
     def setUp(self):
-        params = dict()
-        params['max_depth'] = 3
-        params['initial_oxygen'] = 1.5
-        params['blood_vessel_value'] = 1.5
-        params['oxygen_diffusion'] = 0.0
-        params['chemotherapy_diffusion'] = 0.0
-        params['caseum_distance_to_reduce_diffusion'] = 2
-        params['spatial_step'] = 0.2
-        params['chemotherapy_schedule1_start_lower'] = 99
-        params['chemotherapy_schedule1_start_upper'] = 100
-        params['chemotherapy_schedule2_start'] = 200
-        params['oxygen_from_source'] = 0.0
-        params['chemokine_diffusion'] = 0.0
-        params['chemokine_decay'] = 0.0
-        params['macrophage_recruitment_probability'] = 0
-        params['chemotherapy_scale_for_kill_macrophage'] = 0
-        params['interval_to_record_results'] = 1000
+        params = parameter_setup()
 
         params['bacteria_threshold_for_t_cells'] = 0
         params['t_cell_recruitment_probability'] = 0
@@ -2486,36 +2434,7 @@ class TCellMovementTestCase(unittest.TestCase):
 class TCellKillsMacrophageTestCase(unittest.TestCase):
 
     def setUp(self):
-        params = dict()
-        params['max_depth'] = 3
-        params['blood_vessel_value'] = 1.5
-        params['initial_oxygen'] = 1.5
-        params['oxygen_diffusion'] = 0.0
-        params['chemotherapy_diffusion'] = 0.0
-        params['caseum_distance_to_reduce_diffusion'] = 2
-        params['spatial_step'] = 0.2
-        params['chemotherapy_schedule1_start_lower'] = 99
-        params['chemotherapy_schedule1_start_upper'] = 100
-        params['chemotherapy_schedule2_start'] = 200
-        params['oxygen_from_source'] = 0.0
-        params['chemokine_diffusion'] = 0.0
-        params['chemokine_decay'] = 0.0
-        params['macrophage_recruitment_probability'] = 0
-        params['chemotherapy_scale_for_kill_macrophage'] = 0
-        params['chemokine_from_macrophage'] = 0
-        params['resting_macrophage_age_limit'] = 999
-        params['resting_macrophage_movement_time'] = 999
-        params['active_macrophage_age_limit'] = 999
-        params['active_macrophage_movement_time'] = 999
-        params['infected_macrophage_age_limit'] = 999
-        params['infected_macrophage_movement_time'] = 999
-        params['chronically_infected_macrophage_age_limit'] = 999
-        params['chronically_infected_macrophage_movement_time'] = 999
-        params['bacteria_to_turn_chronically_infected'] = 99
-        params['chemokine_scale_for_macrophage_deactivation'] = -1
-        params['chemokine_scale_for_macrophage_activation'] = 101
-        params['bacteria_to_burst_macrophage'] = 99
-        params['interval_to_record_results'] = 1000
+        params = parameter_setup()
 
         params['bacteria_threshold_for_t_cells'] = 0
         params['t_cell_recruitment_probability'] = 0
@@ -2524,6 +2443,7 @@ class TCellKillsMacrophageTestCase(unittest.TestCase):
         params['time_step'] = 2
         params['t_cell_random_move_probability'] = 0
         params['t_cell_kills_macrophage_probability'] = 100
+        params['chemokine_scale_for_macrophage_activation'] = 101
 
         atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
                 'chemotherapy', 'chemokine']
@@ -2618,7 +2538,7 @@ class TCellKillsMacrophageTestCase(unittest.TestCase):
         self.topology.automata[0].grid[1, 1]['contents'] = t_cell
         self.topology.automata[0].t_cells.append(t_cell)
 
-        # Make [0,0] have the highest chemokine
+        # Make [1,2] have the highest chemokine
         self.topology.automata[0].grid[1, 2]['chemokine'] = 99.9
         self.topology.automata[0].set_max_chemokine_global(99.9)
 
@@ -2667,33 +2587,7 @@ class TCellKillsMacrophageTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].potential_events), 0)
 
     def test_tcell_kills_macrophage_across_boundary_process(self):
-        params = dict()
-        params['max_depth'] = 3
-        params['initial_oxygen'] = 1.5
-        params['blood_vessel_value'] = 1.5
-        params['oxygen_diffusion'] = 0.0
-        params['chemotherapy_diffusion'] = 0.0
-        params['caseum_distance_to_reduce_diffusion'] = 2
-        params['spatial_step'] = 0.2
-        params['chemotherapy_schedule1_start_lower'] = 99
-        params['chemotherapy_schedule1_start_upper'] = 100
-        params['chemotherapy_schedule2_start'] = 200
-        params['oxygen_from_source'] = 0.0
-        params['chemokine_diffusion'] = 0.0
-        params['chemokine_decay'] = 0.0
-        params['macrophage_recruitment_probability'] = 0
-        params['chemotherapy_scale_for_kill_macrophage'] = 0
-        params['chemokine_from_macrophage'] = 0
-        params['resting_macrophage_age_limit'] = 999
-        params['resting_macrophage_movement_time'] = 999
-        params['active_macrophage_age_limit'] = 999
-        params['active_macrophage_movement_time'] = 999
-        params['infected_macrophage_age_limit'] = 999
-        params['infected_macrophage_movement_time'] = 999
-        params['chronically_infected_macrophage_age_limit'] = 999
-        params['chronically_infected_macrophage_movement_time'] = 999
-        params['interval_to_record_results'] = 1000
-        params['bacteria_to_turn_chronically_infected'] = 99
+        params = parameter_setup()
 
         params['bacteria_threshold_for_t_cells'] = 0
         params['t_cell_recruitment_probability'] = 0
@@ -2758,39 +2652,14 @@ class TCellKillsMacrophageTestCase(unittest.TestCase):
 class MacrophageDeathTestCase(unittest.TestCase):
 
     def setUp(self):
-        params = dict()
-        params['max_depth'] = 3
-        params['initial_oxygen'] = 1.5
-        params['blood_vessel_value'] = 1.5
-        params['oxygen_diffusion'] = 0.0
-        params['chemotherapy_diffusion'] = 0.0
-        params['caseum_distance_to_reduce_diffusion'] = 2
-        params['spatial_step'] = 0.2
-        params['chemotherapy_schedule1_start_lower'] = 99
-        params['chemotherapy_schedule1_start_upper'] = 100
-        params['chemotherapy_schedule2_start'] = 200
-        params['oxygen_from_source'] = 0.0
-        params['chemokine_diffusion'] = 0.0
-        params['chemokine_decay'] = 0.0
-        params['chemokine_from_macrophage'] = 0
-        params['bacteria_threshold_for_t_cells'] = 100
-        params['chemokine_scale_for_macrophage_activation'] = 101
-        params['chemotherapy_scale_for_kill_macrophage'] = 101
-        params['resting_macrophage_movement_time'] = 999
-        params['active_macrophage_movement_time'] = 999
-        params['infected_macrophage_movement_time'] = 999
-        params['chronically_infected_macrophage_movement_time'] = 999
-        params['chemokine_scale_for_macrophage_deactivation'] = -1
-        params['bacteria_to_turn_chronically_infected'] = 99
-        params['bacteria_to_burst_macrophage'] = 99
-        params['interval_to_record_results'] = 1000
-        params['t_cell_movement_time'] = 1000
+        params = parameter_setup()
 
         params['time_step'] = 1
         params['resting_macrophage_age_limit'] = 1
         params['active_macrophage_age_limit'] = 1
         params['infected_macrophage_age_limit'] = 1
         params['chronically_infected_macrophage_age_limit'] = 1
+        params['chemokine_scale_for_macrophage_deactivation'] = 0
 
         atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
                 'chemotherapy', 'chemokine']
@@ -2974,29 +2843,7 @@ class MacrophageDeathTestCase(unittest.TestCase):
 class MacrophageMovementTestCase(unittest.TestCase):
 
     def setUp(self):
-        params = dict()
-        params['max_depth'] = 3
-        params['blood_vessel_value'] = 1.5
-        params['initial_oxygen'] = 1.5
-        params['oxygen_diffusion'] = 0.0
-        params['chemotherapy_diffusion'] = 0.0
-        params['caseum_distance_to_reduce_diffusion'] = 2
-        params['spatial_step'] = 0.2
-        params['chemotherapy_schedule1_start_lower'] = 99
-        params['chemotherapy_schedule1_start_upper'] = 100
-        params['chemotherapy_schedule2_start'] = 200
-        params['oxygen_from_source'] = 0.0
-        params['chemokine_diffusion'] = 0.0
-        params['chemokine_decay'] = 0.0
-        params['chemokine_from_macrophage'] = 0
-        params['bacteria_threshold_for_t_cells'] = 100
-        params['chemokine_scale_for_macrophage_activation'] = 101
-        params['chemotherapy_scale_for_kill_macrophage'] = 101
-        params['chemokine_scale_for_macrophage_deactivation'] = -1
-        params['bacteria_to_turn_chronically_infected'] = 99
-        params['bacteria_to_burst_macrophage'] = 99
-        params['interval_to_record_results'] = 1000
-        params['t_cell_movement_time'] = 1000
+        params = parameter_setup()
 
         params['time_step'] = 1
         params['resting_macrophage_age_limit'] = 999
@@ -3009,6 +2856,7 @@ class MacrophageMovementTestCase(unittest.TestCase):
         params['chronically_infected_macrophage_movement_time'] = 1
         params['prob_resting_macrophage_random_move'] = 100
         params['minimum_chemokine_for_resting_macrophage_movement'] = 101
+        params['chemokine_scale_for_macrophage_deactivation'] = 0
 
         atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
                 'chemotherapy', 'chemokine']
@@ -3342,37 +3190,7 @@ class MacrophageMovementTestCase(unittest.TestCase):
 class MacrophageKillsBacteria(unittest.TestCase):
 
     def setUp(self):
-        params = dict()
-        params['max_depth'] = 3
-        params['initial_oxygen'] = 1.5
-        params['blood_vessel_value'] = 1.5
-        params['oxygen_diffusion'] = 0.0
-        params['chemotherapy_diffusion'] = 0.0
-        params['caseum_distance_to_reduce_diffusion'] = 2
-        params['spatial_step'] = 0.2
-        params['chemotherapy_schedule1_start_lower'] = 99
-        params['chemotherapy_schedule1_start_upper'] = 100
-        params['chemotherapy_schedule2_start'] = 200
-        params['oxygen_from_source'] = 0.0
-        params['chemokine_diffusion'] = 0.0
-        params['chemokine_decay'] = 0.0
-        params['chemokine_from_macrophage'] = 0
-        params['bacteria_threshold_for_t_cells'] = 100
-        params['chemokine_scale_for_macrophage_activation'] = 101
-        params['chemotherapy_scale_for_kill_macrophage'] = 101
-        params['oxygen_uptake_from_bacteria'] = 0
-        params['chemokine_from_bacteria'] = 0
-        params['bacteria_replication_fast_upper'] = 999
-        params['bacteria_replication_fast_lower'] = 998
-        params['bacteria_replication_slow_upper'] = 999
-        params['bacteria_replication_slow_lower'] = 998
-        params['chemotherapy_scale_for_kill_fast_bacteria'] = 101
-        params['chemotherapy_scale_for_kill_slow_bacteria'] = 101
-        params['chemokine_scale_for_macrophage_deactivation'] = -1
-        params['bacteria_to_turn_chronically_infected'] = 99
-        params['bacteria_to_burst_macrophage'] = 99
-        params['interval_to_record_results'] = 1000
-        params['t_cell_movement_time'] = 1000
+        params = parameter_setup()
 
         params['time_step'] = 1
         params['resting_macrophage_age_limit'] = 999
@@ -3385,6 +3203,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
         params['chronically_infected_macrophage_movement_time'] = 1
         params['prob_resting_macrophage_random_move'] = 0
         params['minimum_chemokine_for_resting_macrophage_movement'] = 0
+        params['chemokine_scale_for_macrophage_deactivation'] = 0
 
         atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
                 'chemotherapy', 'chemokine']
@@ -3620,6 +3439,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[0].bacteria), 1)
 
         self.topology.automata[0].update()
+
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(event, TB_Model.MacrophageKillsBacterium)
@@ -3727,44 +3547,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
 class MacrophageChangesState(unittest.TestCase):
 
     def setUp(self):
-        params = dict()
-        params['max_depth'] = 3
-        params['initial_oxygen'] = 1.5
-        params['blood_vessel_value'] = 1.5
-        params['oxygen_diffusion'] = 0.0
-        params['chemotherapy_diffusion'] = 0.0
-        params['caseum_distance_to_reduce_diffusion'] = 2
-        params['spatial_step'] = 0.2
-        params['chemotherapy_schedule1_start_lower'] = 99
-        params['chemotherapy_schedule1_start_upper'] = 100
-        params['chemotherapy_schedule2_start'] = 200
-        params['oxygen_from_source'] = 0.0
-        params['chemokine_diffusion'] = 0.0
-        params['chemokine_decay'] = 0.0
-        params['chemokine_from_macrophage'] = 0
-        params['bacteria_threshold_for_t_cells'] = 100
-        params['chemotherapy_scale_for_kill_macrophage'] = 101
-        params['oxygen_uptake_from_bacteria'] = 0
-        params['chemokine_from_bacteria'] = 0
-        params['bacteria_replication_fast_upper'] = 999
-        params['bacteria_replication_fast_lower'] = 998
-        params['bacteria_replication_slow_upper'] = 999
-        params['bacteria_replication_slow_lower'] = 998
-        params['chemotherapy_scale_for_kill_fast_bacteria'] = 101
-        params['chemotherapy_scale_for_kill_slow_bacteria'] = 101
-        params['resting_macrophage_age_limit'] = 999
-        params['active_macrophage_age_limit'] = 999
-        params['infected_macrophage_age_limit'] = 999
-        params['chronically_infected_macrophage_age_limit'] = 999
-        params['resting_macrophage_movement_time'] = 1000
-        params['active_macrophage_movement_time'] = 1000
-        params['infected_macrophage_movement_time'] = 1000
-        params['chronically_infected_macrophage_movement_time'] = 1000
-        params['prob_resting_macrophage_random_move'] = 0
-        params['minimum_chemokine_for_resting_macrophage_movement'] = 0
-        params['bacteria_to_turn_chronically_infected'] = 10
-        params['interval_to_record_results'] = 1000
-        params['t_cell_movement_time'] = 1000
+        params = parameter_setup()
 
         params['chemokine_scale_for_macrophage_activation'] = 0
         params['chemokine_scale_for_macrophage_deactivation'] = 100
@@ -3890,47 +3673,7 @@ class MacrophageChangesState(unittest.TestCase):
 
 class BacteriaStateChangeTestCase(unittest.TestCase):
     def setUp(self):
-        params = dict()
-        params['max_depth'] = 3
-        params['blood_vessel_value'] = 1.5
-        params['initial_oxygen'] = 1.5
-        params['oxygen_diffusion'] = 0.0
-        params['chemotherapy_diffusion'] = 0.0
-        params['caseum_distance_to_reduce_diffusion'] = 2
-        params['spatial_step'] = 0.2
-        params['chemotherapy_schedule1_start_lower'] = 99
-        params['chemotherapy_schedule1_start_upper'] = 100
-        params['chemotherapy_schedule2_start'] = 200
-        params['oxygen_from_source'] = 0.0
-        params['chemokine_diffusion'] = 0.0
-        params['chemokine_decay'] = 0.0
-        params['chemokine_from_macrophage'] = 0
-        params['bacteria_threshold_for_t_cells'] = 100
-        params['chemotherapy_scale_for_kill_macrophage'] = 101
-        params['oxygen_uptake_from_bacteria'] = 0
-        params['chemokine_from_bacteria'] = 0
-        params['bacteria_replication_fast_upper'] = 999
-        params['bacteria_replication_fast_lower'] = 998
-        params['bacteria_replication_slow_upper'] = 999
-        params['bacteria_replication_slow_lower'] = 998
-        params['chemotherapy_scale_for_kill_fast_bacteria'] = 101
-        params['chemotherapy_scale_for_kill_slow_bacteria'] = 101
-        params['resting_macrophage_age_limit'] = 999
-        params['active_macrophage_age_limit'] = 999
-        params['infected_macrophage_age_limit'] = 999
-        params['chronically_infected_macrophage_age_limit'] = 999
-        params['resting_macrophage_movement_time'] = 1000
-        params['active_macrophage_movement_time'] = 1000
-        params['infected_macrophage_movement_time'] = 1000
-        params['chronically_infected_macrophage_movement_time'] = 1000
-        params['prob_resting_macrophage_random_move'] = 0
-        params['minimum_chemokine_for_resting_macrophage_movement'] = 0
-        params['bacteria_to_turn_chronically_infected'] = 10
-        params['chemokine_scale_for_macrophage_activation'] = 0
-        params['chemokine_scale_for_macrophage_deactivation'] = 100
-        params['caseum_threshold_to_reduce_diffusion'] = 100
-        params['interval_to_record_results'] = 1000
-        params['t_cell_movement_time'] = 1000
+        params = parameter_setup()
 
         params['time_step'] = 4
         params['oxygen_scale_for_metabolism_change_to_slow'] = 100
@@ -4129,50 +3872,7 @@ class BacteriaStateChangeTestCase(unittest.TestCase):
 
 class MacrophageBurstingTestCase(unittest.TestCase):
     def setUp(self):
-        params = dict()
-        params['max_depth'] = 3
-        params['caseum_threshold_to_reduce_diffusion'] = 999
-        params['initial_oxygen'] = 1.5
-        params['blood_vessel_value'] = 1.5
-        params['oxygen_diffusion'] = 0.0
-        params['chemotherapy_diffusion'] = 0.0
-        params['caseum_distance_to_reduce_diffusion'] = 2
-        params['spatial_step'] = 0.2
-        params['chemotherapy_schedule1_start_lower'] = 99
-        params['chemotherapy_schedule1_start_upper'] = 100
-        params['chemotherapy_schedule2_start'] = 200
-        params['oxygen_from_source'] = 0.0
-        params['chemokine_diffusion'] = 0.0
-        params['chemokine_decay'] = 0.0
-        params['chemokine_from_macrophage'] = 0
-        params['bacteria_threshold_for_t_cells'] = 100
-        params['chemotherapy_scale_for_kill_macrophage'] = 101
-        params['oxygen_uptake_from_bacteria'] = 0
-        params['chemokine_from_bacteria'] = 0
-        params['bacteria_replication_fast_upper'] = 999
-        params['bacteria_replication_fast_lower'] = 998
-        params['bacteria_replication_slow_upper'] = 999
-        params['bacteria_replication_slow_lower'] = 998
-        params['chemotherapy_scale_for_kill_fast_bacteria'] = 101
-        params['chemotherapy_scale_for_kill_slow_bacteria'] = 101
-        params['resting_macrophage_age_limit'] = 999
-        params['active_macrophage_age_limit'] = 999
-        params['infected_macrophage_age_limit'] = 999
-        params['chronically_infected_macrophage_age_limit'] = 999
-        params['resting_macrophage_movement_time'] = 1000
-        params['active_macrophage_movement_time'] = 1000
-        params['infected_macrophage_movement_time'] = 1000
-        params['chronically_infected_macrophage_movement_time'] = 1000
-        params['prob_resting_macrophage_random_move'] = 0
-        params['minimum_chemokine_for_resting_macrophage_movement'] = 0
-        params['bacteria_to_turn_chronically_infected'] = 10
-        params['chemokine_scale_for_macrophage_activation'] = 0
-        params['chemokine_scale_for_macrophage_deactivation'] = 100
-        params['time_step'] = 4
-        params['oxygen_scale_for_metabolism_change_to_slow'] = 100
-        params['oxygen_scale_for_metabolism_change_to_fast'] = 0
-        params['interval_to_record_results'] = 1000
-        params['t_cell_movement_time'] = 1000
+        params = parameter_setup()
 
         params['bacteria_to_burst_macrophage'] = 20
 
@@ -4328,55 +4028,14 @@ class MacrophageBurstingTestCase(unittest.TestCase):
             self.assertTrue(isinstance(cell_contents, TB_Model.Bacterium))
             self.assertEqual(cell_contents.metabolism, 'slow')
 
+
 class OutputWritingTestCase(unittest.TestCase):
 
     def setUp(self):
-        params = dict()
-        params['max_depth'] = 3
-        params['caseum_threshold_to_reduce_diffusion'] = 999
+        params = parameter_setup()
+
         params['initial_oxygen'] = 1.5
         params['blood_vessel_value'] = 1.5
-        params['oxygen_diffusion'] = 0.0
-        params['chemotherapy_diffusion'] = 0.0
-        params['caseum_distance_to_reduce_diffusion'] = 2
-        params['spatial_step'] = 0.2
-        params['chemotherapy_schedule1_start_lower'] = 99
-        params['chemotherapy_schedule1_start_upper'] = 100
-        params['chemotherapy_schedule2_start'] = 200
-        params['oxygen_from_source'] = 0.0
-        params['chemokine_diffusion'] = 0.0
-        params['chemokine_decay'] = 0.0
-        params['chemokine_from_macrophage'] = 0
-        params['bacteria_threshold_for_t_cells'] = 100
-        params['chemotherapy_scale_for_kill_macrophage'] = 101
-        params['oxygen_uptake_from_bacteria'] = 0
-        params['chemokine_from_bacteria'] = 0
-        params['bacteria_replication_fast_upper'] = 999
-        params['bacteria_replication_fast_lower'] = 998
-        params['bacteria_replication_slow_upper'] = 999
-        params['bacteria_replication_slow_lower'] = 998
-        params['chemotherapy_scale_for_kill_fast_bacteria'] = 101
-        params['chemotherapy_scale_for_kill_slow_bacteria'] = 101
-        params['resting_macrophage_age_limit'] = 999
-        params['active_macrophage_age_limit'] = 999
-        params['infected_macrophage_age_limit'] = 999
-        params['chronically_infected_macrophage_age_limit'] = 999
-        params['resting_macrophage_movement_time'] = 1000
-        params['active_macrophage_movement_time'] = 1000
-        params['infected_macrophage_movement_time'] = 1000
-        params['chronically_infected_macrophage_movement_time'] = 1000
-        params['prob_resting_macrophage_random_move'] = 0
-        params['minimum_chemokine_for_resting_macrophage_movement'] = 0
-        params['bacteria_to_turn_chronically_infected'] = 10
-        params['chemokine_scale_for_macrophage_activation'] = 0
-        params['chemokine_scale_for_macrophage_deactivation'] = 100
-        params['time_step'] = 4
-        params['oxygen_scale_for_metabolism_change_to_slow'] = 100
-        params['oxygen_scale_for_metabolism_change_to_fast'] = 0
-        params['interval_to_record_results'] = 1000
-        params['bacteria_to_burst_macrophage'] = 20
-        params['macrophage_recruitment_probability'] = 0
-        params['t_cell_movement_time'] = 1000
 
         atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
                 'chemotherapy', 'chemokine']
