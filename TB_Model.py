@@ -1246,6 +1246,11 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         Each step for each source vessel, there is a probability that macrophage will be recruited
         :return:
         """
+        if self.number_of_bacteria_global >= self.parameters['bacteria_threshold_for_macrophage_recruitment']:
+            chemokine_threshold = self.parameters['chemokine_scale_for_macrophage_recruitment_above_threshold']
+        else:
+            chemokine_threshold = self.parameters['chemokine_scale_for_macrophage_recruitment_below_threshold']
+
         # Loop through each blood vessel
         for bv_address in self.blood_vessels:
             # Generate event with probability based on parameters
@@ -1257,8 +1262,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 for neighbour_address in neighbours:
                     neighbour = self.grid[neighbour_address]
                     if neighbour is not None and neighbour['blood_vessel'] == 0.0 and neighbour['contents'] == 0.0 and \
-                            self.chemokine_scale(neighbour_address) > \
-                            self.parameters['chemokine_scale_for_macrophage_recruitment']:
+                            self.chemokine_scale(neighbour_address) > chemokine_threshold:
                         free_neighbours.append(neighbour_address)
 
                 if len(free_neighbours) > 0:
