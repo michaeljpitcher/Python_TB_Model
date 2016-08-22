@@ -980,6 +980,9 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
         self.reorder_events()
 
+    def get_total_bacteria(self):
+        return len(self.bacteria) + sum([m.intracellular_bacteria for m in self.macrophages])
+
     def diffusion_pre_process(self):
         """
         Diffusion of oxygen and chemo reduces inside a granuloma. Checks each cells neighbourhood for caseum, and if the

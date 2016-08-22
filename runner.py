@@ -4,14 +4,14 @@ import numpy as np
 import time
 from ipyparallel import Client
 
-#import pyximport; pyximport.install(pyimport=True)
+import pyximport; pyximport.install(pyimport=True)
 import TB_Model
 
 
 def run_single(topology, time_limit):
-    pass
 
     print "Method: Single"
+    dt = topology.automata[0].parameters['time_step']
 
     halo_addresses = topology.external_addresses_required
 
@@ -23,12 +23,12 @@ def run_single(topology, time_limit):
     simulation_start_time = time.time()
     for t in range(1, time_limit + 1):
         topology.automata[0].set_halo(empty_halo)
-        print "TIME-STEP:", t
+        print "TIME-STEP:", t*dt
         automaton = topology.automata[0]
         automaton.set_max_oxygen_global(automaton.max_oxygen_local)
         automaton.set_max_chemotherapy_global(automaton.max_chemotherapy_local)
         automaton.set_max_chemokine_global(automaton.max_chemokine_local)
-        automaton.set_global_bacteria_number(len(automaton.bacteria))
+        automaton.set_global_bacteria_number(automaton.get_total_bacteria())
 
         automaton.update()
 
@@ -465,7 +465,7 @@ def parallel_update_engine_variables():
         stats[0]['max_oxygen_local'] = automaton[0].max_oxygen_local
         stats[0]['max_chemotherapy_local'] = automaton[0].max_chemotherapy_local
         stats[0]['max_chemokine_local'] = automaton[0].max_chemokine_local
-        stats[0]['number_bacteria_local'] = len(automaton[0].bacteria)
+        stats[0]['number_bacteria_local'] = automaton[0].get_total_bacteria()
 
     return function
 
@@ -493,7 +493,7 @@ def parallel_process_events():
         stats[0]['max_oxygen_local'] = automaton[0].max_oxygen_local
         stats[0]['max_chemotherapy_local'] = automaton[0].max_chemotherapy_local
         stats[0]['max_chemokine_local'] = automaton[0].max_chemokine_local
-        stats[0]['number_bacteria_local'] = len(automaton[0].bacteria)
+        stats[0]['number_bacteria_local'] = automaton[0].get_total_bacteria()
 
     return function
 
