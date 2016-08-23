@@ -294,26 +294,6 @@ class NeighbourhoodTestCase(unittest.TestCase):
                                   [(1, 0), (2, -1), (2, 1), (3, -2), (3, 2), (4, -3), (4, 3), (5, -2), (5, 2), (6, -1),
                                    (6, 1), (7, 0)])
 
-    def test_neighbourhood_functions(self):
-        # Specify depth
-        self.assertItemsEqual(self.neighbourhood.neighbours_moore((0, 0), 1),
-                              [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)])
-        self.assertItemsEqual(self.neighbourhood.neighbours_moore((2, 2), 2),
-                              [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (1, 0), (1, 4), (2, 0), (2, 4), (3, 0),
-                               (3, 4), (4, 0), (4, 1), (4, 2), (4, 3), (4, 4)])
-        # Don't specify depth
-        self.assertItemsEqual(self.neighbourhood.neighbours_moore((0, 0)),
-                              [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)])
-
-        # Specify depth
-        self.assertItemsEqual(self.neighbourhood.neighbours_von_neumann((0, 0), 1),
-                              [(-1, 0), (0, -1), (0, 1), (1, 0)])
-        self.assertItemsEqual(self.neighbourhood.neighbours_von_neumann((1, 1), 2),
-                              [(-1, 1), (0, 0), (0, 2), (1, -1), (1, 3), (2, 0), (2, 2), (3, 1)])
-        # Don't specify depth
-        self.assertItemsEqual(self.neighbourhood.neighbours_von_neumann((0, 0)),
-                              [(-1, 0), (0, -1), (0, 1), (1, 0)])
-
     def test_configure_halo_neighbourhood(self):
         self.neighbourhood.configure_neighbourhood_for_halo([(-1,-1),(-1,0),(-1,1)])
         self.assertTrue((-1, -1) in self.neighbourhood.moore_neighbours.keys())
@@ -348,10 +328,13 @@ class AutomatonTestCase(unittest.TestCase):
         atts = ['a', 'contents', 'chemokine']
         self.automaton = TB_Model.Automaton([5, 5], 1, atts, params, [], [], [], [])
 
+    def tearDown(self):
+        self.automaton.close_files()
+
     def test_find_max_chemokine_neighbour(self):
         self.automaton.grid[1, 1]['chemokine'] = 99
         self.automaton.set_max_chemokine_global(99)
-        neighbours = self.automaton.neighbours_moore((2, 2), 1)
+        neighbours = self.automaton.moore_neighbours[(2,2)][1]
         self.assertEqual(self.automaton.find_max_chemokine_neighbour(neighbours)[0], neighbours.index((1, 1)))
         self.assertEqual(self.automaton.find_max_chemokine_neighbour(neighbours)[1], 100)
 
@@ -360,7 +343,7 @@ class AutomatonTestCase(unittest.TestCase):
         self.automaton.grid[1, 1]['chemokine'] = 99
         self.automaton.grid[3, 3]['chemokine'] = 99
         self.automaton.set_max_chemokine_global(99)
-        neighbours = self.automaton.neighbours_moore((2, 2), 1)
+        neighbours = self.automaton.moore_neighbours[(2,2)][1]
         # Force random to be [3,3]
         np.random.seed(1)
         self.assertEqual(self.automaton.find_max_chemokine_neighbour(neighbours)[0], neighbours.index((3, 3)))
@@ -417,6 +400,10 @@ class TopologyTestCase(unittest.TestCase):
         m = [[], [], [(2, 2)], []]
 
         self.topology = TB_Model.Topology([2, 2], [10, 10], atts, params, bv, fb, sb, m)
+
+    def tearDown(self):
+        for a in self.topology.automata:
+            a.close_files()
 
     def test_init(self):
         self.assertEqual(len(self.topology.automata), 4)
@@ -500,6 +487,10 @@ class TwoDimensionalTopologyTestCase(unittest.TestCase):
         atts = ['a', 'b', 'c', 'blood_vessel', 'contents', 'oxygen']
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, [(3, 3)], [(1, 1)], [(9, 9)],
                                                         [(7, 1)])
+
+    def tearDown(self):
+        for a in self.topology.automata:
+            a.close_files()
 
     def test_init(self):
         self.assertSequenceEqual(self.topology.origins, [(0, 0), (0, 5), (5, 0), (5, 5)])
@@ -826,6 +817,10 @@ class TBAutomatonScenariosTestCase(unittest.TestCase):
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
                                                         slow_bacteria, macrophages)
         self.sort_out_halo()
+
+    def tearDown(self):
+        for a in self.topology.automata:
+            a.close_files()
 
     def sort_out_halo(self):
         dz = []
@@ -1448,6 +1443,10 @@ class BacteriaReplicationTestCase(unittest.TestCase):
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
                                                         slow_bacteria, macrophages)
 
+    def tearDown(self):
+        for a in self.topology.automata:
+            a.close_files()
+
     def sort_out_halos(self):
         dz = []
         for i in self.topology.automata:
@@ -1584,7 +1583,6 @@ class BacteriaReplicationTestCase(unittest.TestCase):
         self.assertEqual(len(self.topology.automata[3].potential_events), 0)
 
 
-
 class TCellRecruitmentTestCase(unittest.TestCase):
 
     def setUp(self):
@@ -1608,6 +1606,10 @@ class TCellRecruitmentTestCase(unittest.TestCase):
         macrophages = []
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
                                                         slow_bacteria, macrophages)
+
+    def tearDown(self):
+        for a in self.topology.automata:
+            a.close_files()
 
     def sort_out_halos(self):
         dz = []
@@ -1738,6 +1740,10 @@ class MacrophageRecruitmentTestCase(unittest.TestCase):
         macrophages = []
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
                                                         slow_bacteria, macrophages)
+
+    def tearDown(self):
+        for a in self.topology.automata:
+            a.close_files()
 
     def sort_out_halos(self):
         dz = []
@@ -1880,7 +1886,6 @@ class MacrophageRecruitmentTestCase(unittest.TestCase):
         self.assertTrue(isinstance(self.topology.automata[1].grid[(4,0)]['contents'], TB_Model.Macrophage))
 
 
-
 class ChemotherapyKillsBacteriaTestCase(unittest.TestCase):
 
     def setUp(self):
@@ -1904,6 +1909,10 @@ class ChemotherapyKillsBacteriaTestCase(unittest.TestCase):
         macrophages = []
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
                                                         slow_bacteria, macrophages)
+
+    def tearDown(self):
+        for a in self.topology.automata:
+            a.close_files()
 
     def sort_out_halos(self):
         dz = []
@@ -2037,6 +2046,10 @@ class ChemotherapyKillsMacrophageTestCase(unittest.TestCase):
         macrophages = [[1, 1]]
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
                                                         slow_bacteria, macrophages)
+
+    def tearDown(self):
+        for a in self.topology.automata:
+            a.close_files()
 
     def sort_out_halos(self):
         dz = []
@@ -2194,6 +2207,10 @@ class TCellDeathTestCase(unittest.TestCase):
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
                                                         slow_bacteria, macrophages)
 
+    def tearDown(self):
+        for a in self.topology.automata:
+            a.close_files()
+
     def sort_out_halos(self):
         dz = []
         for i in self.topology.automata:
@@ -2294,6 +2311,10 @@ class TCellMovementTestCase(unittest.TestCase):
         macrophages = []
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
                                                         slow_bacteria, macrophages)
+
+    def tearDown(self):
+        for a in self.topology.automata:
+            a.close_files()
 
     def sort_out_halos(self):
         dz = []
@@ -2453,6 +2474,10 @@ class TCellKillsMacrophageTestCase(unittest.TestCase):
         macrophages = [(1, 2)]
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
                                                         slow_bacteria, macrophages)
+
+    def tearDown(self):
+        for a in self.topology.automata:
+            a.close_files()
 
     def sort_out_halos(self):
         dz = []
@@ -2669,6 +2694,9 @@ class MacrophageDeathTestCase(unittest.TestCase):
         macrophages = [(1, 1)]
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
                                                         slow_bacteria, macrophages)
+    def tearDown(self):
+        for a in self.topology.automata:
+            a.close_files()
 
     def sort_out_halos(self):
         dz = []
@@ -2870,6 +2898,9 @@ class MacrophageMovementTestCase(unittest.TestCase):
         macrophages = [(1, 1)]
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
                                                         slow_bacteria, macrophages)
+    def tearDown(self):
+        for a in self.topology.automata:
+            a.close_files()
 
     def sort_out_halos(self):
         dz = []
@@ -3217,6 +3248,9 @@ class MacrophageKillsBacteria(unittest.TestCase):
         macrophages = [(1, 1)]
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
                                                         slow_bacteria, macrophages)
+    def tearDown(self):
+        for a in self.topology.automata:
+            a.close_files()
 
     def sort_out_halos(self):
         dz = []
@@ -3565,6 +3599,9 @@ class MacrophageChangesState(unittest.TestCase):
         macrophages = [[1, 1]]
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
                                                         slow_bacteria, macrophages)
+    def tearDown(self):
+        for a in self.topology.automata:
+            a.close_files()
 
     def sort_out_halos(self):
         dz = []
@@ -3691,6 +3728,9 @@ class BacteriaStateChangeTestCase(unittest.TestCase):
         macrophages = []
         self.topology = TB_Model.TwoDimensionalTopology([2, 2], [10, 10], atts, params, blood_vessels, fast_bacteria,
                                                         slow_bacteria, macrophages)
+    def tearDown(self):
+        for a in self.topology.automata:
+            a.close_files()
 
     def sort_out_halos(self):
         dz = []
@@ -3890,6 +3930,10 @@ class MacrophageBurstingTestCase(unittest.TestCase):
                                                         slow_bacteria, macrophages)
         np.random.seed(100)
 
+    def tearDown(self):
+        for a in self.topology.automata:
+            a.close_files()
+
     def sort_out_halos(self):
         dz = []
         for i in self.topology.automata:
@@ -4065,6 +4109,10 @@ class OutputWritingTestCase(unittest.TestCase):
         self.topology.automata[0].grid[5,0]['contents'] = 'caseum'
 
         self.topology.automata[0].max_oxygen_global = 1.5
+
+    def tearDown(self):
+        for a in self.topology.automata:
+            a.close_files()
 
     def sort_out_halos(self):
         dz = []

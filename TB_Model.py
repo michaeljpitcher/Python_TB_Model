@@ -880,6 +880,26 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         # Swap the working grid with actual grid to start process
         self.swap_grids()
 
+    def close_files(self):
+        self.type1_file.close()
+        self.type1_r_file.close()
+        self.type2_file.close()
+        self.type2_r_file.close()
+        self.type3_file.close()
+        self.activemac_file.close()
+        self.restingmac_file.close()
+        self.infectedmac_file.close()
+        self.chroninfectedmac_file.close()
+        self.caseation_file.close()
+        self.total_file.close()
+        self.total_cell_test_file.close()
+        self.intra_bac_file.close()
+
+        self.contents_file.close()
+        self.oxygen_file.close()
+        self.chemotherapy_file.close()
+        self.chemokine_file.close()
+
     def initialise_blood_vessels(self, addresses):
         """
         Set the initial blood vessels. These will not change.
