@@ -73,7 +73,7 @@ class Topology:
             # Pull the addresses of cells in neighbourhood of this cell
             neighbours = []
             for j in range(1, depth+1):
-                neighbours += automaton.neighbours_moore(address, j)
+                neighbours += automaton.moore_neighbours[address][j]
             # For every neighbour cell
             for neighbour in neighbours:
                 # Check neighbour not on grid and hasn't been processes already
@@ -390,7 +390,6 @@ class Neighbourhood:
         # Dictionaries of neighbour addresses. Keys are addresses of cells, values are dictionaries - these have keys
         # 1 to max_depth and values are lists of neighbours
         # e.g. Moore neighbours of address (1,1) to a depth of 2 would be self.moore_neighbours[(1,1)][2]
-        # Functions neighbours_moore and neighbours_von_neumann obfuscates this
         # THESE ARE NON-INCLUSIVE (to save data size and make searching for space at succesive levels easier), so a full
         # moore neighbourhood of depth 2 needs to look at depth 1 and then depth 2
         self.moore_neighbours = dict()
@@ -480,24 +479,6 @@ class Neighbourhood:
                 table = self.von_neumann_relative[depth]
                 output = [tuple(address[j] + table[i][j] for j in range(len(address))) for i in range(len(table))]
                 self.von_neumann_neighbours[address][depth] = output
-
-    def neighbours_moore(self, address, depth=1):
-        """
-        Get the Moore neighbours at given depth for given address
-        :param address:
-        :param depth: Defaults to 1
-        :return:
-        """
-        return self.moore_neighbours[address][depth]
-
-    def neighbours_von_neumann(self, address, depth=1):
-        """
-        Get the von Neumann neighbours at given depth for given address
-        :param address:
-        :param depth: Defaults to 1
-        :return:
-        """
-        return self.von_neumann_neighbours[address][depth]
 
 
 # TODO - COMP - not too keen on having this as a separate class, could just as easily be in the automaton class
@@ -1026,7 +1007,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             # Check the nighbourhood of the cell, up to the pre-set depth
             for depth in range(1, int(self.parameters['caseum_distance_to_reduce_diffusion']+1)):
                 # Record each affected neighbour in the list (can be duplicates in list)
-                neighbours = self.neighbours_moore(address, depth)
+                neighbours = self.moore_neighbours[address][depth]
                 for neighbour in neighbours:
                     affected_addresses.append(neighbour)
 
@@ -1096,7 +1077,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             work_grid_cell['contents'] = 0.0
 
             cell = self.grid[address]
-            neighbour_addresses = self.neighbours_von_neumann(address, 1)
+            neighbour_addresses = self.von_neumann_neighbours[address][1]
             neighbours = [self.grid[neighbour_address] for neighbour_address in neighbour_addresses]
 
             # Initialise expression
@@ -1169,6 +1150,9 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             self.max_chemokine_local = max(self.max_chemokine_local, new_chemokine)
             work_grid_cell['chemokine'] = new_chemokine
 
+    def diffusion_2(self,chemo):
+        pass
+
     def bacteria_replication(self):
         """
         Bacteria replicate (produce a new bacterium agent) once they reach a certain age.
@@ -1203,9 +1187,9 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 for depth in range(1, 4):
                     # Pull the neighbours from the appropriate neighbourhood
                     if bacterium.division_neighbourhood == 'mo':
-                        neighbours = self.neighbours_moore(bacterium.address, depth)
+                        neighbours = self.moore_neighbours[bacterium.address][depth]
                     else:
-                        neighbours = self.neighbours_von_neumann(bacterium.address, depth)
+                        neighbours = self.von_neumann_neighbours[bacterium.address][depth]
                     # Find a free neighbour (not a blood vessel and contents == 0.0)
                     for neighbour_address in neighbours:
                         neighbour = self.grid[neighbour_address]
@@ -1243,7 +1227,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 r = np.random.randint(1, 101)
                 if r <= self.parameters['t_cell_recruitment_probability']:
                     # Get von Neumann neighbours
-                    neighbours = self.neighbours_von_neumann(bv_address, 1)
+                    neighbours = self.von_neumann_neighbours[bv_address][1]
                     # Reduce neighbours to those which are empty and have high enough cheokine level
                     free_neighbours = []
                     for neighbour_address in neighbours:
@@ -1277,7 +1261,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             r = np.random.randint(1, 101)
             if r <= self.parameters['macrophage_recruitment_probability']:
                 # Get neighbours, then reduce to those that are free and have sufficient chemokine scale
-                neighbours = self.neighbours_von_neumann(bv_address, 1)
+                neighbours = self.von_neumann_neighbours[bv_address][1]
                 free_neighbours = []
                 for neighbour_address in neighbours:
                     neighbour = self.grid[neighbour_address]
@@ -1353,7 +1337,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     if prob_random_move <= self.parameters['t_cell_random_move_probability']:
                         random_move = True
                     # Get neighbours
-                    neighbours = self.neighbours_moore(t_cell.address, 1)
+                    neighbours = self.moore_neighbours[t_cell.address][1]
                     # If a random move, pick a neighbour at random
                     if random_move:
                         # Remove neighbours not on system
@@ -1405,7 +1389,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 if self.time % self.parameters['resting_macrophage_movement_time'] == 0:
                     # Chemokine moves on random biased walk. Random move with probability based on parameters, if
                     # highest chemokine scale at neighbours does not exceed threshold, then also random move
-                    neighbours = [n for n in self.neighbours_moore(macrophage.address, 1) if self.grid[n] is not None]
+                    neighbours = [n for n in self.moore_neighbours[macrophage.address][1] if self.grid[n] is not None]
                     chosen_index, max_chemokine_scale = self.find_max_chemokine_neighbour(neighbours)
                     # Generate random number for probability of random move
                     prob_random_move = np.random.randint(1, 101)
@@ -1443,7 +1427,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 # Set time for macrophage movement
                 if self.time % self.parameters['active_macrophage_movement_time'] == 0:
                     # Active macrophages always move to highest chemokine neighbour
-                    neighbours = [n for n in self.neighbours_moore(macrophage.address, 1) if self.grid[n] is not None]
+                    neighbours = [n for n in self.moore_neighbours[macrophage.address][1] if self.grid[n] is not None]
                     chosen_neighbour_address = neighbours[self.find_max_chemokine_neighbour(neighbours)[0]]
                     internal = self.address_is_on_grid(chosen_neighbour_address)
                     neighbour = self.grid[chosen_neighbour_address]
@@ -1476,7 +1460,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 # Move after certain time
                 if self.time % self.parameters['infected_macrophage_movement_time'] == 0:
                     # Infected move to highest chemokine neighbour
-                    neighbours = [n for n in self.neighbours_moore(macrophage.address, 1) if self.grid[n] is not None]
+                    neighbours = [n for n in self.moore_neighbours[macrophage.address][1] if self.grid[n] is not None]
                     chosen_neighbour_address = neighbours[self.find_max_chemokine_neighbour(neighbours)[0]]
                     internal = self.address_is_on_grid(chosen_neighbour_address)
                     neighbour = self.grid[chosen_neighbour_address]
@@ -1503,7 +1487,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 # Movement at set times
                 if self.time % self.parameters['chronically_infected_macrophage_movement_time'] == 0:
                     # Move to highest chemokine scale neighbour
-                    neighbours = [n for n in self.neighbours_moore(macrophage.address, 1) if self.grid[n] is not None]
+                    neighbours = [n for n in self.moore_neighbours[macrophage.address][1] if self.grid[n] is not None]
                     chosen_neighbour_address = neighbours[self.find_max_chemokine_neighbour(neighbours)[0]]
                     internal = self.address_is_on_grid(chosen_neighbour_address)
                     neighbour = self.grid[chosen_neighbour_address]
@@ -1554,13 +1538,14 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     # Loop through all neighbours (up to depth 3) and try to find enough to distribute bacteria on to
                     bacteria_addresses = []
                     for depth in range(1, 4):
-                        neighbours = self.neighbours_moore(macrophage.address, depth)
+                        neighbours = self.moore_neighbours[macrophage.address][depth]
                         # Shuffle the neighbours so we don't give priority
                         np.random.shuffle(neighbours)
                         for n in neighbours:
                             # Find empty neighbours
-                            if self.grid[n] is not None and self.grid[n]['contents'] == 0.0 and \
-                                            self.grid[n]['blood_vessel'] == 0.0:
+                            neighbour = self.grid[n]
+                            if neighbour is not None and neighbour['contents'] == 0.0 and \
+                                            neighbour['blood_vessel'] == 0.0:
                                 bacteria_addresses.append(n)
                                 # If an address is off the tile then event will be external
                                 if not self.address_is_on_grid(n):
@@ -1599,11 +1584,11 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 space_found = False
                 for depth in range(1, 4):
                     # Get neighbours
-                    neighbours = self.neighbours_moore(bacterium.address, depth)
+                    neighbours = self.moore_neighbours[bacterium.address][depth]
                     for n in neighbours:
                         # Is neighbour empty?
-                        if self.grid[n] is not None and self.grid[n]['blood_vessel'] == 0.0 and \
-                                        self.grid[n]['contents'] == 0.0:
+                        neighbour = self.grid[n]
+                        if neighbour is not None and neighbour['blood_vessel'] == 0.0 and neighbour['contents'] == 0.0:
                             new_event = BacteriumStateChange(bacterium.address, 'resting', False)
                             self.potential_events.append(new_event)
                             space_found = True
