@@ -376,6 +376,7 @@ class Tile:
         """
         self.work_grid[address][attribute] = value
 
+
 class Neighbourhood:
     """
     Data structure to calculate addresses. Upon initialisation, loops through every cell and calculates all neighbours
@@ -875,6 +876,20 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             os.remove(self.intra_bac_file_path)
         except OSError:
             pass
+
+        self.type1_file = open(self.type1_file_path, 'a')
+        self.type1_r_file = open(self.type1_r_file_path, 'a')
+        self.type2_file = open(self.type2_file_path, 'a')
+        self.type2_r_file = open(self.type2_r_file_path, 'a')
+        self.type3_file = open(self.type3_file_path, 'a')
+        self.activemac_file = open(self.activemac_file_path, 'a')
+        self.restingmac_file = open(self.restingmac_file_path, 'a')
+        self.infectedmac_file = open(self.infectedmac_file_path, 'a')
+        self.chroninfectedmac_file = open(self.chroninfectedmac_file_path, 'a')
+        self.caseation_file = open(self.caseation_file_path, 'a')
+        self.total_file = open(self.total_file_path, 'a')
+        self.total_cell_test_file = open(self.totalcell_test_file_path, 'a')
+        self.intra_bac_file = open(self.intra_bac_file_path, 'a')
 
         # Swap the working grid with actual grid to start process
         self.swap_grids()
@@ -1826,33 +1841,23 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         bacteria_count = len(self.bacteria)
         # Write fast bacteria numbers to file
         type1_count = len([n for n in self.bacteria if n.metabolism == 'fast' and not n.resting])
-        type1 = open(self.type1_file_path, 'a')
-        type1.write(str(type1_count))
-        type1.write('\n')
+        self.type1_file.write(str(type1_count) + '\n')
 
         # Write fast resting bacteria numbers to file
         type1_r_count = len([n for n in self.bacteria if n.metabolism == 'fast' and n.resting])
-        type1_r = open(self.type1_r_file_path, 'a')
-        type1_r.write(str(type1_r_count))
-        type1_r.write('\n')
+        self.type1_r_file.write(str(type1_r_count) + '\n')
 
         # Write slow bacteria numbers to file
         type2_count = len([n for n in self.bacteria if n.metabolism == 'slow' and not n.resting])
-        type2 = open(self.type2_file_path, 'a')
-        type2.write(str(type2_count))
-        type2.write('\n')
+        self.type2_file.write(str(type2_count) + '\n')
 
         # Write slow resting bacteria numbers to file
         type2_r_count = len([n for n in self.bacteria if n.metabolism == 'slow' and n.resting])
-        type2_r = open(self.type2_r_file_path, 'a')
-        type2_r.write(str(type2_r_count))
-        type2_r.write('\n')
+        self.type2_r_file.write(str(type2_r_count) + '\n')
 
         # Write t-cell numbers to file
         t_cell_count = len(self.t_cells)
-        type3 = open(self.type3_file_path, 'a')
-        type3.write(str(t_cell_count))
-        type3.write('\n')
+        self.type3_file.write(str(t_cell_count) + '\n')
 
         # Write macrophage numbers to file
         macrophage_count = len(self.macrophages)
@@ -1870,41 +1875,25 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 infectedmac_count += 1
             elif m.state == 'chroninfected':
                 chroninfectedmac_count += 1
-        activemac = open(self.activemac_file_path, 'a')
-        activemac.write(str(activemac_count))
-        activemac.write('\n')
-        restingmac = open(self.restingmac_file_path, 'a')
-        restingmac.write(str(restingmac_count))
-        restingmac.write('\n')
-        infectedmac = open(self.infectedmac_file_path, 'a')
-        infectedmac.write(str(infectedmac_count))
-        infectedmac.write('\n')
-        chroninfectedmac = open(self.chroninfectedmac_file_path, 'a')
-        chroninfectedmac.write(str(chroninfectedmac_count))
-        chroninfectedmac.write('\n')
+        self.activemac_file.write(str(activemac_count) + '\n')
+        self.restingmac_file.write(str(restingmac_count) + '\n')
+        self.infectedmac_file.write(str(infectedmac_count) + '\n')
+        self.chroninfectedmac_file.write(str(chroninfectedmac_count) + '\n')
 
         # Write caseum numbers to file
         caseation_count = len(self.caseum)
-        caseation = open(self.caseation_file_path, 'a')
-        caseation.write(str(caseation_count))
-        caseation.write('\n')
+        self.caseation_file.write(str(caseation_count) + '\n')
 
         # Write total agent numbers to file
         total_count = bacteria_count + macrophage_count + t_cell_count + caseation_count
-        total = open(self.total_file_path, 'a')
-        total.write(str(total_count))
-        total.write('\n')
+        self.total_file.write(str(total_count) + '\n')
 
-        total_cell_test = open(self.totalcell_test_file_path, 'a')
         if self.time % self.parameters['interval_to_record_results'] == 0.0:
-            total_cell_test.write(str(total_count))
-            total_cell_test.write('\n')
+            self.total_cell_test_file.write(str(total_count) + '\n')
 
         # Write intracellular bacteria numbers to file
-        intra_bac = open(self.intra_bac_file_path, 'a')
         intra_bac_count = sum([m.intracellular_bacteria for m in self.macrophages])
-        intra_bac.write(str(intra_bac_count))
-        intra_bac.write('\n')
+        self.intra_bac_file.write(str(intra_bac_count) + '\n')
 
 # ------------------------------
 # AGENTS
