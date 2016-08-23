@@ -1118,7 +1118,9 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             new_oxygen = cell['oxygen'] + self.parameters['time_step'] * oxygen_expression
             work_grid_cell['oxygen'] = new_oxygen
             # Overwrite the maximum oxygen value if larger
-            self.max_oxygen_local = max(self.max_oxygen_local, new_oxygen)
+            if new_oxygen > self.max_oxygen_local:
+                self.max_oxygen_local = new_oxygen
+            #self.max_oxygen_local = max(self.max_oxygen_local, new_oxygen)
 
             # CHEMOTHERAPY
 
@@ -1129,7 +1131,9 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 chemotherapy_expression -= self.parameters['chemotherapy_decay'] * cell['chemotherapy']
                 # Calculate new level
                 new_chemotherapy = cell['chemotherapy'] + self.parameters['time_step'] * chemotherapy_expression
-                self.max_chemotherapy_local = max(self.max_chemotherapy_local, new_chemotherapy)
+                if new_chemotherapy > self.max_chemotherapy_local:
+                    self.max_chemotherapy_local = new_chemotherapy
+                # self.max_chemotherapy_local = max(self.max_chemotherapy_local, new_chemotherapy)
             else:
                 self.max_chemotherapy_local = 0.0
                 new_chemotherapy = 0.0
@@ -1147,11 +1151,10 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             chemokine_expression -= self.parameters['chemokine_decay'] * cell['chemokine']
             # Calculate new level
             new_chemokine = cell['chemokine'] + self.parameters['time_step'] * chemokine_expression
-            self.max_chemokine_local = max(self.max_chemokine_local, new_chemokine)
+            if new_chemokine > self.max_chemokine_local:
+                self.max_chemokine_local = new_chemokine
+            # self.max_chemokine_local = max(self.max_chemokine_local, new_chemokine)
             work_grid_cell['chemokine'] = new_chemokine
-
-    def diffusion_2(self,chemo):
-        pass
 
     def bacteria_replication(self):
         """
