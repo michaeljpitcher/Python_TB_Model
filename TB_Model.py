@@ -891,6 +891,11 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         self.total_cell_test_file = open(self.totalcell_test_file_path, 'a')
         self.intra_bac_file = open(self.intra_bac_file_path, 'a')
 
+        self.contents_file = open(self.contents_file_path, 'a')
+        self.oxygen_file = open(self.oxygen_file_path, 'a')
+        self.chemotherapy_file = open(self.chemotherapy_file_path, 'a')
+        self.chemokine_file = open(self.chemokine_file_path, 'a')
+
         # Swap the working grid with actual grid to start process
         self.swap_grids()
 
@@ -1778,11 +1783,6 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         :return:
         """
 
-        contents_file = open(self.contents_file_path, 'a')
-        oxygen_file = open(self.oxygen_file_path, 'a')
-        chemotherapy_file = open(self.chemotherapy_file_path, 'a')
-        chemokine_file = open(self.chemokine_file_path, 'a')
-
         for address in self.list_grid_addresses:
             cell = self.grid[address]
 
@@ -1816,20 +1816,16 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 contents_number = 3.0
             elif cell['contents'] == 'caseum':
                 contents_number = 100.0
-            contents_file.write(str(contents_number))
-            contents_file.write('\n')
+            self.contents_file.write(str(contents_number) + '\n')
 
             # Record oxygen
-            oxygen_file.write(str(self.oxygen_scale(address)))
-            oxygen_file.write('\n')
+            self.oxygen_file.write(str(self.oxygen_scale(address)) + '\n')
 
             # Record chemotherapy
-            chemotherapy_file.write(str(self.chemotherapy_scale(address)))
-            chemotherapy_file.write('\n')
+            self.chemotherapy_file.write(str(self.chemotherapy_scale(address)) + '\n')
 
             # Record chemokine
-            chemokine_file.write(str(self.chemokine_scale(address)))
-            chemokine_file.write('\n')
+            self.chemokine_file.write(str(self.chemokine_scale(address)) + '\n')
 
     def record_counts(self):
         """
