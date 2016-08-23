@@ -16,3 +16,5 @@ Tests/0_oxygen.txt
 *.log
 
 *.txt
+
+TB_Model.pyc
