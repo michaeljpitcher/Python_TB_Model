@@ -1165,7 +1165,8 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             if cell['contents'] != 0.0 and isinstance(cell['contents'], Bacterium):
                 chemokine_expression += self.parameters['chemokine_from_bacteria']
             # Release of chemokine by (non-resting) macrophages
-            if cell['contents'] != 0.0 and isinstance(cell['contents'], Macrophage):
+            if cell['contents'] != 0.0 and isinstance(cell['contents'], Macrophage) and \
+                            cell['contents'].state != 'resting':
                 chemokine_expression += self.parameters['chemokine_from_macrophage']
             # Chemokine decay
             chemokine_expression -= self.parameters['chemokine_decay'] * cell['chemokine']
