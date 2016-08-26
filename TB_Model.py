@@ -917,7 +917,8 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         :return:
         """
         for address in self.blood_vessels:
-            self.set_attribute_grid(address, 'oxygen', self.parameters['initial_oxygen'])
+            self.set_attribute_grid(address, 'oxygen',
+                                    self.parameters['initial_oxygen']*self.grid[address]['blood_vessel'])
             self.max_oxygen_local = max(self.max_oxygen_local, self.parameters['initial_oxygen'])
 
     def initialise_bacteria(self, fast_bacteria, slow_bacteria):
@@ -1124,6 +1125,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     chemokine_expression += ((self.parameters['chemokine_diffusion'] + chemokine_neighbour_diffusion)
                         / 2 * (neighbour['chemokine'] - cell['chemokine'])) / (
                         self.parameters['spatial_step'] * self.parameters['spatial_step'])
+
 
             # Amendments based on cell contents
 
