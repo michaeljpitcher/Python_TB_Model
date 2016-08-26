@@ -1166,55 +1166,55 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 oxygen_expression  += cell['oxygen_diffusion_rate'] * (below['oxygen'] - 2 * cell['oxygen'] + below['oxygen']) / (self.parameters['spatial_step']**2) + cell['oxygen_diffusion_rate'] * (right['oxygen'] - 2 * cell['oxygen'] + right['oxygen']) / (self.parameters['spatial_step']**2)
                 if chemo:
                     chemotherapy_expression += cell['chemotherapy_diffusion_rate'] * (below['chemotherapy'] - 2 * cell['chemotherapy'] + below['chemotherapy']) / (self.parameters['spatial_step'] ** 2) + cell['chemotherapy_diffusion_rate'] * (right['chemotherapy'] - 2 * cell['chemotherapy'] + right['chemotherapy']) / (self.parameters['spatial_step'] ** 2)
-                chemokine_expression += self.parameters['chemokine_diffusion'] * (below['chemokine'] - 2 * cell['chemokine'] + below['chemokine']) / (self.parameters['spatial_step'] ** 2) + cell['chemokine_diffusion_rate'] * (right['chemokine'] - 2 *cell['chemokine'] +right['chemokine']) / (self.parameters['spatial_step'] ** 2)
+                chemokine_expression += self.parameters['chemokine_diffusion'] * (below['chemokine'] - 2 * cell['chemokine'] + below['chemokine']) / (self.parameters['spatial_step'] ** 2) + self.parameters['chemokine_diffusion'] * (right['chemokine'] - 2 *cell['chemokine'] +right['chemokine']) / (self.parameters['spatial_step'] ** 2)
             # TOP
             elif above is None and not None in [left, right, below]:
                 oxygen_expression  += cell['oxygen_diffusion_rate'] * (below['oxygen'] - 2 * cell['oxygen'] + below['oxygen']) / (self.parameters['spatial_step']**2) + cell['oxygen_diffusion_rate'] * (left['oxygen'] - 2 * cell['oxygen'] + right['oxygen']) / (self.parameters['spatial_step']**2)
                 if chemo:
                     chemotherapy_expression += cell['chemotherapy_diffusion_rate'] * (below['chemotherapy'] - 2 * cell['chemotherapy'] + below['chemotherapy']) / (self.parameters['spatial_step'] ** 2) + cell['chemotherapy_diffusion_rate'] * (left['chemotherapy'] - 2 * cell['chemotherapy'] + right['chemotherapy']) / (self.parameters['spatial_step'] ** 2)
-                chemokine_expression += self.parameters['chemokine_diffusion'] * (below['chemokine'] - 2 * cell['chemokine'] + below['chemokine']) / (self.parameters['spatial_step'] ** 2) + cell['chemokine_diffusion_rate'] * (left['chemokine'] - 2 *cell['chemokine'] +right['chemokine']) / (self.parameters['spatial_step'] ** 2)
+                chemokine_expression += self.parameters['chemokine_diffusion'] * (below['chemokine'] - 2 * cell['chemokine'] + below['chemokine']) / (self.parameters['spatial_step'] ** 2) + self.parameters['chemokine_diffusion'] * (left['chemokine'] - 2 *cell['chemokine'] +right['chemokine']) / (self.parameters['spatial_step'] ** 2)
 
             # TOP RIGHT
             elif above is None and right is None and not None in [left, below]:
                 oxygen_expression  += cell['oxygen_diffusion_rate'] * (below['oxygen'] - 2 * cell['oxygen'] + below['oxygen']) / (self.parameters['spatial_step']**2) + cell['oxygen_diffusion_rate'] * (left['oxygen'] - 2 * cell['oxygen'] + left['oxygen']) / (self.parameters['spatial_step']**2)
                 if chemo:
                     chemotherapy_expression += cell['chemotherapy_diffusion_rate'] * (below['chemotherapy'] - 2 * cell['chemotherapy'] + below['chemotherapy']) / (self.parameters['spatial_step'] ** 2) + cell['chemotherapy_diffusion_rate'] * (left['chemotherapy'] - 2 * cell['chemotherapy'] + left['chemotherapy']) / (self.parameters['spatial_step'] ** 2)
-                chemokine_expression += self.parameters['chemokine_diffusion'] * (below['chemokine'] - 2 * cell['chemokine'] + below['chemokine']) / (self.parameters['spatial_step'] ** 2) + cell['chemokine_diffusion_rate'] * (left['chemokine'] - 2 *cell['chemokine'] +left['chemokine']) / (self.parameters['spatial_step'] ** 2)
+                chemokine_expression += self.parameters['chemokine_diffusion'] * (below['chemokine'] - 2 * cell['chemokine'] + below['chemokine']) / (self.parameters['spatial_step'] ** 2) + self.parameters['chemokine_diffusion'] * (left['chemokine'] - 2 *cell['chemokine'] +left['chemokine']) / (self.parameters['spatial_step'] ** 2)
 
             # LEFT
             elif left is None and not None in [above, right, below]:
                 oxygen_expression  += cell['oxygen_diffusion_rate'] * (above['oxygen'] - 2 * cell['oxygen'] + below['oxygen']) / (self.parameters['spatial_step']**2) + cell['oxygen_diffusion_rate'] * (right['oxygen'] - 2 * cell['oxygen'] + right['oxygen']) / (self.parameters['spatial_step']**2)
                 if chemo:
                     chemotherapy_expression += cell['chemotherapy_diffusion_rate'] * (above['chemotherapy'] - 2 * cell['chemotherapy'] + below['chemotherapy']) / (self.parameters['spatial_step'] ** 2) + cell['chemotherapy_diffusion_rate'] * (right['chemotherapy'] - 2 * cell['chemotherapy'] + right['chemotherapy']) / (self.parameters['spatial_step'] ** 2)
-                chemokine_expression += self.parameters['chemokine_diffusion'] * (above['chemokine'] - 2 * cell['chemokine'] + below['chemokine']) / (self.parameters['spatial_step'] ** 2) + cell['chemokine_diffusion_rate'] * (right['chemokine'] - 2 *cell['chemokine'] +right['chemokine']) / (self.parameters['spatial_step'] ** 2)
+                chemokine_expression += self.parameters['chemokine_diffusion'] * (above['chemokine'] - 2 * cell['chemokine'] + below['chemokine']) / (self.parameters['spatial_step'] ** 2) + self.parameters['chemokine_diffusion'] * (right['chemokine'] - 2 *cell['chemokine'] +right['chemokine']) / (self.parameters['spatial_step'] ** 2)
 
             # RIGHT
             elif right is None and not None in [above, left, below]:
                 oxygen_expression  += cell['oxygen_diffusion_rate'] * (below['oxygen'] - 2 * cell['oxygen'] + above['oxygen']) / (self.parameters['spatial_step']**2) + cell['oxygen_diffusion_rate'] * (left['oxygen'] - 2 * cell['oxygen'] + left['oxygen']) / (self.parameters['spatial_step']**2)
                 if chemo:
                     chemotherapy_expression += cell['chemotherapy_diffusion_rate'] * (below['chemotherapy'] - 2 * cell['chemotherapy'] + above['chemotherapy']) / (self.parameters['spatial_step'] ** 2) + cell['chemotherapy_diffusion_rate'] * (left['chemotherapy'] - 2 * cell['chemotherapy'] + left['chemotherapy']) / (self.parameters['spatial_step'] ** 2)
-                chemokine_expression += self.parameters['chemokine_diffusion'] * (below['chemokine'] - 2 * cell['chemokine'] + above['chemokine']) / (self.parameters['spatial_step'] ** 2) + cell['chemokine_diffusion_rate'] * (left['chemokine'] - 2 *cell['chemokine'] +left['chemokine']) / (self.parameters['spatial_step'] ** 2)
+                chemokine_expression += self.parameters['chemokine_diffusion'] * (below['chemokine'] - 2 * cell['chemokine'] + above['chemokine']) / (self.parameters['spatial_step'] ** 2) + self.parameters['chemokine_diffusion'] * (left['chemokine'] - 2 *cell['chemokine'] +left['chemokine']) / (self.parameters['spatial_step'] ** 2)
 
             # BOTTOM LEFT
             elif left is None and below is None and not None in [above, right]:
                 oxygen_expression += cell['oxygen_diffusion_rate'] * (above['oxygen'] - 2 * cell['oxygen'] + above['oxygen']) / (self.parameters['spatial_step']**2) + cell['oxygen_diffusion_rate'] * (right['oxygen'] - 2 * cell['oxygen'] + right['oxygen']) / (self.parameters['spatial_step']**2)
                 if chemo:
                     chemotherapy_expression += cell['chemotherapy_diffusion_rate'] * (above['chemotherapy'] - 2 * cell['chemotherapy'] + above['chemotherapy']) / (self.parameters['spatial_step'] ** 2) + cell['chemotherapy_diffusion_rate'] * (right['chemotherapy'] - 2 * cell['chemotherapy'] + right['chemotherapy']) / (self.parameters['spatial_step'] ** 2)
-                chemokine_expression += self.parameters['chemokine_diffusion'] * (above['chemokine'] - 2 * cell['chemokine'] + above['chemokine']) / (self.parameters['spatial_step'] ** 2) + cell['chemokine_diffusion_rate'] * (right['chemokine'] - 2 *cell['chemokine'] +right['chemokine']) / (self.parameters['spatial_step'] ** 2)
+                chemokine_expression += self.parameters['chemokine_diffusion'] * (above['chemokine'] - 2 * cell['chemokine'] + above['chemokine']) / (self.parameters['spatial_step'] ** 2) + self.parameters['chemokine_diffusion'] * (right['chemokine'] - 2 *cell['chemokine'] +right['chemokine']) / (self.parameters['spatial_step'] ** 2)
 
             # BOTTOM
             elif below is None and not None in [above, left, right]:
                 oxygen_expression  += cell['oxygen_diffusion_rate'] * (above['oxygen'] - 2 * cell['oxygen'] + above['oxygen']) / (self.parameters['spatial_step']**2) + cell['oxygen_diffusion_rate'] * (left['oxygen'] - 2 * cell['oxygen'] + right['oxygen']) / (self.parameters['spatial_step']**2)
                 if chemo:
                     chemotherapy_expression += cell['chemotherapy_diffusion_rate'] * (above['chemotherapy'] - 2 * cell['chemotherapy'] + above['chemotherapy']) / (self.parameters['spatial_step'] ** 2) + cell['chemotherapy_diffusion_rate'] * (left['chemotherapy'] - 2 * cell['chemotherapy'] + right['chemotherapy']) / (self.parameters['spatial_step'] ** 2)
-                chemokine_expression += self.parameters['chemokine_diffusion'] * (above['chemokine'] - 2 * cell['chemokine'] + above['chemokine']) / (self.parameters['spatial_step'] ** 2) + cell['chemokine_diffusion_rate'] * (left['chemokine'] - 2 *cell['chemokine'] +right['chemokine']) / (self.parameters['spatial_step'] ** 2)
+                chemokine_expression += self.parameters['chemokine_diffusion'] * (above['chemokine'] - 2 * cell['chemokine'] + above['chemokine']) / (self.parameters['spatial_step'] ** 2) + self.parameters['chemokine_diffusion'] * (left['chemokine'] - 2 *cell['chemokine'] +right['chemokine']) / (self.parameters['spatial_step'] ** 2)
 
             # BOTTOM RIGHT
             elif right is None and below is None and not None in [above, left]:
                 oxygen_expression  += cell['oxygen_diffusion_rate'] * (above['oxygen'] - 2 * cell['oxygen'] + above['oxygen']) / (self.parameters['spatial_step']**2) + cell['oxygen_diffusion_rate'] * (left['oxygen'] - 2 * cell['oxygen'] + left['oxygen']) / (self.parameters['spatial_step']**2)
                 if chemo:
                     chemotherapy_expression += cell['chemotherapy_diffusion_rate'] * (above['chemotherapy'] - 2 * cell['chemotherapy'] + above['chemotherapy']) / (self.parameters['spatial_step'] ** 2) + cell['chemotherapy_diffusion_rate'] * (left['chemotherapy'] - 2 * cell['chemotherapy'] + left['chemotherapy']) / (self.parameters['spatial_step'] ** 2)
-                chemokine_expression += self.parameters['chemokine_diffusion'] * (above['chemokine'] - 2 * cell['chemokine'] + above['chemokine']) / (self.parameters['spatial_step'] ** 2) + cell['chemokine_diffusion_rate'] * (left['chemokine'] - 2 *cell['chemokine'] +left['chemokine']) / (self.parameters['spatial_step'] ** 2)
+                chemokine_expression += self.parameters['chemokine_diffusion'] * (above['chemokine'] - 2 * cell['chemokine'] + above['chemokine']) / (self.parameters['spatial_step'] ** 2) + self.parameters['chemokine_diffusion'] * (left['chemokine'] - 2 *cell['chemokine'] +left['chemokine']) / (self.parameters['spatial_step'] ** 2)
 
             # Amendments based on cell contents
 
