@@ -1099,32 +1099,78 @@ class Automaton(Tile, Neighbourhood, EventHandler):
 
             cell = self.grid[address]
             neighbour_addresses = self.von_neumann_neighbours[address][1]
-            neighbours = [self.grid[neighbour_address] for neighbour_address in neighbour_addresses]
+            # neighbours = [self.grid[neighbour_address] for neighbour_address in neighbour_addresses]
+            above, left, right, below = [self.grid[neighbour_address] for neighbour_address in neighbour_addresses]
 
             # Initialise expression
             oxygen_expression = 0
             chemotherapy_expression = 0
             chemokine_expression = 0
 
-            # Diffusion into neighbours
-            for neighbour in neighbours:
-                # Only process if not boundary
-                if neighbour is not None:
-                    oxygen_neighbour_diffusion = neighbour['oxygen_diffusion_rate']
-                    oxygen_expression += ((cell['oxygen_diffusion_rate'] + oxygen_neighbour_diffusion) / 2 * (
-                        neighbour['oxygen'] - cell['oxygen'])) / (
-                                         self.parameters['spatial_step']**2)
-                    if chemo:
-                        chemotherapy_neighbour_diffusion = neighbour['chemotherapy_diffusion_rate']
-                        chemotherapy_expression += ((cell['chemotherapy_diffusion_rate'] +
-                            chemotherapy_neighbour_diffusion)
-                            / 2 * (neighbour['chemotherapy'] - cell['chemotherapy'])) / \
-                            (self.parameters['spatial_step']**2)
+            # # Diffusion into neighbours
+            # for neighbour in neighbours:
+            #     # Only process if not boundary
+            #     if neighbour is not None:
+            #         oxygen_neighbour_diffusion = neighbour['oxygen_diffusion_rate']
+            #         oxygen_expression += ((cell['oxygen_diffusion_rate'] + oxygen_neighbour_diffusion) / 2 * (
+            #             neighbour['oxygen'] - cell['oxygen'])) / (
+            #                              self.parameters['spatial_step']**2)
+            #         if chemo:
+            #             chemotherapy_neighbour_diffusion = neighbour['chemotherapy_diffusion_rate']
+            #             chemotherapy_expression += ((cell['chemotherapy_diffusion_rate'] +
+            #                 chemotherapy_neighbour_diffusion)
+            #                 / 2 * (neighbour['chemotherapy'] - cell['chemotherapy'])) / \
+            #                 (self.parameters['spatial_step']**2)
+            #
+            #         chemokine_neighbour_diffusion = self.parameters['chemokine_diffusion']
+            #         chemokine_expression += ((self.parameters['chemokine_diffusion'] + chemokine_neighbour_diffusion)
+            #             / 2 * (neighbour['chemokine'] - cell['chemokine'])) / (
+            #             self.parameters['spatial_step'] * self.parameters['spatial_step'])
 
-                    chemokine_neighbour_diffusion = self.parameters['chemokine_diffusion']
-                    chemokine_expression += ((self.parameters['chemokine_diffusion'] + chemokine_neighbour_diffusion)
-                        / 2 * (neighbour['chemokine'] - cell['chemokine'])) / (
-                        self.parameters['spatial_step'] * self.parameters['spatial_step'])
+            if not None in [above, left, right, below]:
+                oxygen_expression += ((((cell['oxygen_diffusion_rate'] + below['oxygen_diffusion_rate'])/2) *
+                                        (below['oxygen'] - cell['oxygen'])
+                                        - ((cell['oxygen_diffusion_rate'] + above['oxygen_diffusion_rate'])/2) *
+                                        (cell['oxygen'] - above['oxygen']))
+                                        / self.parameters['spatial_step']**2) + \
+                                        ((((cell['oxygen_diffusion_rate'] + right['oxygen_diffusion_rate'])/2) *
+                                        (right['oxygen'] - cell['oxygen'])
+                                        - ((cell['oxygen_diffusion_rate'] + left['oxygen_diffusion_rate'])/2) *
+                                        (cell['oxygen'] - left['oxygen']))
+                                        / self.parameters['spatial_step']**2)
+            # TOP LEFT
+            elif above is None and left is None and not None in [right, below]:
+                oxygen_expression  += cell['oxygen_diffusion_rate'] * (below['oxygen'] - 2 * cell['oxygen'] + below['oxygen']) / (self.parameters['spatial_step']**2) + cell['oxygen_diffusion_rate'] * (
+                right['oxygen'] - 2 * cell['oxygen'] + right['oxygen']) / (self.parameters['spatial_step']**2)
+            # TOP
+            elif above is None and not None in [left, right, below]:
+                oxygen_expression  += cell['oxygen_diffusion_rate'] * (below['oxygen'] - 2 * cell['oxygen'] + below['oxygen']) / (self.parameters['spatial_step']**2) + cell['oxygen_diffusion_rate'] * (
+                left['oxygen'] - 2 * cell['oxygen'] + right['oxygen']) / (self.parameters['spatial_step']**2)
+            # TOP RIGHT
+            elif above is None and right is None and not None in [left, below]:
+                oxygen_expression  += cell['oxygen_diffusion_rate'] * (below['oxygen'] - 2 * cell['oxygen'] + below['oxygen']) / (self.parameters['spatial_step']**2) + cell['oxygen_diffusion_rate'] * (
+                left['oxygen'] - 2 * cell['oxygen'] + left['oxygen']) / (self.parameters['spatial_step']**2)
+            # LEFT
+            elif left is None and not None in [above, right, below]:
+                oxygen_expression  += cell['oxygen_diffusion_rate'] * (above['oxygen'] - 2 * cell['oxygen'] + below['oxygen']) / (self.parameters['spatial_step']**2) + cell['oxygen_diffusion_rate'] * (
+                right['oxygen'] - 2 * cell['oxygen'] + right['oxygen']) / (self.parameters['spatial_step']**2)
+            # RIGHT
+            elif right is None and not None in [above, left, below]:
+                oxygen_expression  += cell['oxygen_diffusion_rate'] * (below['oxygen'] - 2 * cell['oxygen'] + above['oxygen']) / (self.parameters['spatial_step']**2) + cell['oxygen_diffusion_rate'] * (
+                left['oxygen'] - 2 * cell['oxygen'] + left['oxygen']) / (self.parameters['spatial_step']**2)
+            # BOTTOM LEFT
+            elif left is None and below is None and not None in [above, right]:
+                oxygen_expression += cell['oxygen_diffusion_rate'] * (above['oxygen'] - 2 * cell['oxygen'] + above['oxygen']) / (self.parameters['spatial_step']**2) + cell['oxygen_diffusion_rate'] * (
+                right['oxygen'] - 2 * cell['oxygen'] + right['oxygen']) / (self.parameters['spatial_step']**2)
+            # BOTTOM
+            elif below is None and not None in [above, left, right]:
+                oxygen_expression  += cell['oxygen_diffusion_rate'] * (above['oxygen'] - 2 * cell['oxygen'] + above['oxygen']) / (self.parameters['spatial_step']**2) + cell['oxygen_diffusion_rate'] * (
+                left['oxygen'] - 2 * cell['oxygen'] + right['oxygen']) / (self.parameters['spatial_step']**2)
+            # BOTTOM RIGHT
+            elif right is None and below is None and not None in [above, left]:
+                oxygen_expression  += cell['oxygen_diffusion_rate'] * (above['oxygen'] - 2 * cell['oxygen'] + above['oxygen']) / (self.parameters['spatial_step']**2) + cell['oxygen_diffusion_rate'] * (
+                left['oxygen'] - 2 * cell['oxygen'] + left['oxygen']) / (self.parameters['spatial_step']**2)
+
 
 
             # Amendments based on cell contents
