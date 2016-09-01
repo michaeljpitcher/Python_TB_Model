@@ -839,6 +839,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         # Clear up any old output files
         # TODO - should be check file exists, if so remove
         try:
+            os.remove(self.totalcell_test_file_path)
             os.remove(self.contents_file_path)
             os.remove(self.oxygen_file_path)
             os.remove(self.chemotherapy_file_path)
