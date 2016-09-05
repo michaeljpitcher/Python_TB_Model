@@ -1291,7 +1291,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 maximum = self.parameters['bacteria_replication_slow_upper']
                 minimum = self.parameters['bacteria_replication_slow_lower']
 
-            replication_time = np.random.randint(minimum, maximum) / self.parameters['time_step']
+            replication_time = np.random.randint(minimum, maximum+1) / self.parameters['time_step']
 
             # TODO - MED - why is this a modulo and not a > ?
             # If the time is sufficient enough, bacteria can replicate
@@ -1403,10 +1403,9 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             # Check chemotherapy scale against relevant parameter based on metabolism
             chemo_scale = self.chemotherapy_scale(bacterium.address)
             if (bacterium.metabolism == 'fast' and chemo_scale >
-                self.parameters['chemotherapy_scale_for_kill_fast_bacteria']) \
-                    or \
-                    (bacterium.metabolism == 'slow' and chemo_scale >
-                        self.parameters['chemotherapy_scale_for_kill_slow_bacteria']):
+                    self.parameters['chemotherapy_scale_for_kill_fast_bacteria']) \
+                    or (bacterium.metabolism == 'slow' and chemo_scale >
+                    self.parameters['chemotherapy_scale_for_kill_slow_bacteria']):
                 # Scale is high enough, so create event to destroy bacterium
                 new_event = ChemoKillBacterium(bacterium.address)
                 self.potential_events.append(new_event)
