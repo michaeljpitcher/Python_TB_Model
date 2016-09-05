@@ -1291,9 +1291,9 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 maximum = self.parameters['bacteria_replication_slow_upper']
                 minimum = self.parameters['bacteria_replication_slow_lower']
 
-            replication_time = np.random.randint(minimum, maximum+1) / self.parameters['time_step']
+            replication_time = np.random.randint(minimum, maximum) / self.parameters['time_step']
 
-            # TODO - MED - why is this a modulo and not a > ?
+            # TODO - MED - Does this really work as a modulo?
             # If the time is sufficient enough, bacteria can replicate
             if self.time % replication_time == 0:
 
