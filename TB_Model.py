@@ -836,47 +836,24 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         self.total_file_path = str(self.tile_id) + '_Total.txt'
         self.intra_bac_file_path = str(self.tile_id) + '_intra_bac.txt'
 
-        # Clear up any old output files
-        # TODO - should be check file exists, if so remove
-        try:
-            os.remove(self.totalcell_test_file_path)
-            os.remove(self.contents_file_path)
-            os.remove(self.oxygen_file_path)
-            os.remove(self.chemotherapy_file_path)
-            os.remove(self.chemokine_file_path)
-            os.remove(self.type1_file_path)
-            os.remove(self.type1_r_file_path)
-            os.remove(self.type2_file_path)
-            os.remove(self.type2_r_file_path)
-            os.remove(self.type3_file_path)
-            os.remove(self.activemac_file_path)
-            os.remove(self.restingmac_file_path)
-            os.remove(self.infectedmac_file_path)
-            os.remove(self.chroninfectedmac_file_path)
-            os.remove(self.caseation_file_path)
-            os.remove(self.total_file_path)
-            os.remove(self.intra_bac_file_path)
-        except OSError:
-            pass
+        self.type1_file = open(self.type1_file_path, 'w')
+        self.type1_r_file = open(self.type1_r_file_path, 'w')
+        self.type2_file = open(self.type2_file_path, 'w')
+        self.type2_r_file = open(self.type2_r_file_path, 'w')
+        self.type3_file = open(self.type3_file_path, 'w')
+        self.activemac_file = open(self.activemac_file_path, 'w')
+        self.restingmac_file = open(self.restingmac_file_path, 'w')
+        self.infectedmac_file = open(self.infectedmac_file_path, 'w')
+        self.chroninfectedmac_file = open(self.chroninfectedmac_file_path, 'w')
+        self.caseation_file = open(self.caseation_file_path, 'w')
+        self.total_file = open(self.total_file_path, 'w')
+        self.total_cell_test_file = open(self.totalcell_test_file_path, 'w')
+        self.intra_bac_file = open(self.intra_bac_file_path, 'w')
 
-        self.type1_file = open(self.type1_file_path, 'a')
-        self.type1_r_file = open(self.type1_r_file_path, 'a')
-        self.type2_file = open(self.type2_file_path, 'a')
-        self.type2_r_file = open(self.type2_r_file_path, 'a')
-        self.type3_file = open(self.type3_file_path, 'a')
-        self.activemac_file = open(self.activemac_file_path, 'a')
-        self.restingmac_file = open(self.restingmac_file_path, 'a')
-        self.infectedmac_file = open(self.infectedmac_file_path, 'a')
-        self.chroninfectedmac_file = open(self.chroninfectedmac_file_path, 'a')
-        self.caseation_file = open(self.caseation_file_path, 'a')
-        self.total_file = open(self.total_file_path, 'a')
-        self.total_cell_test_file = open(self.totalcell_test_file_path, 'a')
-        self.intra_bac_file = open(self.intra_bac_file_path, 'a')
-
-        self.contents_file = open(self.contents_file_path, 'a')
-        self.oxygen_file = open(self.oxygen_file_path, 'a')
-        self.chemotherapy_file = open(self.chemotherapy_file_path, 'a')
-        self.chemokine_file = open(self.chemokine_file_path, 'a')
+        self.contents_file = open(self.contents_file_path, 'w')
+        self.oxygen_file = open(self.oxygen_file_path, 'w')
+        self.chemotherapy_file = open(self.chemotherapy_file_path, 'w')
+        self.chemokine_file = open(self.chemokine_file_path, 'w')
 
         # Swap the working grid with actual grid to start process
         self.swap_grids()
