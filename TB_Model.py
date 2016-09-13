@@ -33,7 +33,7 @@ class Topology:
     """
 
     def __init__(self, tile_arrangement, total_shape, attributes, parameters, blood_vessel_local,
-                 fast_bacteria_local, slow_bacteria_local, macrophages_local):
+                 fast_bacteria_local, slow_bacteria_local, macrophages_local, output_location=''):
 
         self.number_of_tiles = reduce(lambda x, y: x * y, tile_arrangement)
         self.total_shape = np.array(total_shape)
@@ -46,7 +46,7 @@ class Topology:
         # Create automata
         for i in range(self.number_of_tiles):
             automaton = Automaton(self.tile_shape, i, attributes, parameters, blood_vessel_local[i],
-                                  fast_bacteria_local[i], slow_bacteria_local[i], macrophages_local[i])
+                                  fast_bacteria_local[i], slow_bacteria_local[i], macrophages_local[i], output_location)
             self.automata.append(automaton)
 
         # Get a list of addresses (relative to tile) that are required by tile but outside of it
@@ -89,7 +89,7 @@ class TwoDimensionalTopology(Topology):
     """
 
     def __init__(self, tile_arrangement, total_shape, attributes, parameters, blood_vessel_global,
-                 fast_bacteria_global, slow_bacteria_global, macrophages_global):
+                 fast_bacteria_global, slow_bacteria_global, macrophages_global, output_location=''):
 
         for i in range(len(total_shape)):
             if total_shape[i] % tile_arrangement[i] != 0:
@@ -111,7 +111,7 @@ class TwoDimensionalTopology(Topology):
         macrophages_local = self.get_local_addresses(macrophages_global)
 
         Topology.__init__(self, tile_arrangement, total_shape, attributes, parameters, blood_vessel_local,
-                          fast_bacteria_local, slow_bacteria_local, macrophages_local)
+                          fast_bacteria_local, slow_bacteria_local, macrophages_local, output_location)
 
         # Create a list detailing where each tile's origin (local 0,0) lies in relation to the global grid
         self.origins = []
@@ -771,7 +771,7 @@ class EventHandler:
 class Automaton(Tile, Neighbourhood, EventHandler):
 
     def __init__(self, shape, tile_id, attributes, parameters, blood_vessels, fast_bacteria=None, slow_bacteria=None,
-                 macrophages=None):
+                 macrophages=None, output_location=''):
         Tile.__init__(self, shape, attributes)
         Neighbourhood.__init__(self, len(shape), parameters['max_depth'], self.list_grid_addresses)
         EventHandler.__init__(self)
@@ -818,23 +818,26 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         self.initialise_macrophages(macrophages)
 
         # Set up output file paths
-        self.totalcell_test_file_path = str(self.tile_id) + '_totalcell_test.txt'
-        self.contents_file_path = str(self.tile_id) + '_data_test.txt'
-        self.oxygen_file_path = str(self.tile_id) + '_oxygen_test.txt'
-        self.chemotherapy_file_path = str(self.tile_id) + '_chemo1.txt'
-        self.chemokine_file_path = str(self.tile_id) + '_ckine.txt'
-        self.type1_file_path = str(self.tile_id) + '_Type1.txt'
-        self.type1_r_file_path = str(self.tile_id) + '_Type1_R.txt'
-        self.type2_file_path = str(self.tile_id) + '_Type2.txt'
-        self.type2_r_file_path = str(self.tile_id) + '_Type2_R.txt'
-        self.type3_file_path = str(self.tile_id) + '_Type3.txt'
-        self.activemac_file_path = str(self.tile_id) + '_activemac.txt'
-        self.restingmac_file_path = str(self.tile_id) + '_restingmac.txt'
-        self.infectedmac_file_path = str(self.tile_id) + '_infectedmac.txt'
-        self.chroninfectedmac_file_path = str(self.tile_id) + '_chroninfectedmac.txt'
-        self.caseation_file_path = str(self.tile_id) + '_caseation.txt'
-        self.total_file_path = str(self.tile_id) + '_Total.txt'
-        self.intra_bac_file_path = str(self.tile_id) + '_intra_bac.txt'
+        if output_location != '':
+            output_location += '/'
+            output_location += str(self.tile_id)
+        self.totalcell_test_file_path = output_location + '_totalcell_test.txt'
+        self.contents_file_path = output_location + '_data_test.txt'
+        self.oxygen_file_path = output_location + '_oxygen_test.txt'
+        self.chemotherapy_file_path = output_location + '_chemo1.txt'
+        self.chemokine_file_path = output_location + '_ckine.txt'
+        self.type1_file_path = output_location + '_Type1.txt'
+        self.type1_r_file_path = output_location + '_Type1_R.txt'
+        self.type2_file_path = output_location + '_Type2.txt'
+        self.type2_r_file_path = output_location + '_Type2_R.txt'
+        self.type3_file_path = output_location + '_Type3.txt'
+        self.activemac_file_path = output_location + '_activemac.txt'
+        self.restingmac_file_path = output_location + '_restingmac.txt'
+        self.infectedmac_file_path = output_location + '_infectedmac.txt'
+        self.chroninfectedmac_file_path = output_location + '_chroninfectedmac.txt'
+        self.caseation_file_path = output_location + '_caseation.txt'
+        self.total_file_path = output_location + '_Total.txt'
+        self.intra_bac_file_path = output_location + '_intra_bac.txt'
 
         self.type1_file = open(self.type1_file_path, 'w')
         self.type1_r_file = open(self.type1_r_file_path, 'w')

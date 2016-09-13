@@ -537,7 +537,7 @@ def main():
     print 'Constructing topology...'
     construction_start_time = time.time()
     topology = TB_Model.TwoDimensionalTopology(tile_arrangement, total_shape, attributes, parameters, blood_vessels,
-                                               fast_bacteria, slow_bacteria, macrophages)
+                                               fast_bacteria, slow_bacteria, macrophages, 'output')
     construction_end_time = time.time()
     print 'Complete. Time taken for construction: ', construction_end_time-construction_start_time
 
