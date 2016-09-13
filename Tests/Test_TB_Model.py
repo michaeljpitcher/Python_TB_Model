@@ -67,6 +67,7 @@ def parameter_setup():
     params['oxygen_scale_for_metabolism_change_to_slow'] = 1
     params['oxygen_scale_for_metabolism_change_to_fast'] = 99
     params['interval_to_record_results'] = 1000
+    params['interval_to_record_counts'] = 1
 
     return params
 
