@@ -1717,7 +1717,9 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         if self.time % self.parameters['interval_to_record_results'] == 0.0:
             self.record_state()
         # Record counts
-        self.record_counts()
+
+        if self.time % self.parameters['interval_to_record_counts'] == 0.0:
+            self.record_counts()
 
     def set_max_oxygen_global(self, max_oxygen):
         """
