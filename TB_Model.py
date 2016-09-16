@@ -820,7 +820,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         # Set up output file paths
         if output_location != '':
             output_location += '/'
-            output_location += str(self.tile_id)
+        output_location += str(self.tile_id)
         self.totalcell_test_file_path = output_location + '_totalcell_test.txt'
         self.contents_file_path = output_location + '_data_test.txt'
         self.oxygen_file_path = output_location + '_oxygen_test.txt'
