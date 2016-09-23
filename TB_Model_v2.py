@@ -207,6 +207,9 @@ class Automaton(Tile):
         self.chemotherapy_file.close()
         self.chemokine_file.close()
 
+    def get_total_bacteria(self):
+        return len(self.bacteria) + sum([m.intracellular_bacteria for m in self.macrophages])
+
     def initialise(self, blood_vessels, fast_bacteria, slow_bacteria, macrophages):
 
         for bv_address in blood_vessels:
@@ -239,6 +242,9 @@ class Automaton(Tile):
         while self.time * self.parameters['time_step'] <= self.parameters['time_limit']:
 
             self.time += 1.0
+            self.max_oxygen = self.grid['oxygen'].max()
+            self.max_chemotherapy = self.grid['chemotherapy'].max()
+            self.max_chemokine = self.grid['chemokine'].max()
 
             self.update()
 
@@ -581,14 +587,14 @@ class Automaton(Tile):
         :return:
         """
         # When global amount of bacteria exceeds threshold
-        if self.number_of_bacteria_global >= self.parameters['bacteria_threshold_for_t_cells']:
+        if self.get_total_bacteria() >= self.parameters['bacteria_threshold_for_t_cells']:
             # Each blood vessel
-            for bv_address in self.blood_vessels:
+            for bv_address in self.blood_vessel_addresses:
                 # Generate event if probability according to parameters
                 r = np.random.randint(1, 101)
                 if r <= self.parameters['t_cell_recruitment_probability']:
                     # Get von Neumann neighbours
-                    neighbours = self.von_neumann_neighbours[bv_address][1]
+                    neighbours = self.grid[bv_address]['neighbours_vn'][1]
                     # Reduce neighbours to those which are empty and have high enough cheokine level
                     free_neighbours = []
                     for neighbour_address in neighbours:
@@ -967,7 +973,40 @@ class Automaton(Tile):
         np.random.shuffle(self.potential_events)
 
     def process_events(self, events):
+        pass
 
+    def oxygen_scale(self, address):
+        """
+        Oxygen level at cell as % of maximum global oxygen level
+        :param address:
+        :return:
+        """
+        if self.max_oxygen == 0.0:
+            return 0.0
+        else:
+            return (self.grid[address]['oxygen'] / self.max_oxygen) * 100
+
+    def chemotherapy_scale(self, address):
+        """
+        Maximum chemotherapy level at cell as % of global maximum chemotherapy
+        :param address:
+        :return:
+        """
+        if self.max_chemotherapy == 0.0:
+            return 0.0
+        else:
+            return (self.grid[address]['chemotherapy'] / self.max_chemotherapy) * 100
+
+    def chemokine_scale(self, address):
+        """
+        Chemokine level at cell as % of global maximum chemokine level
+        :param address:
+        :return:
+        """
+        if self.max_chemokine == 0.0:
+            return 0.0
+        else:
+            return (self.grid[address]['chemokine'] / self.max_chemokine) * 100.0
 
 class Agent:
 
@@ -987,6 +1026,7 @@ class Macrophage(Agent):
     def __init__(self, address, state):
         Agent.__init__(self, address)
         self.state = state
+        self.intracellular_bacteria = 0
 
 
 class Event:
