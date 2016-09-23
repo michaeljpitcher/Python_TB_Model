@@ -744,7 +744,7 @@ class Automaton(Tile):
                 random_macrophage_age = np.random.randint(0, self.parameters['resting_macrophage_age_limit'])
                 if macrophage.age >= random_macrophage_age == 0:
                     # Create an event
-                    new_event = MacrophageDeath(macrophage.address)
+                    new_event = Event('MacrophageDeath', [macrophage.address], [macrophage.address], None)
                     self.potential_events.append(new_event)
                     # Progress to the next macrophage
                     continue
@@ -752,7 +752,7 @@ class Automaton(Tile):
                 if self.time % self.parameters['resting_macrophage_movement_time'] == 0:
                     # Chemokine moves on random biased walk. Random move with probability based on parameters, if
                     # highest chemokine scale at neighbours does not exceed threshold, then also random move
-                    neighbours = [n for n in self.moore_neighbours[macrophage.address][1] if self.grid[n] is not None]
+                    neighbours = [n for n in self.grid[macrophage.address]['neighbours_mo'][1] if self.grid[n] is not None]
                     chosen_index, max_chemokine_scale = self.find_max_chemokine_neighbour(neighbours)
                     # Generate random number for probability of random move
                     prob_random_move = np.random.randint(1, 101)
@@ -767,32 +767,28 @@ class Automaton(Tile):
                     else:
                         chosen_neighbour_address = neighbours[chosen_index]
                     # Check if leaving the grid
-                    internal = self.address_is_on_grid(chosen_neighbour_address)
                     neighbour = self.grid[chosen_neighbour_address]
                     # If neighbour is empty, create a move event
                     if neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
-                        new_event = MacrophageMovement(macrophage, macrophage.address, chosen_neighbour_address,
-                                                       internal)
+                        new_event = Event('MacrophageMovement', [macrophage.address, chosen_neighbour_address], [macrophage.address, chosen_neighbour_address], None)
                         self.potential_events.append(new_event)
                     # If neighbour contains a bacterium, ingest it
                     elif isinstance(neighbour['contents'], Bacterium):
-                        new_event = MacrophageKillsBacterium(macrophage, macrophage.address, chosen_neighbour_address,
-                                                             internal)
+                        new_event = Event('MacrophageKillsBacterium', [macrophage.address, chosen_neighbour_address], [macrophage.address, chosen_neighbour_address], None)
                         self.potential_events.append(new_event)
             # Active macrophage processes
             elif macrophage.state == 'active':
                 # Active macrophages die after a set time (not stochastic)
                 if macrophage.age > self.parameters['active_macrophage_age_limit']:
-                    new_event = MacrophageDeath(macrophage.address)
+                    new_event = Event('MacrophageDeath', [macrophage.address], [macrophage.address], None)
                     self.potential_events.append(new_event)
                     # Progress to the next macrophage
                     continue
                 # Set time for macrophage movement
                 if self.time % self.parameters['active_macrophage_movement_time'] == 0:
                     # Active macrophages always move to highest chemokine neighbour
-                    neighbours = [n for n in self.moore_neighbours[macrophage.address][1] if self.grid[n] is not None]
+                    neighbours = [n for n in self.grid[macrophage.address]['neighbours_mo'][1] if self.grid[n] is not None]
                     chosen_neighbour_address = neighbours[self.find_max_chemokine_neighbour(neighbours)[0]]
-                    internal = self.address_is_on_grid(chosen_neighbour_address)
                     neighbour = self.grid[chosen_neighbour_address]
                     # If cell to move to has a bacterium
                     if isinstance(neighbour['contents'], Bacterium):
@@ -803,39 +799,39 @@ class Automaton(Tile):
                                 'prob_active_macrophage_kill_fast_bacteria']) or (
                                 neighbour['contents'].metabolism == 'slow' and prob_macrophage_kill <=
                                 self.parameters['prob_active_macrophage_kill_slow_bacteria']):
-                            new_event = MacrophageKillsBacterium(macrophage, macrophage.address,
-                                                                 chosen_neighbour_address, internal)
+                            new_event = Event('MacrophageKillsBacterium',
+                                              [macrophage.address, chosen_neighbour_address],
+                                              [macrophage.address, chosen_neighbour_address], None)
                             self.potential_events.append(new_event)
                     # Cell is empty so create a move event
                     elif neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
-                        new_event = MacrophageMovement(macrophage, macrophage.address, chosen_neighbour_address,
-                                                       internal)
+                        new_event = Event('MacrophageMovement', [macrophage.address, chosen_neighbour_address],
+                                          [macrophage.address, chosen_neighbour_address], None)
                         self.potential_events.append(new_event)
             # Infected Macrophage processes
             elif macrophage.state == 'infected':
                 # Death is stochastic
                 random_macrophage_age = np.random.randint(0, self.parameters['infected_macrophage_age_limit'])
                 if macrophage.age >= random_macrophage_age == 0:
-                    new_event = MacrophageDeath(macrophage.address)
+                    new_event = Event('MacrophageDeath', [macrophage.address], [macrophage.address], None)
                     self.potential_events.append(new_event)
                     # Progress to the next macrophage
                     continue
                 # Move after certain time
                 if self.time % self.parameters['infected_macrophage_movement_time'] == 0:
                     # Infected move to highest chemokine neighbour
-                    neighbours = [n for n in self.moore_neighbours[macrophage.address][1] if self.grid[n] is not None]
+                    neighbours = [n for n in self.grid[macrophage.address]['neighbours_mo'][1] if self.grid[n] is not None]
                     chosen_neighbour_address = neighbours[self.find_max_chemokine_neighbour(neighbours)[0]]
-                    internal = self.address_is_on_grid(chosen_neighbour_address)
                     neighbour = self.grid[chosen_neighbour_address]
                     # Neighbour is empty, so move event
                     if neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
-                        new_event = MacrophageMovement(macrophage, macrophage.address, chosen_neighbour_address,
-                                                       internal)
+                        new_event = Event('MacrophageMovement', [macrophage.address, chosen_neighbour_address],
+                                          [macrophage.address, chosen_neighbour_address], None)
                         self.potential_events.append(new_event)
                     # Neighbour has a bacterium, so kill event
                     elif isinstance(neighbour['contents'], Bacterium):
-                        new_event = MacrophageKillsBacterium(macrophage, macrophage.address, chosen_neighbour_address,
-                                                             internal)
+                        new_event = Event('MacrophageKillsBacterium', [macrophage.address, chosen_neighbour_address],
+                                          [macrophage.address, chosen_neighbour_address], None)
                         self.potential_events.append(new_event)
             # Chronically infected macrophage processes
             elif macrophage.state == 'chronically_infected':
@@ -843,26 +839,25 @@ class Automaton(Tile):
                 random_macrophage_age = np.random.randint(0,
                                                           self.parameters['chronically_infected_macrophage_age_limit'])
                 if macrophage.age >= random_macrophage_age == 0:
-                    new_event = MacrophageDeath(macrophage.address)
+                    new_event = Event('MacrophageDeath', [macrophage.address], [macrophage.address], None)
                     self.potential_events.append(new_event)
                     # Progress to the next macrophage
                     continue
                 # Movement at set times
                 if self.time % self.parameters['chronically_infected_macrophage_movement_time'] == 0:
                     # Move to highest chemokine scale neighbour
-                    neighbours = [n for n in self.moore_neighbours[macrophage.address][1] if self.grid[n] is not None]
+                    neighbours = [n for n in self.grid[macrophage.address]['neighbours_mo'][1] if self.grid[n] is not None]
                     chosen_neighbour_address = neighbours[self.find_max_chemokine_neighbour(neighbours)[0]]
-                    internal = self.address_is_on_grid(chosen_neighbour_address)
                     neighbour = self.grid[chosen_neighbour_address]
                     # Neighbour is empty, so move event
                     if neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
-                        new_event = MacrophageMovement(macrophage, macrophage.address, chosen_neighbour_address,
-                                                       internal)
+                        new_event = Event('MacrophageMovement', [macrophage.address, chosen_neighbour_address],
+                                          [macrophage.address, chosen_neighbour_address], None)
                         self.potential_events.append(new_event)
                     # Neighbour has bacterium, so kill event
                     elif isinstance(neighbour['contents'], Bacterium):
-                        new_event = MacrophageKillsBacterium(macrophage, macrophage.address, chosen_neighbour_address,
-                                                             internal)
+                        new_event = Event('MacrophageKillsBacterium', [macrophage.address, chosen_neighbour_address],
+                                          [macrophage.address, chosen_neighbour_address], None)
                         self.potential_events.append(new_event)
 
     def macrophage_state_changes(self):
