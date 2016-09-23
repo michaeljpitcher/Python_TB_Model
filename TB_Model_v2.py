@@ -671,7 +671,7 @@ class Automaton(Tile):
             if ((m.state == 'infected' or m.state == 'chronically_infected') and chemo_scale >
                     self.parameters['chemotherapy_scale_for_kill_macrophage']):
                 # Scale if high enough so create event
-                new_event = ChemoKillMacrophage(m.address)
+                new_event = Event('ChemoKillMacrophage',[m.address], [m.address], None)
                 self.potential_events.append(new_event)
 
     def t_cell_processes(self):
