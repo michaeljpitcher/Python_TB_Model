@@ -872,22 +872,29 @@ class Automaton(Tile):
                 if self.chemokine_scale(macrophage.address) > \
                         self.parameters['chemokine_scale_for_macrophage_activation'] \
                         and macrophage.intracellular_bacteria == 0:
-                    new_event = MacrophageChangesState(macrophage.address, 'active')
+                    event_details = dict(state='active')
+                    new_event = Event('MacrophageChangesState', [macrophage.address], [macrophage.address], event_details)
                     self.potential_events.append(new_event)
                 # Resting to infected if there is one intracellular bacteria
                 elif macrophage.intracellular_bacteria == 1:
-                    new_event = MacrophageChangesState(macrophage.address, 'infected')
+                    event_details = dict(state='infected')
+                    new_event = Event('MacrophageChangesState', [macrophage.address], [macrophage.address],
+                                      event_details)
                     self.potential_events.append(new_event)
             elif macrophage.state == 'active':
                 # Active to resting if scale is low enough
                 if self.chemokine_scale(macrophage.address) < \
                         self.parameters['chemokine_scale_for_macrophage_deactivation']:
-                    new_event = MacrophageChangesState(macrophage.address, 'resting')
+                    event_details = dict(state='resting')
+                    new_event = Event('MacrophageChangesState', [macrophage.address], [macrophage.address],
+                                      event_details)
                     self.potential_events.append(new_event)
             elif macrophage.state == 'infected':
                 # Infected to Chronically Infected if intracellular bacteria exceeds threshold
                 if macrophage.intracellular_bacteria > self.parameters['bacteria_to_turn_chronically_infected']:
-                    new_event = MacrophageChangesState(macrophage.address, 'chronically_infected')
+                    event_details = dict(state='chronically_infected')
+                    new_event = Event('MacrophageChangesState', [macrophage.address], [macrophage.address],
+                                      event_details)
                     self.potential_events.append(new_event)
             elif macrophage.state == 'chronically_infected':
                 # Macrophage bursts if intracellular bacteria exceed threshold
@@ -896,7 +903,7 @@ class Automaton(Tile):
                     # Loop through all neighbours (up to depth 3) and try to find enough to distribute bacteria on to
                     bacteria_addresses = []
                     for depth in range(1, 4):
-                        neighbours = self.moore_neighbours[macrophage.address][depth]
+                        neighbours = self.grid[macrophage.address]['neighbours_mo'][depth]
                         # Shuffle the neighbours so we don't give priority
                         np.random.shuffle(neighbours)
                         for n in neighbours:
@@ -916,7 +923,7 @@ class Automaton(Tile):
                         if len(bacteria_addresses) == self.parameters['bacteria_to_burst_macrophage']:
                             break
                     # Macrophage bursting event
-                    new_event = MacrophageBursting(macrophage.address, bacteria_addresses, internal)
+                    new_event = Event('MacrophageBursting', [macrophage.address], [macrophage.address] + bacteria_addresses, None)
                     self.potential_events.append(new_event)
 
     def bacteria_state_changes(self):
