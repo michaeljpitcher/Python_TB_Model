@@ -560,7 +560,7 @@ class Automaton(Tile):
                     # Find a free neighbour (not a blood vessel and contents == 0.0)
                     for neighbour_address in neighbours:
                         neighbour = self.grid[neighbour_address]
-                        if neighbour is not None and neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
+                        if neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
                             free_neighbours.append(neighbour_address)
                     # If a free neighbour found, don't look at greater depths
                     if len(free_neighbours) > 0:
@@ -599,7 +599,7 @@ class Automaton(Tile):
                     free_neighbours = []
                     for neighbour_address in neighbours:
                         neighbour = self.grid[neighbour_address]
-                        if neighbour is not None and neighbour['blood_vessel'] == 0.0 and neighbour['contents'] == 0.0 \
+                        if neighbour['blood_vessel'] == 0.0 and neighbour['contents'] == 0.0 \
                                 and self.chemokine_scale(neighbour_address) > \
                                 self.parameters['chemokine_scale_for_t_cell_recruitment']:
                             free_neighbours.append(neighbour_address)
@@ -631,7 +631,7 @@ class Automaton(Tile):
                 free_neighbours = []
                 for neighbour_address in neighbours:
                     neighbour = self.grid[neighbour_address]
-                    if neighbour is not None and neighbour['blood_vessel'] == 0.0 and neighbour['contents'] == 0.0 and \
+                    if neighbour['blood_vessel'] == 0.0 and neighbour['contents'] == 0.0 and \
                             self.chemokine_scale(neighbour_address) > chemokine_threshold:
                         free_neighbours.append(neighbour_address)
 
@@ -704,10 +704,8 @@ class Automaton(Tile):
                     neighbours = self.grid[t_cell.address]['neighbours_mo'][1]
                     # If a random move, pick a neighbour at random
                     if random_move:
-                        # Remove neighbours not on system
-                        possible_neighbours = [n for n in neighbours if self.grid[n] is not None]
-                        index = np.random.randint(0, len(possible_neighbours))
-                        chosen_neighbour_address = possible_neighbours[index]
+                        index = np.random.randint(0, len(neighbours))
+                        chosen_neighbour_address = neighbours[index]
                     else: # Pick the neighbour with the highest chemokine level
                         chosen_index = self.find_max_chemokine_neighbour(neighbours)[0]
                         chosen_neighbour_address = neighbours[chosen_index]
@@ -752,7 +750,7 @@ class Automaton(Tile):
                 if self.time % self.parameters['resting_macrophage_movement_time'] == 0:
                     # Chemokine moves on random biased walk. Random move with probability based on parameters, if
                     # highest chemokine scale at neighbours does not exceed threshold, then also random move
-                    neighbours = [n for n in self.grid[macrophage.address]['neighbours_mo'][1] if self.grid[n] is not None]
+                    neighbours = self.grid[macrophage.address]['neighbours_mo'][1]
                     chosen_index, max_chemokine_scale = self.find_max_chemokine_neighbour(neighbours)
                     # Generate random number for probability of random move
                     prob_random_move = np.random.randint(1, 101)
@@ -787,7 +785,7 @@ class Automaton(Tile):
                 # Set time for macrophage movement
                 if self.time % self.parameters['active_macrophage_movement_time'] == 0:
                     # Active macrophages always move to highest chemokine neighbour
-                    neighbours = [n for n in self.grid[macrophage.address]['neighbours_mo'][1] if self.grid[n] is not None]
+                    neighbours = self.grid[macrophage.address]['neighbours_mo'][1]
                     chosen_neighbour_address = neighbours[self.find_max_chemokine_neighbour(neighbours)[0]]
                     neighbour = self.grid[chosen_neighbour_address]
                     # If cell to move to has a bacterium
@@ -820,7 +818,7 @@ class Automaton(Tile):
                 # Move after certain time
                 if self.time % self.parameters['infected_macrophage_movement_time'] == 0:
                     # Infected move to highest chemokine neighbour
-                    neighbours = [n for n in self.grid[macrophage.address]['neighbours_mo'][1] if self.grid[n] is not None]
+                    neighbours = self.grid[macrophage.address]['neighbours_mo'][1]
                     chosen_neighbour_address = neighbours[self.find_max_chemokine_neighbour(neighbours)[0]]
                     neighbour = self.grid[chosen_neighbour_address]
                     # Neighbour is empty, so move event
@@ -846,7 +844,7 @@ class Automaton(Tile):
                 # Movement at set times
                 if self.time % self.parameters['chronically_infected_macrophage_movement_time'] == 0:
                     # Move to highest chemokine scale neighbour
-                    neighbours = [n for n in self.grid[macrophage.address]['neighbours_mo'][1] if self.grid[n] is not None]
+                    neighbours = self.grid[macrophage.address]['neighbours_mo'][1]
                     chosen_neighbour_address = neighbours[self.find_max_chemokine_neighbour(neighbours)[0]]
                     neighbour = self.grid[chosen_neighbour_address]
                     # Neighbour is empty, so move event
@@ -909,8 +907,7 @@ class Automaton(Tile):
                         for n in neighbours:
                             # Find empty neighbours
                             neighbour = self.grid[n]
-                            if neighbour is not None and neighbour['contents'] == 0.0 and \
-                                            neighbour['blood_vessel'] == 0.0:
+                            if neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
                                 bacteria_addresses.append(n)
                                 # If an address is off the tile then event will be external
                                 if not self.address_is_on_grid(n):
@@ -955,7 +952,7 @@ class Automaton(Tile):
                     for n in neighbours:
                         # Is neighbour empty?
                         neighbour = self.grid[n]
-                        if neighbour is not None and neighbour['blood_vessel'] == 0.0 and neighbour['contents'] == 0.0:
+                        if neighbour['blood_vessel'] == 0.0 and neighbour['contents'] == 0.0:
                             event_details = dict(type='resting', value=False)
                             new_event = Event('BacteriumStateChange', [bacterium.address], [bacterium.address], event_details)
                             self.potential_events.append(new_event)
@@ -1033,6 +1030,10 @@ class Automaton(Tile):
         return chosen_index, max_chemokine_scale
 
 
+# -----------------
+# AGENT
+# -----------------
+
 class Agent:
 
     def __init__(self, address):
@@ -1053,6 +1054,14 @@ class Macrophage(Agent):
         self.state = state
         self.intracellular_bacteria = 0
 
+class TCell(Agent):
+
+    def __init__(self, address):
+        Agent.__init__(self, address)
+
+# -----------------
+# EVENT
+# -----------------
 
 class Event:
 
