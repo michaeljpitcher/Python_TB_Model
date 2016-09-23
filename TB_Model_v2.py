@@ -616,18 +616,18 @@ class Automaton(Tile):
         Each step for each source vessel, there is a probability that macrophage will be recruited
         :return:
         """
-        if self.number_of_bacteria_global >= self.parameters['bacteria_threshold_for_macrophage_recruitment']:
+        if self.get_total_bacteria() >= self.parameters['bacteria_threshold_for_macrophage_recruitment']:
             chemokine_threshold = self.parameters['chemokine_scale_for_macrophage_recruitment_above_threshold']
         else:
             chemokine_threshold = self.parameters['chemokine_scale_for_macrophage_recruitment_below_threshold']
 
         # Loop through each blood vessel
-        for bv_address in self.blood_vessels:
+        for bv_address in self.blood_vessel_addresses:
             # Generate event with probability based on parameters
             r = np.random.randint(1, 101)
             if r <= self.parameters['macrophage_recruitment_probability']:
                 # Get neighbours, then reduce to those that are free and have sufficient chemokine scale
-                neighbours = self.von_neumann_neighbours[bv_address][1]
+                neighbours = self.grid[bv_address]['neighbours_vn'][1]
                 free_neighbours = []
                 for neighbour_address in neighbours:
                     neighbour = self.grid[neighbour_address]
@@ -638,9 +638,8 @@ class Automaton(Tile):
                 if len(free_neighbours) > 0:
                     # Pick one of the neighbours
                     chosen_neighbour = free_neighbours[np.random.randint(len(free_neighbours))]
-                    # Create event
-                    internal = self.address_is_on_grid(chosen_neighbour)
-                    new_event = RecruitMacrophage(chosen_neighbour, internal)
+                    # Create event (no details needed outside of the address)
+                    new_event = Event('RecruitMacrophage', [chosen_neighbour], [chosen_neighbour], None)
                     self.potential_events.append(new_event)
 
     def chemotherapy_killing_bacteria(self):
