@@ -607,9 +607,8 @@ class Automaton(Tile):
                     if len(free_neighbours) > 0:
                         # Pick one of the neighbours
                         neighbour_address = free_neighbours[np.random.randint(len(free_neighbours))]
-                        # Create event
-                        internal = self.address_is_on_grid(neighbour_address)
-                        new_event = RecruitTCell(neighbour_address, internal)
+                        # Create event (no extra details needed outside the address)
+                        new_event = Event('RecruitTCell', [neighbour_address], [neighbour_address], None)
                         self.potential_events.append(new_event)
 
     def macrophage_recruitment(self):
@@ -1007,6 +1006,7 @@ class Automaton(Tile):
             return 0.0
         else:
             return (self.grid[address]['chemokine'] / self.max_chemokine) * 100.0
+
 
 class Agent:
 
