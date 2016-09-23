@@ -656,7 +656,7 @@ class Automaton(Tile):
                     or (bacterium.metabolism == 'slow' and chemo_scale >
                     self.parameters['chemotherapy_scale_for_kill_slow_bacteria']):
                 # Scale is high enough, so create event to destroy bacterium
-                new_event = ChemoKillBacterium(bacterium.address)
+                new_event = Event('ChemoKillBacterium', [bacterium.address], [bacterium.address], None)
                 self.potential_events.append(new_event)
 
     def chemotherapy_killing_macrophages(self):
