@@ -691,7 +691,7 @@ class Automaton(Tile):
                 # T-CELL DEATH
                 # If age > threshold, t-cell dies
                 if t_cell.age >= age_threshold:
-                    new_event = TCellDeath(t_cell.address)
+                    new_event = Event('TCellDeath', [t_cell.address], [t_cell.address], None)
                     self.potential_events.append(new_event)
                 else:  # T-CELL MOVE
                     # T-cells move in biased random walk. Determine if move will be random based on probability in
@@ -701,7 +701,7 @@ class Automaton(Tile):
                     if prob_random_move <= self.parameters['t_cell_random_move_probability']:
                         random_move = True
                     # Get neighbours
-                    neighbours = self.moore_neighbours[t_cell.address][1]
+                    neighbours = self.grid[t_cell.address]['neighbours_mo'][1]
                     # If a random move, pick a neighbour at random
                     if random_move:
                         # Remove neighbours not on system
@@ -718,16 +718,15 @@ class Automaton(Tile):
                     neighbour = self.grid[chosen_neighbour_address]
                     # Check neighbour is empty, then move T-cell there
                     if neighbour['contents'] == 0.0 and neighbour['blood_vessel'] == 0.0:
-                        new_event = TCellMovement(t_cell, t_cell.address, chosen_neighbour_address, internal)
+                        new_event = Event('TCellMovement', [t_cell.address, chosen_neighbour_address], [t_cell.address, chosen_neighbour_address], None)
                         self.potential_events.append(new_event)
                     # Else if the address contains an infected macrophage, then t-cell may kill it
                     elif isinstance(neighbour['contents'], Macrophage) and (neighbour['contents'].state == 'infected'
-                                                                            or neighbour[
-                            'contents'].state == 'chronically_infected'):
+                            or neighbour['contents'].state == 'chronically_infected'):
                         # T-cell killing based on parameter probability
                         prob_t_cell_killing = np.random.randint(1, 101)
                         if prob_t_cell_killing <= self.parameters['t_cell_kills_macrophage_probability']:
-                            new_event = TCellKillsMacrophage(t_cell, t_cell.address, chosen_neighbour_address, internal)
+                            new_event = Event('TCellKillsMacrophage', [t_cell.address, chosen_neighbour_address], [t_cell.address, chosen_neighbour_address], None)
                             self.potential_events.append(new_event)
 
     def macrophage_processes(self):
@@ -1005,6 +1004,28 @@ class Automaton(Tile):
             return 0.0
         else:
             return (self.grid[address]['chemokine'] / self.max_chemokine) * 100.0
+
+    def find_max_chemokine_neighbour(self, neighbours):
+        """
+        Given neighbour addresses, find the neighbour which has the highest level of chemokine
+        :param neighbours:
+        :return:
+        """
+        max_chemokine_scale = 0
+        highest_indices = []
+        for index in range(len(neighbours)):
+            chemokine_scale = self.chemokine_scale(neighbours[index])
+            if chemokine_scale > max_chemokine_scale:
+                max_chemokine_scale = chemokine_scale
+                highest_indices = [index]
+            elif chemokine_scale == max_chemokine_scale:
+                highest_indices.append(index)
+
+        # Tie-breaking. If just one pick it, else pick any one index at random
+        choice = np.random.randint(0, len(highest_indices))
+        chosen_index = highest_indices[choice]
+
+        return chosen_index, max_chemokine_scale
 
 
 class Agent:
