@@ -1475,7 +1475,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             if macrophage.state == 'resting' and self.time > 1 / self.parameters['time_step']:
                 # Death by age is stochastic
                 random_macrophage_age = np.random.randint(0, self.parameters['resting_macrophage_age_limit'])
-                if macrophage.age >= random_macrophage_age == 0:
+                if macrophage.age >= random_macrophage_age:
                     # Create an event
                     new_event = MacrophageDeath(macrophage.address)
                     self.potential_events.append(new_event)
@@ -1548,7 +1548,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             elif macrophage.state == 'infected':
                 # Death is stochastic
                 random_macrophage_age = np.random.randint(0, self.parameters['infected_macrophage_age_limit'])
-                if macrophage.age >= random_macrophage_age == 0:
+                if macrophage.age >= random_macrophage_age:
                     new_event = MacrophageDeath(macrophage.address)
                     self.potential_events.append(new_event)
                     # Progress to the next macrophage
@@ -1575,7 +1575,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                 # Stochastic death
                 random_macrophage_age = np.random.randint(0,
                                                           self.parameters['chronically_infected_macrophage_age_limit'])
-                if macrophage.age >= random_macrophage_age == 0:
+                if macrophage.age >= random_macrophage_age:
                     new_event = MacrophageDeath(macrophage.address)
                     self.potential_events.append(new_event)
                     # Progress to the next macrophage
