@@ -1471,7 +1471,8 @@ class Automaton(Tile, Neighbourhood, EventHandler):
             # Increment age
             macrophage.age += self.parameters['time_step']
             # Different events/movement rates/death rates depending on state
-            if macrophage.state == 'resting':
+            # TODO - MED - time > 1/dt added to match TBModel.cpp - but what is significance of this?
+            if macrophage.state == 'resting' and self.time > 1 / self.parameters['time_step']:
                 # Death by age is stochastic
                 random_macrophage_age = np.random.randint(0, self.parameters['resting_macrophage_age_limit'])
                 if macrophage.age >= random_macrophage_age == 0:
