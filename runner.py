@@ -3,8 +3,9 @@ import itertools
 import numpy as np
 import time
 from ipyparallel import Client
+import os
 
-import pyximport; pyximport.install(pyimport=True)
+# import pyximport; pyximport.install(pyimport=True)
 import TB_Model
 
 
@@ -530,6 +531,9 @@ def main():
     # LOAD RUN PARAMETERS
     time_limit = int(config.getint("RunParametersSection", "time_limit") / parameters['time_step'])
     method = config.get("RunParametersSection", "method")
+    output_location = config.get("RunParametersSection", "output_location")
+    if not os.path.exists(output_location):
+        os.makedirs(output_location)
 
     # LOAD INITIALISATION
     blood_vessels, fast_bacteria, slow_bacteria, macrophages = initialise(config, total_shape)
@@ -537,7 +541,7 @@ def main():
     print 'Constructing topology...'
     construction_start_time = time.time()
     topology = TB_Model.TwoDimensionalTopology(tile_arrangement, total_shape, attributes, parameters, blood_vessels,
-                                               fast_bacteria, slow_bacteria, macrophages, 'output')
+                                               fast_bacteria, slow_bacteria, macrophages, output_location)
     construction_end_time = time.time()
     print 'Complete. Time taken for construction: ', construction_end_time-construction_start_time
 
