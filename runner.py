@@ -4,6 +4,7 @@ import numpy as np
 import time
 from ipyparallel import Client
 import os
+import TB_Displayer
 
 # import pyximport; pyximport.install(pyimport=True)
 import TB_Model
@@ -559,6 +560,9 @@ def main():
     whole_end_time = time.time()
 
     print 'Whole process time:', whole_end_time-whole_start_time
+
+    # OUTPUT
+    # TB_Displayer.display_grid(output_location, blood_vessels, total_shape)
 
 if __name__ == '__main__':
     main()
