@@ -535,6 +535,7 @@ def main():
     output_location = config.get("RunParametersSection", "output_location")
     if not os.path.exists(output_location):
         os.makedirs(output_location)
+    movie_output = config.getboolean("RunParametersSection", "movie_output")
 
     # LOAD INITIALISATION
     blood_vessels, fast_bacteria, slow_bacteria, macrophages = initialise(config, total_shape)
@@ -562,6 +563,8 @@ def main():
     print 'Whole process time:', whole_end_time-whole_start_time
 
     # OUTPUT
+    if movie_output:
+        displayer = TB_Displayer.Displayer(output_location, blood_vessels, total_shape, "TBModel")
     # TB_Displayer.display_grid(output_location, blood_vessels, total_shape)
 
 if __name__ == '__main__':

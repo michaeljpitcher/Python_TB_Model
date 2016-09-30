@@ -3,85 +3,150 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
 
-def display_numbers(output_directory):
-    pass
+class Displayer:
 
+    def __init__(self, output_directory, vessels, grid_shape):
+        self.output_directory = output_directory
+        self.vessels = vessels
+        self.shape = grid_shape
 
-def display_grid(output_directory, vessels, shape):
+    def display_numbers(self):
+        pass
 
-    size = reduce(lambda x, y: x * y, shape)
-    with open(output_directory + "/0_data_test.txt") as f:
-        cell_data = [float(x.strip('\n')) for x in f.readlines()]
-    with open(output_directory + "/0_oxygen_test.txt") as f:
-        oxygen_data = [float(x.strip('\n')) for x in f.readlines()]
-    with open(output_directory + "/0_chemo1.txt") as f:
-        chemotherapy_data = [float(x.strip('\n')) for x in f.readlines()]
-    with open(output_directory + "/0_ckine.txt") as f:
-        chemokine_data = [float(x.strip('\n')) for x in f.readlines()]
+    def display_grid(self, movie_name, interval=400, legend=False):
 
-    assert len(oxygen_data) % size == len(chemotherapy_data) % size == len(chemokine_data) % size == 0.0
+        print "Collecting data..."
+        size = reduce(lambda i, j: i * j, self.shape)
+        with open(self.output_directory + "/0_data_test.txt") as f:
+            cell_data = [float(x.strip('\n')) for x in f.readlines()]
+        with open(self.output_directory + "/0_oxygen_test.txt") as f:
+            oxygen_data = [float(x.strip('\n')) for x in f.readlines()]
+        with open(self.output_directory + "/0_chemo1.txt") as f:
+            chemotherapy_data = [float(x.strip('\n')) for x in f.readlines()]
+        with open(self.output_directory + "/0_ckine.txt") as f:
+            chemokine_data = [float(x.strip('\n')) for x in f.readlines()]
 
-    timesteps = len(oxygen_data) / size
+        assert len(cell_data) % size == len(oxygen_data) % size == len(chemotherapy_data) % size \
+            == len(chemokine_data) % size == 0.0
 
-    contents_grids = []
-    for t in range(timesteps):
-        contents_grids.append(np.array(cell_data[0 + (t * size):size + (t * size)]).reshape(shape))
+        time_steps = len(oxygen_data) / size
 
-    # PRINT
-    plt.scatter([v[1] for v in vessels], [v[0] for v in vessels], s=20, color='red', marker="D")
+        # GATHER DATA
+        contents_grids = []
+        for t in range(time_steps):
+            contents_grids.append(np.array(cell_data[0 + (t * size):size + (t * size)]).reshape(self.shape))
+        fast_bacs = []
+        fast_rest_bacs = []
+        slow_bacs = []
+        slow_rest_bacs = []
+        rest_macs = []
+        active_macs = []
+        inf_macs = []
+        chr_inf_macs = []
+        t_cells = []
+        caseum = []
 
-    for y in range(shape[0]):
-        for x in range(shape[1]):
-            # FAST BAC
-            if contents_grids[0][(x,y)] == 1.0:
-                plt.scatter([y],[x], s=1, color='#0F63AE')  # BLUE
-            # FAST BAC REST
-            elif contents_grids[0][(x,y)] == 1.25:
-                plt.scatter([y],[x], s=1, color='#0A4579')  # DEEP BLUE
-            # SLOW BAC
-            elif contents_grids[0][(x,y)] == 2.0:
-                plt.scatter([y],[x], s=1, color='#851f98')  # PURPLE
-            # SLOW BAC REST
-            elif contents_grids[0][(x,y)] == 2.25:
-                plt.scatter([y],[x], s=1, color='#490746')  # DEEP PURPLE
-            # REST MAC
-            elif contents_grids[0][(x,y)] == 4.0:
-                plt.scatter([y],[x], color='#168964', marker=(5,1))  # GREEN
-            # ACTIVE MAC
-            elif contents_grids[0][(x, y)] == 5.0:
-                plt.scatter([y],[x], color='#00ff45', marker=(5,1))  # BRIGHT GREEN
-            # INF MAC
-            elif contents_grids[0][(x, y)] == 6.0:
-                plt.scatter([y],[x], color='##eaec17', marker=(5,1))  # YELLOW
-            # CHR INF MAC
-            elif contents_grids[0][(x, y)] == 7.0:
-                plt.scatter([y],[x], color='#c7a30c', marker=(5,1))  # GOLD
-            # T CELL
-            elif contents_grids[0][(x,y)] == 3.0:
-                plt.scatter([y],[x], color='#f9c7ed')  # PINK
-            # CASEUM
-            elif contents_grids[0][(x, y)] == 100.0:
-                plt.scatter([y],[x], color='#000000')  # BLACK
+        for time_step in range(len(contents_grids)):
+            fast_bacs.append([])
+            fast_rest_bacs.append([])
+            slow_bacs.append([])
+            slow_rest_bacs.append([])
+            rest_macs.append([])
+            active_macs.append([])
+            inf_macs.append([])
+            chr_inf_macs.append([])
+            t_cells.append([])
+            caseum.append([])
 
-    plt.axis([0, shape[0], shape[1], 0])
-    plt.xticks([])
-    plt.yticks([])
-    plt.title('TB Automaton')
-    plt.show()
+            grid = contents_grids[time_step]
+            for y in range(grid.shape[0]):
+                for x in range(grid.shape[1]):
+                    # FAST BAC
+                    if grid[(x, y)] == 1.0:
+                        fast_bacs[time_step].append((x, y))
+                    # FAST BAC REST
+                    elif grid[(x, y)] == 1.25:
+                        fast_rest_bacs[time_step].append((x, y))
+                    # SLOW BAC
+                    elif grid[(x, y)] == 2.0:
+                        slow_bacs[time_step].append((x, y))
+                    # SLOW BAC REST
+                    elif grid[(x, y)] == 2.25:
+                        slow_rest_bacs[time_step].append((x, y))
+                    # REST MAC
+                    elif grid[(x, y)] == 4.0:
+                        rest_macs[time_step].append((x, y))
+                    # ACTIVE MAC
+                    elif grid[(x, y)] == 5.0:
+                        active_macs[time_step].append((x, y))
+                    # INF MAC
+                    elif grid[(x, y)] == 6.0:
+                        inf_macs[time_step].append((x, y))
+                    # CHR INF MAC
+                    elif grid[(x, y)] == 7.0:
+                        chr_inf_macs[time_step].append((x, y))
+                    # T CELL
+                    elif grid[(x, y)] == 3.0:
+                        t_cells[time_step].append((x, y))
+                    # CASEUM
+                    elif grid[(x, y)] == 100.0:
+                        caseum[time_step].append((x, y))
 
+        def update_plot(time_step):
+            plt.clf()
 
-def main():
+            plt.axis([0, self.shape[0], self.shape[1], 0])
+            plt.xticks([])
+            plt.yticks([])
+            plt.title('TB Automaton - Time = ' + str(time_step) + "hours")
 
-    output_location = 'output'
-    bv_file = 'Vessel_files/initialvessel1.txt'
-    shape = [101,101]
+            bv = plt.scatter([v[1] for v in self.vessels], [v[0] for v in self.vessels],
+                        s=20, color='red', marker="D")  # RED
+            fb = plt.scatter([fb[1] for fb in fast_bacs[time_step]], [fb[0] for fb in fast_bacs[time_step]],
+                        s=1, color='#0F63AE')  # BLUE
+            frb = plt.scatter([fbr[1] for fbr in fast_rest_bacs[time_step]], [fbr[0] for fbr in fast_rest_bacs[time_step]],
+                        s=1, color='#0A4579')  # DEEP BLUE
+            sb = plt.scatter([sb[1] for sb in slow_bacs[time_step]], [sb[0] for sb in slow_bacs[time_step]],
+                        s=1, color='#851f98')  # PURPLE
+            srb = plt.scatter([sbr[1] for sbr in slow_rest_bacs[time_step]], [sbr[0] for sbr in slow_rest_bacs[time_step]],
+                        s=1, color='#490746')  # DEEP PURPLE
+            rm = plt.scatter([rm[1] for rm in rest_macs[time_step]], [rm[0] for rm in rest_macs[time_step]],
+                        color='#168964', marker=(5, 1))  # GREEN
+            am = plt.scatter([am[1] for am in active_macs[time_step]], [am[0] for am in active_macs[time_step]],
+                        color='#00ff45', marker=(5, 1))  # BRIGHT GREEN
+            im = plt.scatter([im[1] for im in inf_macs[time_step]], [im[0] for im in inf_macs[time_step]],
+                        color='#F1BC41', marker=(5, 1))  # GOLD
+            cim = plt.scatter([cim[1] for cim in chr_inf_macs[time_step]],[cim[0] for cim in chr_inf_macs[time_step]],
+                        color='#77643a', marker=(5, 1))  # BROWN
+            tc = plt.scatter([tc[1] for tc in t_cells[time_step]], [tc[0] for tc in t_cells[time_step]],
+                        color='#f9c7ed')  # PINK
+            ca = plt.scatter([c[1] for c in caseum[time_step]], [c[0] for c in caseum[time_step]],
+                        color='#000000')  # BLACK
 
-    with open(bv_file) as f:
-        bvs = [float(x.strip('\n')) for x in f.readlines()]
-    integer_locations = [i for i in range(len(bvs)) if bvs[i] > 0]
-    bv_addresses = [np.unravel_index(a, shape) for a in integer_locations]
+            if legend:
+                plt.legend((bv, fb, frb, sb, srb, rm, am, im, cim, tc, ca), ("Blood vessel", "Fast bacterium", "Fast resting bacterium",
+                    "Slow bacterium", "Slow resting bacterium", "Resting macrophage", "Active macrophage",
+                    "Infected macrophage", "Chr. Infected macrophage", "T-cell", "Caseum"), scatterpoints=1,
+                    loc='lower left', ncol=3, fontsize=8)
 
-    display_grid(output_location,bv_addresses,shape)
+        # DISPLAY
+        print "Creating animation..."
+        fig = plt.figure()
+        ani = animation.FuncAnimation(fig, update_plot, frames=xrange(time_steps), interval=interval, blit=False)
+        ani.save(movie_name + ".mp4", writer='ffmpeg_file')
+        plt.show()
+
 
 if __name__ == '__main__':
-    main()
+    # Manual data input
+    output_location = 'output'
+    bv_file = 'Vessel_files/initialvessel1.txt'
+    movie_filename = "TBModel"
+    shape = [101, 101]
+    with open(bv_file) as bv_file:
+        bvs = [float(line.strip('\n')) for line in bv_file.readlines()]
+    integer_locations = [il for il in range(len(bvs)) if bvs[il] > 0]
+    bv_addresses = [np.unravel_index(a, shape) for a in integer_locations]
+
+    d = Displayer(output_location,bv_addresses,shape)
+    d.display_grid(movie_filename, legend=True)
