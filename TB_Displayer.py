@@ -102,7 +102,8 @@ class Displayer:
             plt.axis([0, self.shape[0], self.shape[1], 0])
             plt.xticks([])
             plt.yticks([])
-            plt.title('TB Automaton - Time = ' + str(time_step) + "hours")
+            plt.suptitle("TB Automaton", fontsize=14, fontweight='bold')
+            plt.title('Time = ' + str(time_step) + " hours", fontsize=10)
 
             bv = plt.scatter([v[1] for v in self.vessels], [v[0] for v in self.vessels],
                         s=20, color='red', marker="D")  # RED
@@ -156,4 +157,4 @@ if __name__ == '__main__':
     bv_addresses = [np.unravel_index(a, shape) for a in integer_locations]
 
     d = Displayer(output_location,bv_addresses,shape)
-    d.display_grid(movie_filename, legend=True)
+    d.display_grid(movie_filename, legend=False)
