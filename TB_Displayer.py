@@ -1,8 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+
 
 def display_numbers(output_directory):
     pass
+
 
 def display_grid(output_directory, vessels, shape):
 
@@ -46,13 +49,13 @@ def display_grid(output_directory, vessels, shape):
                 plt.scatter([y],[x], color='#168964', marker=(5,1))  # GREEN
             # ACTIVE MAC
             elif contents_grids[0][(x, y)] == 5.0:
-                plt.scatter([y],[x], color='#00ff45', marker="^")  # BRIGHT GREEN
+                plt.scatter([y],[x], color='#00ff45', marker=(5,1))  # BRIGHT GREEN
             # INF MAC
             elif contents_grids[0][(x, y)] == 6.0:
-                plt.scatter([y],[x], color='##eaec17', marker="^")  # YELLOW
+                plt.scatter([y],[x], color='##eaec17', marker=(5,1))  # YELLOW
             # CHR INF MAC
             elif contents_grids[0][(x, y)] == 7.0:
-                plt.scatter([y],[x], color='#c7a30c', marker="^")  # GOLD
+                plt.scatter([y],[x], color='#c7a30c', marker=(5,1))  # GOLD
             # T CELL
             elif contents_grids[0][(x,y)] == 3.0:
                 plt.scatter([y],[x], color='#f9c7ed')  # PINK
@@ -65,3 +68,20 @@ def display_grid(output_directory, vessels, shape):
     plt.yticks([])
     plt.title('TB Automaton')
     plt.show()
+
+
+def main():
+
+    output_location = 'output'
+    bv_file = 'Vessel_files/initialvessel1.txt'
+    shape = [101,101]
+
+    with open(bv_file) as f:
+        bvs = [float(x.strip('\n')) for x in f.readlines()]
+    integer_locations = [i for i in range(len(bvs)) if bvs[i] > 0]
+    bv_addresses = [np.unravel_index(a, shape) for a in integer_locations]
+
+    display_grid(output_location,bv_addresses,shape)
+
+if __name__ == '__main__':
+    main()
