@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+from matplotlib import gridspec
 
 
 class Displayer:
@@ -94,6 +95,9 @@ class Displayer:
 
         def update_plot(time_step):
             plt.clf()
+            if legend:
+                gs = gridspec.GridSpec(2, 1, height_ratios=[6, 1])
+                plt.subplot(gs[0])
 
             plt.axis([0, self.shape[0], self.shape[1], 0])
             plt.xticks([])
@@ -124,10 +128,13 @@ class Displayer:
                         color='#000000')  # BLACK
 
             if legend:
+                plt.subplot(gs[1])
+                plt.xticks([])
+                plt.yticks([])
                 plt.legend((bv, fb, frb, sb, srb, rm, am, im, cim, tc, ca), ("Blood vessel", "Fast bacterium", "Fast resting bacterium",
                     "Slow bacterium", "Slow resting bacterium", "Resting macrophage", "Active macrophage",
                     "Infected macrophage", "Chr. Infected macrophage", "T-cell", "Caseum"), scatterpoints=1,
-                    loc='lower left', ncol=3, fontsize=8)
+                    loc='center', ncol=3, fontsize=8)
 
         # DISPLAY
         print "Creating animation..."
