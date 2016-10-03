@@ -141,7 +141,7 @@ class Displayer:
         print "Creating animation..."
         fig = plt.figure()
         ani = animation.FuncAnimation(fig, update_plot, frames=xrange(time_steps), interval=interval, blit=False)
-        ani.save(movie_name + ".mp4", writer='ffmpeg_file')
+        ani.save(output_location + "/" + movie_name + ".mp4", writer='ffmpeg_file')
         plt.show()
 
 
