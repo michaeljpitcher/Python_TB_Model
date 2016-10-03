@@ -564,8 +564,8 @@ def main():
 
     # OUTPUT
     if movie_output:
-        displayer = TB_Displayer.Displayer(output_location, blood_vessels, total_shape, "TBModel")
-    # TB_Displayer.display_grid(output_location, blood_vessels, total_shape)
+        displayer = TB_Displayer.Displayer(output_location, blood_vessels, total_shape)
+        displayer.display_grid("TBModel",legend=False)
 
 if __name__ == '__main__':
     main()
