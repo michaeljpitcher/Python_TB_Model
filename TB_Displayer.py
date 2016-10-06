@@ -14,17 +14,17 @@ class Displayer:
     def display_numbers(self):
         pass
 
-    def display_grid(self, movie_name, interval=400, legend=False):
+    def grid_animation(self, movie_name, interval=400, legend=False, display=True):
 
         print "Collecting data..."
         size = reduce(lambda i, j: i * j, self.shape)
-        with open(self.output_directory + "/0_data_test.txt") as f:
+        with open(self.output_directory + "/data_test.txt") as f:
             cell_data = [float(x.strip('\n')) for x in f.readlines()]
-        with open(self.output_directory + "/0_oxygen_test.txt") as f:
+        with open(self.output_directory + "/oxygen_test.txt") as f:
             oxygen_data = [float(x.strip('\n')) for x in f.readlines()]
-        with open(self.output_directory + "/0_chemo1.txt") as f:
+        with open(self.output_directory + "/chemo1.txt") as f:
             chemotherapy_data = [float(x.strip('\n')) for x in f.readlines()]
-        with open(self.output_directory + "/0_ckine.txt") as f:
+        with open(self.output_directory + "/ckine.txt") as f:
             chemokine_data = [float(x.strip('\n')) for x in f.readlines()]
 
         assert len(cell_data) % size == len(oxygen_data) % size == len(chemotherapy_data) % size \
@@ -112,9 +112,9 @@ class Displayer:
             frb = plt.scatter([fbr[1] for fbr in fast_rest_bacs[time_step]], [fbr[0] for fbr in fast_rest_bacs[time_step]],
                         s=1, color='#0A4579')  # DEEP BLUE
             sb = plt.scatter([sb[1] for sb in slow_bacs[time_step]], [sb[0] for sb in slow_bacs[time_step]],
-                        s=1, color='#851f98')  # PURPLE
+                        s=1, color='#851f98', marker="D")  # PURPLE
             srb = plt.scatter([sbr[1] for sbr in slow_rest_bacs[time_step]], [sbr[0] for sbr in slow_rest_bacs[time_step]],
-                        s=1, color='#490746')  # DEEP PURPLE
+                        s=1, color='#490746', marker="D")  # DEEP PURPLE
             rm = plt.scatter([rm[1] for rm in rest_macs[time_step]], [rm[0] for rm in rest_macs[time_step]],
                         color='#168964', marker=(5, 1))  # GREEN
             am = plt.scatter([am[1] for am in active_macs[time_step]], [am[0] for am in active_macs[time_step]],
@@ -142,13 +142,14 @@ class Displayer:
         fig = plt.figure()
         ani = animation.FuncAnimation(fig, update_plot, frames=xrange(time_steps), interval=interval, blit=False)
         ani.save(output_location + "/" + movie_name + ".mp4", writer='ffmpeg_file')
-        plt.show()
+        if display:
+            plt.show()
 
 
 if __name__ == '__main__':
     # Manual data input
-    output_location = 'output'
-    bv_file = 'Vessel_files/initialvessel1.txt'
+    output_location = '../../../../Comparison/DEBUG/RUTH/1'
+    bv_file = '../../../../Comparison/Vessel_files/initialvessel1.txt'
     movie_filename = "TBModel"
     shape = [101, 101]
     with open(bv_file) as bv_file:
@@ -157,4 +158,4 @@ if __name__ == '__main__':
     bv_addresses = [np.unravel_index(a, shape) for a in integer_locations]
 
     d = Displayer(output_location,bv_addresses,shape)
-    d.display_grid(movie_filename, legend=False)
+    d.grid_animation(movie_filename, legend=False)

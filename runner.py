@@ -558,14 +558,19 @@ def main():
     else:
         raise Exception("Invalid method")
 
+    # Close files so they can be used to make animation
+    for a in topology.automata:
+        a.close_files()
+
     whole_end_time = time.time()
 
     print 'Whole process time:', whole_end_time-whole_start_time
 
     # OUTPUT
+    # Create a movie animation - display as false so just saves an mp4 file
     if movie_output:
         displayer = TB_Displayer.Displayer(output_location, blood_vessels, total_shape)
-        displayer.display_grid("TBModel",legend=False)
+        displayer.grid_animation("TBModel", legend=False, display=False)
 
 if __name__ == '__main__':
     main()
