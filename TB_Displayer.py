@@ -18,13 +18,13 @@ class Displayer:
 
         print "Collecting data..."
         size = reduce(lambda i, j: i * j, self.shape)
-        with open(self.output_directory + "/data_test.txt") as f:
+        with open(self.output_directory + "/0_data_test.txt") as f:
             cell_data = [float(x.strip('\n')) for x in f.readlines()]
-        with open(self.output_directory + "/oxygen_test.txt") as f:
+        with open(self.output_directory + "/0_oxygen_test.txt") as f:
             oxygen_data = [float(x.strip('\n')) for x in f.readlines()]
-        with open(self.output_directory + "/chemo1.txt") as f:
+        with open(self.output_directory + "/0_chemo1.txt") as f:
             chemotherapy_data = [float(x.strip('\n')) for x in f.readlines()]
-        with open(self.output_directory + "/ckine.txt") as f:
+        with open(self.output_directory + "/0_ckine.txt") as f:
             chemokine_data = [float(x.strip('\n')) for x in f.readlines()]
 
         assert len(cell_data) % size == len(oxygen_data) % size == len(chemotherapy_data) % size \
@@ -141,7 +141,7 @@ class Displayer:
         print "Creating animation..."
         fig = plt.figure()
         ani = animation.FuncAnimation(fig, update_plot, frames=xrange(time_steps), interval=interval, blit=False)
-        ani.save(output_location + "/" + movie_name + ".mp4", writer='ffmpeg_file')
+        ani.save(self.output_directory + "/" + movie_name + ".mp4", writer='ffmpeg_file')
         if display:
             plt.show()
 
