@@ -319,6 +319,7 @@ def initialise(config, total_shape):
                 except ValueError:
                     raise Exception(index, total_shape)
                 blood_vessel_addresses.append(address)
+                available_addresses.remove(address)
     elif blood_vessels_method == 'random':
         number = config.getint("InitialiseSection", "blood_vessels_random_number")
         assert len(available_addresses) > number
