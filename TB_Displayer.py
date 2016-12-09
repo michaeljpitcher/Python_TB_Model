@@ -106,27 +106,27 @@ class Displayer:
             plt.title('Time = ' + str(time_step) + " hours", fontsize=10)
 
             bv = plt.scatter([v[1] for v in self.vessels], [v[0] for v in self.vessels],
-                        s=20, color='red', marker="D")  # RED
+                        s=20, color='red', marker="D")  # RED Blood Vessels
             fb = plt.scatter([fb[1] for fb in fast_bacs[time_step]], [fb[0] for fb in fast_bacs[time_step]],
-                        s=1, color='#0F63AE')  # BLUE
+                        s=1, color='#0F63AE')  # BLUE Fast Bacteria
             frb = plt.scatter([fbr[1] for fbr in fast_rest_bacs[time_step]], [fbr[0] for fbr in fast_rest_bacs[time_step]],
-                        s=1, color='#0A4579')  # DEEP BLUE
+                        s=4, color='#20437c', marker="D")  # DEEP BLUE Fast resting Bacteria
             sb = plt.scatter([sb[1] for sb in slow_bacs[time_step]], [sb[0] for sb in slow_bacs[time_step]],
-                        s=1, color='#851f98', marker="D")  # PURPLE
+                        s=1, color='#851f98')  # PURPLE Slow Bacteria
             srb = plt.scatter([sbr[1] for sbr in slow_rest_bacs[time_step]], [sbr[0] for sbr in slow_rest_bacs[time_step]],
-                        s=1, color='#490746', marker="D")  # DEEP PURPLE
+                        s=4, color='#490746', marker="D")  # DEEP PURPLE Slow Resting Bacteria
             rm = plt.scatter([rm[1] for rm in rest_macs[time_step]], [rm[0] for rm in rest_macs[time_step]],
-                        color='#168964', marker=(5, 1))  # GREEN
+                        color='#168964', marker=(5, 1))  # GREEN Resting macrophages
             am = plt.scatter([am[1] for am in active_macs[time_step]], [am[0] for am in active_macs[time_step]],
-                        color='#00ff45', marker=(5, 1))  # BRIGHT GREEN
+                        color='#00ff45', marker=(5, 1))  # BRIGHT GREEN Active Macrophages
             im = plt.scatter([im[1] for im in inf_macs[time_step]], [im[0] for im in inf_macs[time_step]],
-                        color='#F1BC41', marker=(5, 1))  # GOLD
+                        color='#F1BC41', marker=(5, 1))  # GOLD Infected Macrophages
             cim = plt.scatter([cim[1] for cim in chr_inf_macs[time_step]],[cim[0] for cim in chr_inf_macs[time_step]],
-                        color='#77643a', marker=(5, 1))  # BROWN
+                        color='#77643a', marker=(5, 1))  # BROWN Chronically Infected Macrophages
             tc = plt.scatter([tc[1] for tc in t_cells[time_step]], [tc[0] for tc in t_cells[time_step]],
-                        color='#f9c7ed')  # PINK
+                        color='#f9c7ed')  # PINK T-cells
             ca = plt.scatter([c[1] for c in caseum[time_step]], [c[0] for c in caseum[time_step]],
-                        color='#000000')  # BLACK
+                        color='#000000')  # BLACK Caseum
 
             if legend:
                 plt.subplot(gs[1])
@@ -147,15 +147,19 @@ class Displayer:
 
 
 if __name__ == '__main__':
-    # Manual data input
-    output_location = '../../../../Comparison/DEBUG/RUTH/1'
-    bv_file = '../../../../Comparison/Vessel_files/initialvessel1.txt'
-    movie_filename = "TBModel"
-    shape = [101, 101]
-    with open(bv_file) as bv_file:
-        bvs = [float(line.strip('\n')) for line in bv_file.readlines()]
-    integer_locations = [il for il in range(len(bvs)) if bvs[il] > 0]
-    bv_addresses = [np.unravel_index(a, shape) for a in integer_locations]
 
-    d = Displayer(output_location,bv_addresses,shape)
-    d.grid_animation(movie_filename, legend=False)
+    for a in range(1,4):
+
+        # Manual data input
+        # output_location = '../../../../Comparison/MINE/' + str(a)
+        output_location = 'output'
+        bv_file = '../../../../Comparison/Vessel_files/initialvessel1.txt'
+        movie_filename = "TBModel"
+        shape = [101, 101]
+        with open(bv_file) as bv_file:
+            bvs = [float(line.strip('\n')) for line in bv_file.readlines()]
+        integer_locations = [il for il in range(len(bvs)) if bvs[il] > 0]
+        bv_addresses = [np.unravel_index(a, shape) for a in integer_locations]
+
+        d = Displayer(output_location,bv_addresses,shape)
+        d.grid_animation(movie_filename, legend=True, display=False)
