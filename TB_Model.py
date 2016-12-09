@@ -1318,21 +1318,22 @@ class Automaton(Tile, Neighbourhood, EventHandler):
         # When global amount of bacteria exceeds threshold
         if self.number_of_bacteria_global >= self.parameters['bacteria_threshold_for_t_cells']:
             # Each blood vessel
-            for bv_address in self.blood_vessels:
+            for blood_vessel_address in self.blood_vessels:
                 # Generate event if probability according to parameters
                 r = np.random.randint(1, 101)
                 if r <= self.parameters['t_cell_recruitment_probability']:
                     # Get von Neumann neighbours
-                    neighbours = self.von_neumann_neighbours[bv_address][1]
-                    # Reduce neighbours to those which are empty and have high enough cheokine level
+                    neighbours = self.von_neumann_neighbours[blood_vessel_address][1]
+                    # Loop through all neighbours to find suitable options
                     free_neighbours = []
                     for neighbour_address in neighbours:
                         neighbour = self.grid[neighbour_address]
+                        # Check neighbour is on the grid, is empty and has a sufficiently high chemokine level
                         if neighbour is not None and neighbour['blood_vessel'] == 0.0 and neighbour['contents'] == 0.0 \
                                 and self.chemokine_scale(neighbour_address) > \
                                 self.parameters['chemokine_scale_for_t_cell_recruitment']:
                             free_neighbours.append(neighbour_address)
-                    # Check there is free space
+                    # Check there is at least one suitable neighbour
                     if len(free_neighbours) > 0:
                         # Pick one of the neighbours
                         neighbour_address = free_neighbours[np.random.randint(len(free_neighbours))]
@@ -1531,7 +1532,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     if isinstance(neighbour['contents'], Bacterium):
                         # Macrophages ingests with set probability (active macrophages will destroy)
                         prob_macrophage_kill = np.random.randint(1, 101)
-                        # Probabilites differ based on bacterium metabolism
+                        # Probabilities differ based on bacterium metabolism
                         if (neighbour['contents'].metabolism == 'fast' and prob_macrophage_kill <= self.parameters[
                                 'prob_active_macrophage_kill_fast_bacteria']) or (
                                 neighbour['contents'].metabolism == 'slow' and prob_macrophage_kill <=
