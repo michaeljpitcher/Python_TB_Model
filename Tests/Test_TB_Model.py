@@ -2240,6 +2240,7 @@ class MacrophageDeathTestCase(unittest.TestCase):
     def test_macrophage_death_resting(self):
 
         self.sort_out_halos()
+        self.topology.automata[0].time = 2
         self.topology.automata[0].update()
 
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
@@ -2338,6 +2339,7 @@ class MacrophageDeathTestCase(unittest.TestCase):
 
     def test_macrophage_death_resting_process(self):
         self.sort_out_halos()
+        self.topology.automata[0].time = 2
         self.topology.automata[0].update()
 
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
@@ -2450,7 +2452,7 @@ class MacrophageMovementTestCase(unittest.TestCase):
         # Set [1,2] as max chemokine cell - make sure it doesn't go here though (cause it's a random move)
         self.topology.automata[0].grid[1, 2]['chemokine'] = 99
         self.topology.automata[0].max_chemokine_global = 99
-
+        self.topology.automata[0].time = 2
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
@@ -2472,7 +2474,7 @@ class MacrophageMovementTestCase(unittest.TestCase):
         self.topology.automata[0].max_chemokine_global = 99999.9
 
         self.sort_out_halos()
-
+        self.topology.automata[0].time = 2
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
@@ -2492,7 +2494,7 @@ class MacrophageMovementTestCase(unittest.TestCase):
         self.topology.automata[0].max_chemokine_global = 99.9
 
         self.sort_out_halos()
-
+        self.topology.automata[0].time = 2
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
@@ -2528,6 +2530,7 @@ class MacrophageMovementTestCase(unittest.TestCase):
         self.topology.automata[1].max_chemokine_global = 100
 
         self.sort_out_halos()
+        self.topology.automata[0].time = 2
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
@@ -2698,7 +2701,7 @@ class MacrophageMovementTestCase(unittest.TestCase):
         self.topology.automata[0].max_chemokine_global = 99.9
 
         self.sort_out_halos()
-
+        self.topology.automata[0].time = 2
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
@@ -2727,6 +2730,7 @@ class MacrophageMovementTestCase(unittest.TestCase):
         self.topology.automata[1].max_chemokine_global = 100
 
         self.sort_out_halos()
+        self.topology.automata[0].time = 2
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
@@ -2766,6 +2770,8 @@ class MacrophageKillsBacteria(unittest.TestCase):
         params['prob_resting_macrophage_random_move'] = 0
         params['minimum_chemokine_for_resting_macrophage_movement'] = 0
         params['chemokine_scale_for_macrophage_deactivation'] = 0
+        params['oxygen_scale_for_metabolism_change_to_slow'] = -1
+        params['oxygen_scale_for_metabolism_change_to_fast'] = 101
 
         atts = ['blood_vessel', 'contents', 'oxygen', 'oxygen_diffusion_rate', 'chemotherapy_diffusion_rate',
                 'chemotherapy', 'chemokine']
@@ -2792,12 +2798,13 @@ class MacrophageKillsBacteria(unittest.TestCase):
             self.topology.automata[i].set_halo(halos[i])
 
     def test_resting_macrophage_kill_bacteria(self):
+
         # Set [1,2] as max chemokine cell - make sure it goes here
         self.topology.automata[0].grid[1, 2]['chemokine'] = 99.9
         self.topology.automata[0].max_chemokine_global = 99.9
 
         self.sort_out_halos()
-
+        self.topology.automata[0].time = 2
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
@@ -2822,6 +2829,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
         self.topology.automata[1].max_chemokine_global = 100
 
         self.sort_out_halos()
+        self.topology.automata[0].time = 2
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
@@ -2966,7 +2974,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
         self.assertTrue(event.internal)
 
     def test_process_resting_macrophage_kills_bacteria(self):
-        # Macrophage kills, it's internal bactera becomes 1
+        # Macrophage kills, it's internal bacterium becomes 1
 
         # Set [1,2] as max chemokine cell - make sure it goes here
         self.topology.automata[0].grid[1, 2]['chemokine'] = 99.9
@@ -2975,8 +2983,9 @@ class MacrophageKillsBacteria(unittest.TestCase):
         self.sort_out_halos()
 
         self.assertEqual(len(self.topology.automata[0].bacteria), 1)
-
+        self.topology.automata[0].time = 2
         self.topology.automata[0].update()
+
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
         self.assertTrue(event, TB_Model.MacrophageKillsBacterium)
@@ -3087,7 +3096,7 @@ class MacrophageKillsBacteria(unittest.TestCase):
         self.topology.automata[1].max_chemokine_global = 99.9
 
         self.sort_out_halos()
-
+        self.topology.automata[0].time = 2
         self.topology.automata[0].update()
         self.assertEqual(len(self.topology.automata[0].potential_events), 1)
         event = self.topology.automata[0].potential_events[0]
