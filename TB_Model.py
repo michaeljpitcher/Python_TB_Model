@@ -1625,7 +1625,7 @@ class Automaton(Tile, Neighbourhood, EventHandler):
                     self.potential_events.append(new_event)
             elif macrophage.state == 'infected':
                 # Infected to Chronically Infected if intracellular bacteria exceeds threshold
-                if macrophage.intracellular_bacteria > self.parameters['bacteria_to_turn_chronically_infected']:
+                if macrophage.intracellular_bacteria >= self.parameters['bacteria_to_turn_chronically_infected']:
                     new_event = MacrophageChangesState(macrophage.address, 'chronically_infected')
                     self.potential_events.append(new_event)
             elif macrophage.state == 'chronically_infected':

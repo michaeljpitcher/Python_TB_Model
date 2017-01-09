@@ -3205,7 +3205,7 @@ class MacrophageChangesState(unittest.TestCase):
 
     def test_infected_to_chronically(self):
         self.topology.automata[0].grid[1, 1]['contents'].state = 'infected'
-        self.topology.automata[0].grid[1, 1]['contents'].intracellular_bacteria = 11
+        self.topology.automata[0].grid[1, 1]['contents'].intracellular_bacteria = 10
 
         self.sort_out_halos()
         self.topology.automata[0].update()
